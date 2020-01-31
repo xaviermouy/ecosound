@@ -1,0 +1,16 @@
+[
+ {
+  "name": "AMARS",
+  "string_pattern":"_[0-9]{8}T[0-9]{6}.[0-9]{3}Z.",
+  "time_format": "_%Y%m%dT%H%M%S.%fZ."
+ }
+ ,
+
+{
+  "name": "SOUNDTRAPS",
+  "string_pattern":".([0-9]{12}).",
+  "time_format": ".%y%m%d%H%M%S."
+ }
+
+ 
+]
