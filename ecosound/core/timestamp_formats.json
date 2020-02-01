@@ -1,11 +1,16 @@
 [
  {
-  "name": "AMARS",
+  "name": "AMAR_v1",
   "string_pattern":"_[0-9]{8}T[0-9]{6}.[0-9]{3}Z.",
   "time_format": "_%Y%m%dT%H%M%S.%fZ."
  }
  ,
-
+{
+  "name": "AMARS_v2",
+  "string_pattern":".[0-9]{8}T[0-9]{6}Z.",
+  "time_format": ".%Y%m%dT%H%M%SZ."
+ }
+ ,
 {
   "name": "SOUNDTRAPS",
   "string_pattern":".([0-9]{12}).",
