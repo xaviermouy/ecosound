@@ -99,6 +99,26 @@ class Sound:
                              sound file name and path")
 
     def read(self, channel=0, chunk=[]):
+        """
+        
+
+        Parameters
+        ----------
+        channel : TYPE, optional
+            DESCRIPTION. The default is 0.
+        chunk : TYPE, optional
+            DESCRIPTION. The default is [].
+
+        Raises
+        ------
+        ValueError
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
         # check that the channel id is valid
         if (channel >= 0) & (channel <= self.nChannels - 1):
             if len(chunk) == 0:  # read the entire file

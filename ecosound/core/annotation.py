@@ -13,8 +13,16 @@ import core.tools
 
 class Annotation():
     """Defines an annotation object."""
-   
+
     def __init__(self):
+        """
+        Create an empty Annotation object.
+
+        Returns
+        -------
+        Annotation object.
+
+        """
         self.data = pd.DataFrame({
             'uuid':[],
             'from_detector': [], # True, False
@@ -51,7 +59,7 @@ class Annotation():
             'label_subclass':[],
             'confidence':[]
             })
-        
+
     def check_integrity(self, verbose=False, time_duplicates_only=False):
         """Check integrity of Annotation object.
         
@@ -85,12 +93,15 @@ class Annotation():
         time_check= self.data.index[
             self.data['time_max_offset']<self.data['time_min_offset']].tolist()
         if len(time_check) > 0:
-            raise ValueError('Incoherent annotation times (time_min > time_max). Problematic annotations:' + str(time_check))
+            raise ValueError('Incoherent annotation times (time_min > time_max). \
+                             Problematic annotations:' + str(time_check))
         # Check that min and max frequencies are coherent (i.e. fmin < fmax)
         freq_check= self.data.index[
             self.data['frequency_max']<self.data['frequency_min']].tolist()
         if len(freq_check) > 0:
-            raise ValueError('Incoherent annotation frequencies (frequency_min > frequency_max). Problematic annotations:' + str(freq_check))
+            raise ValueError('Incoherent annotation frequencies (frequency_min > \
+                             frequency_max). Problematic annotations:' 
+                + str(freq_check))
         if verbose:
             print('Integrity test succesfull')
 
@@ -122,20 +133,70 @@ class Annotation():
             self.data['label_subclass'] = data[subclass_header]
         self.data['from_detector'] = False
         self.data['software_name'] = 'raven'
-        self.data['uuid'] = self.data.apply(lambda _: uuid.uuid4(), axis=1)
+        self.data['uuid'] = self.data.apply(lambda _: str(uuid.uuid4()), axis=1)
         self.data['duration'] = self.data['time_max_offset'] - self.data['time_min_offset']
         self.check_integrity(verbose=verbose,time_duplicates_only=True)
 
-    def to_raven(self, file):
+    def to_raven(self, outdir, single_file=False):
         """Write to a Raven files."""
-
+        if single_file:
+            annots = [self.data]
+        else:
+            annots = [pd.DataFrame(y) for x, y in self.data.groupby('audio_file_name',
+                                                                    as_index=False)]
+        for annot in annots:
+            annot.reset_index(inplace=True, drop=True)
+            cols = ['Selection', 'View', 'Channel', 'Begin Time (s)',
+                    'End Time (s)','Delta Time (s)', 'Low Freq (Hz)', 'High Freq (Hz)',
+                    'Begin Path', 'File Offset (s)', 'Begin File', 
+                    'Class', 'Sound type','Software', 'Confidence']
+            outdf = pd.DataFrame({'Selection': 0, 'View': 0, 'Channel': 0,
+                                  'Begin Time (s)': 0,'End Time (s)':0, 'Delta Time (s)': 0, 
+                                  'Low Freq (Hz)': 0, 'High Freq (Hz)': 0,
+                                  'Begin Path': 0, 'File Offset (s)': 0, 
+                                  'Begin File': 0, 'Class': 0, 'Sound type': 0,
+                                  'Software': 0, 'Confidence': 0},
+                                 index=list(range(annot.shape[0])))    
+            outdf['Selection'] = range(1,annot.shape[0]+1)
+            outdf['View'] = 'Spectrogram 1'
+            outdf['Channel'] = annot['audio_channel']
+            outdf['Begin Time (s)'] = annot['time_min_offset']
+            outdf['End Time (s)'] = annot['time_max_offset']
+            outdf['Delta Time (s)'] = annot['duration']
+            outdf['Low Freq (Hz)'] = annot['frequency_min']
+            outdf['High Freq (Hz)'] = annot['frequency_max']
+            outdf['File Offset (s)'] = annot['time_min_offset']
+            outdf['Class'] = annot['label_class']
+            outdf['Sound type'] = annot['label_subclass']
+            outdf['Software'] =annot['software_name']
+            outdf['Confidence'] = annot['confidence']
+            outdf['Begin Path'] = [os.path.join(x,y) + z \
+                                  for x, y, z in zip(annot['audio_file_dir'],
+                                                     annot['audio_file_name'],
+                                                     annot['audio_file_extension'])]
+            outdf['Begin File'] = [x + y \
+                                  for x, y in zip(annot['audio_file_name'],
+                                                     annot['audio_file_extension'])]
+            outdf=outdf.fillna(0)
+            outdf.to_csv(os.path.join(outdir, str(annot['audio_file_name'].iloc[0]))
+                         + str(annot['audio_file_extension'].iloc[0]) 
+                         + '.chan' + str(annot['audio_channel'].iloc[0]) 
+                         + '.Table.1.selections.txt',
+                         sep='\t',
+                         encoding='utf-8',
+                         header=True,
+                         columns=cols,
+                         index=False)
+            
     def from_pamlab(self, files, verbose=False):
         """Import from 1 or several PAMLab files."""
         data = Annotation._import_files(files)
         files_timestamp = core.tools.filename_to_datetime(data['Soundfile'].tolist())
         self.data['audio_file_start_date'] = files_timestamp
         self.data['operator_name'] = data['Operator']
-        self.data['entry_date'] = pd.to_datetime(data['Annotation date and time (local)'], format='%Y-%m-%d %H:%M:%S.%f')
+        self.data['entry_date'] = pd.to_datetime(
+            data['Annotation date and time (local)'],
+            format='%Y-%m-%d %H:%M:%S.%f')
         self.data['audio_channel'] = data['Channel']
         self.data['audio_file_name'] = data['Soundfile'].apply(
             lambda x: os.path.splitext(os.path.basename(x))[0])
@@ -152,24 +213,94 @@ class Annotation():
         self.data['location_lon'] = data['Longitude (deg)']
         self.data['time_min_offset'] = data['Left time (sec)']
         self.data['time_max_offset'] = data['Right time (sec)']
-
         self.data['time_min_date'] = pd.to_datetime(
-            self.data['audio_file_start_date'] + pd.to_timedelta(self.data['time_min_offset'], unit='s'))
-            
+            self.data['audio_file_start_date'] 
+            + pd.to_timedelta(self.data['time_min_offset'], unit='s'))
         self.data['time_max_date'] = pd.to_datetime(
             self.data['audio_file_start_date'] +
             pd.to_timedelta(self.data['time_max_offset'], unit='s'))
-
         self.data['frequency_min'] = data['Bottom freq (Hz)']
         self.data['frequency_max'] = data['Top freq (Hz)']
         self.data['label_class'] = data['Species']
         self.data['label_subclass'] = data['Call type']
         self.data['from_detector'] = False
         self.data['software_name'] = 'pamlab'
-        self.data['uuid'] = self.data.apply(lambda _: uuid.uuid4(), axis=1)
+        self.data['uuid'] = self.data.apply(lambda _: str(uuid.uuid4()), axis=1)
         self.data['duration'] = self.data['time_max_offset'] - self.data['time_min_offset']
         self.check_integrity(verbose=verbose)
     
+    def to_pamlab(self, outdir, single_file=False):
+        """Write to a PAMLab file."""
+        if single_file:
+            annots = [self.data]
+        else:
+            annots = [pd.DataFrame(y) 
+                      for x, y in self.data.groupby(
+                              'audio_file_name',as_index=False)]
+        for annot in annots:
+            annot.reset_index(inplace=True, drop=True)
+            cols = ['fieldkey:', 'Soundfile', 'Channel', 'Sampling freq (Hz)',
+                    'Latitude (deg)', 'Longitude (deg)', 'Recorder ID',
+                    'Recorder depth', 'Start date and time (UTC)',
+                    'Annotation date and time (local)', 'Recorder type',
+                    'Deployment', 'Station', 'Operator', 'Left time (sec)',
+                    'Right time (sec)', 'Top freq (Hz)', 'Bottom freq (Hz)',
+                    'Species', 'Call type', 'rms SPL', 'SEL', '', '']
+            outdf = pd.DataFrame({'fieldkey:': 0, 'Soundfile': 0, 'Channel': 0,
+                                  'Sampling freq (Hz)': 0, 'Latitude (deg)': 0,
+                                  'Longitude (deg)': 0, 'Recorder ID': 0,
+                                  'Recorder depth': 0,
+                                  'Start date and time (UTC)': 0,
+                                  'Annotation date and time (local)': 0,
+                                  'Recorder type': 0, 'Deployment': 0,
+                                  'Station': 0, 'Operator': 0,
+                                  'Left time (sec)': 0, 'Right time (sec)': 0,
+                                  'Top freq (Hz)': 0, 'Bottom freq (Hz)': 0,
+                                  'Species': '', 'Call type': '', 'rms SPL': 0,
+                                  'SEL': 0, '': '', '': ''},
+                                 index=list(range(annot.shape[0])))
+            outdf['fieldkey:'] = 'an:'
+            outdf['Species'] = annot['label_class']
+            outdf['Call type'] = annot['label_subclass']
+            outdf['Left time (sec)'] = annot['time_min_offset']
+            outdf['Right time (sec)'] = annot['time_max_offset']
+            outdf['Top freq (Hz)'] = annot['frequency_max']
+            outdf['Bottom freq (Hz)'] = annot['frequency_min']
+            outdf['rms SPL'] = annot['confidence']
+            outdf['Operator'] = annot['operator_name']
+            outdf['Channel'] = annot['audio_channel']
+            outdf['Annotation date and time (local)'] = annot['entry_date']        
+            outdf['Sampling freq (Hz)'] = annot['audio_sampling_frequency']
+            outdf['Recorder type'] = annot['recorder_type']
+            outdf['Recorder ID'] = annot['recorder_SN']
+            outdf['Recorder depth'] = annot['hydrophone_depth']
+            outdf['Station'] = annot['location_name']
+            outdf['Latitude (deg)'] = annot['location_lat']
+            outdf['Longitude (deg)'] = annot['location_lon']
+            outdf['Soundfile'] = [os.path.join(x,y) + z \
+                                  for x, y, z in zip(annot['audio_file_dir'],
+                                                     annot['audio_file_name'],
+                                                     annot['audio_file_extension'] )]
+            outdf=outdf.fillna(0)
+            outdf.to_csv(os.path.join(outdir, str(annot['audio_file_name'].iloc[0]))
+                         + str(annot['audio_file_extension'].iloc[0]) 
+                         + ' annotations.log',
+                         sep='\t',
+                         encoding='utf-8',
+                         header=True,
+                         columns=cols,
+                         index=False)
+
+    def from_parquet(self,file):
+        """Import data from Parquet file."""
+        self.data = pd.read_parquet(file)
+
+    def to_parquet(self,file):
+        """Write annotations to Parquet file."""
+        self.data.to_parquet(file,
+                             coerce_timestamps='ms',
+                             allow_truncated_timestamps=True)
+
     def get_labels_class(self):
         """Return all unique class labels."""
         if len(self.data)>0:
@@ -186,12 +317,12 @@ class Annotation():
             subclasses = []
         return subclasses
 
-
     @staticmethod 
     @core.decorators.listinput
     def _import_files(files):
         """Import one or several text files with header to a Panda datafrane."""
-        assert  type(files) in (str,list), "Input must be of type str (single file) or list (multiple files)"
+        assert  type(files) in (str,list), "Input must be of type str (single \
+            file) or list (multiple files)"
         # Import all files to a dataframe
         for idx, file in enumerate(files):
             # Extract header first due to formating issues in PAMlab files
@@ -215,44 +346,34 @@ class Annotation():
                 data= pd.concat([data,tmp], ignore_index=True,sort=False)        
         return data
 
-    def to_pamlab(self, outdir):
-        """Write to a PAMLab file."""        
-        annot = self.data
-        
-        cols = ['fieldkey:', 'Soundfile', 'Channel', 'Sampling freq (Hz)', 'Latitude (deg)', 'Longitude (deg)', 'Recorder ID', 'Recorder depth', 'Start date and time (UTC)', 'Annotation date and time (local)', 'Recorder type', 'Deployment', 'Station', 'Operator', 'Left time (sec)', 'Right time (sec)', 'Top freq (Hz)', 'Bottom freq (Hz)', 'Species', 'Call type', 'rms SPL', 'SEL', '', '']
-        outdf = pd.DataFrame({'fieldkey:': 0, 'Soundfile': 0, 'Channel': 0, 'Sampling freq (Hz)': 0, 'Latitude (deg)': 0, 'Longitude (deg)': 0, 'Recorder ID': 0, 'Recorder depth': 0, 'Start date and time (UTC)': 0, 'Annotation date and time (local)': 0, 'Recorder type': 0, 'Deployment': 0, 'Station': 0, 'Operator': 0, 'Left time (sec)': 0, 'Right time (sec)': 0, 'Top freq (Hz)': 0, 'Bottom freq (Hz)': 0, 'Species': 0, 'Call type': 0, 'rms SPL': 0, 'SEL': 0, '': 0, '': 0}, index=list(range(self.output.shape[0])))    
-        outdf['fieldkey:'] = 'an:'
-        outdf['Species'] = annot['label_class']
-        outdf['Call type'] = annot['label_subclass']
-        outdf['Left time (sec)'] = annot['time_min_offset']
-        outdf['Right time (sec)'] = annot['time_max_offset']
-        outdf['Top freq (Hz)'] = annot['frequency_max']
-        outdf['Bottom freq (Hz)'] = annot['frequency_min']
-        outdf['rms SPL'] = annot['confidence']
-        outdf['Operator'] =annot['operator_name']
-        outdf['Channel'] =annot['channel']
-        if len(annot.fileName) == 0:
-            outdf['Soundfile'] = os.path.join(str(annot.filePath[0]), str(annot.fileName[0])) + str(annot.fileExtension[0])
-        else:
-            filenames=[]
-            for i in range(0,len(annot.fileName)):
-                filenames.append(os.path.join(str(annot.filePath[i]), str(annot.fileName[i])) + str(annot.fileExtension[i]))
-            outdf['Soundfile'] = filenames             
-        annot.to_csv(os.path.join(outdir, str(outdf.fileName[0])) + str(outdf.fileExtension[0]) + ' chan' +  str(outdf.channel[0]) + ' annotations.log', sep='\t', encoding='utf-8', header=True, columns=cols, index=False)
+    def overwrite_values(self, **kwargs):
+        """Manually insert values for given Annotation fileds."""
+        for key, value in kwargs.items():
+            if key in self.data:
+                self.data[key] = value
+            else:
+                raise ValueError('The annotation object does not have the field: '
+                                 + str(key))
+    def fields(self):
+        """Return list with all annotations fields."""
+        return list(self.data.columns)
 
-    def from_pytable(self, conn):
-        """Import from pytable file."""
+    def __add__(self,other):
+        """Concatenate data from annotation objects."""
+        assert type(other) is core.annotation.Annotation,"Object type not \
+            supported. Can only concatenate Annotation objects together."
+        self.data = pd.concat([self.data,other.data], ignore_index=True,sort=False)
+        return self
 
     def __repr__(self):
         """Return the type of object."""
         return (f'{self.__class__.__name__} object ('
                 f'{len(self.data)})')
+
     def __str__(self):
         """Return string when used with print of str."""
         return f'{len(self.data)} annotation(s)'
+
     def __len__(self):
         """Return number of annotations."""
         return len(self.data)
-
-
-
