@@ -23,5 +23,5 @@ print(len(annot3))
 annot = annot1 + annot2 + annot3
 print(len(annot))
 
-print(annot.fields())
-annot.overwrite_values(operator_name ='Xavier Mouy')
+print(annot.get_fields())
+annot.insert_values(operator_name ='Xavier Mouy')

@@ -12,17 +12,48 @@ import core.decorators
 import core.tools
 
 class Annotation():
-    """Defines an annotation object."""
+    """   Defines an annotation object."""
 
     def __init__(self):
         """
-        Create an empty Annotation object.
+        Create an empty Annotation object with all the annotation fields.
 
-        Returns
+        Attributes
+        ----------
+        data : pandas DataFrame
+            Annotation DataFranme.
+
+        Methods
         -------
-        Annotation object.
-
+        check_integrity(verbose=False, time_duplicates_only=False)
+            Check integrity of Annotation object.
+        from_raven(files, class_header='Sound type', subclass_header=None, verbose=False)
+            Import annotation data from 1 or several Raven files.
+        to_raven(outdir, single_file=False)
+            Write annotation data to one or several Raven files.
+        from_pamlab(files, verbose=False)
+            Import annotation data from 1 or several PAMlab files.
+        to_pamlab(outdir, single_file=False)
+            Write annotation data to one or several Raven files.
+        from_parquet(file)
+            Import annotation data from a Parquet file.
+        to_parquet(file)
+            Write annotation data to a Parquet file.
+        insert_values(**kwargs)
+            Manually insert values for given Annotation fields.
+        get_labels_class()
+            Return all unique class labels.
+        get_labels_subclass()
+            Return all unique subclass labels.
+        get_fields()
+            Return list with all annotations fields.
+        __add__()
+            Concatenate data from annotation objects uisng the + sign.
+        __len__()
+            Return number of annotations.
+    
         """
+
         self.data = pd.DataFrame({
             'uuid':[],
             'from_detector': [], # True, False
@@ -301,6 +332,15 @@ class Annotation():
                              coerce_timestamps='ms',
                              allow_truncated_timestamps=True)
 
+    def insert_values(self, **kwargs):
+        """Manually insert values for given Annotation fileds."""
+        for key, value in kwargs.items():
+            if key in self.data:
+                self.data[key] = value
+            else:
+                raise ValueError('The annotation object does not have the field: '
+                                 + str(key))
+
     def get_labels_class(self):
         """Return all unique class labels."""
         if len(self.data)>0:
@@ -316,6 +356,10 @@ class Annotation():
         else:
             subclasses = []
         return subclasses
+
+    def get_fields(self):
+        """Return list with all annotations fields."""
+        return list(self.data.columns)
 
     @staticmethod 
     @core.decorators.listinput
@@ -345,18 +389,6 @@ class Annotation():
             else:
                 data= pd.concat([data,tmp], ignore_index=True,sort=False)        
         return data
-
-    def overwrite_values(self, **kwargs):
-        """Manually insert values for given Annotation fileds."""
-        for key, value in kwargs.items():
-            if key in self.data:
-                self.data[key] = value
-            else:
-                raise ValueError('The annotation object does not have the field: '
-                                 + str(key))
-    def fields(self):
-        """Return list with all annotations fields."""
-        return list(self.data.columns)
 
     def __add__(self,other):
         """Concatenate data from annotation objects."""
