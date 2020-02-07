@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Feb  6 22:35:31 2020
+
+@author: xavier.mouy
+"""
+
 from core.audiotools import Sound, Filter
 
 single_channel_file = r"./resources/AMAR173.4.20190916T061248Z.wav"

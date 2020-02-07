@@ -5,12 +5,8 @@ Created on Fri May 19 15:26:24 2017
 @author: xavier
 """
 # --------------------------------------------------------------
-# TO DO:
-#
-# - resample waveform
-# - play sound
-# - compute and plot spectrogram
-# - get time stamp from file name (?)
+##TODO: resample waveform
+##TODO: play sound
 # --------------------------------------------------------------
 
 import soundfile as sf
@@ -86,7 +82,8 @@ class Sound:
             myfile = sf.SoundFile(infile)
             self._file_duration_sample = myfile.seek(0, sf.SEEK_END)
             self._file_sampling_frequency = myfile.samplerate
-            self._file_duration_sec = self._file_duration_sample/self._file_sampling_frequency
+            self._file_duration_sec = self._file_duration_sample / \
+                self._file_sampling_frequency
             self._channels = myfile.channels
             self._channel_selected = []
             self._file_dir = os.path.dirname(infile)
@@ -102,8 +99,8 @@ class Sound:
             
             myfile.close()
         else:
-            raise ValueError("The sound file can't be found. Please verify \
-                             sound file name and path")
+            raise ValueError("The sound file can't be found. Please verify"
+                             + ' sound file name and path')
 
     def read(self, channel=0, chunk=[]):
  
@@ -120,15 +117,16 @@ class Sound:
                 if len(chunk) == 2:  # only read a section of the file
                     # Validate input values
                     if (chunk[0] < 0) | (chunk[0] >= self.file_duration_sample):
-                        raise ValueError('Invalid chunk start value. The sample \
-                                         value chunk[0] is outside of the file\
-                                         limit.')
+                        raise ValueError('Invalid chunk start value. The sample'
+                                         +' value chunk[0] is outside of the'
+                                         +' file limits.')
                     elif (chunk[1] < 0) | (chunk[1] > self.file_duration_sample):
-                        raise ValueError('Invalid chunk stop value. The sample \
-                                         value chunk[1] is outside of file limit.')
+                        raise ValueError('Invalid chunk stop value. The sample'
+                                         + ' value chunk[1] is outside of the'
+                                         + ' file limits.')
                     elif chunk[1] <= chunk[0]:
-                        raise ValueError('Invalid chunk values. chunk[1] must \
-                                         be greater than chunk[0]')
+                        raise ValueError('Invalid chunk values. chunk[1] must'
+                                         + ' be greater than chunk[0]')
                     # read data
                     sig, fs = sf.read(self.file_full_path, start=chunk[0],
                                       stop=chunk[1], always_2d=True)
@@ -138,31 +136,34 @@ class Sound:
                     self._waveform_duration_sample = len(self._waveform)
                     self._waveform_duration_sec = self._waveform_duration_sample/fs
                 else:
-                    raise ValueError('Invalid chunk values. The argument chunk \
-                                     must be a list of 2 elements.')
+                    raise ValueError('Invalid chunk values. The argument chunk'
+                                     + ' must be a list of 2 elements.')
             self._channel_selected = channel
 
         else:
-            msg = 'Channel ' + str(channel) + ' does not exist ('
-            + str(self._channels) + ' channels available).'
+            msg = ''.join(['Channel ', str(channel), ' does not exist (',
+                           str(self._channels), ' channels available).'])
             raise ValueError(msg)
 
     def filter(self, filter_type, cutoff_frequencies, order=4):
         if self._filter_applied is False:
             my_filter = Filter(filter_type, cutoff_frequencies, order)
-            self._waveform = my_filter.apply(self._waveform, self._waveform_sampling_frequency)
+            self._waveform = my_filter.apply(self._waveform,
+                                             self._waveform_sampling_frequency)
             self._filter_applied = True
             self._filter_params = my_filter
         else:
-            raise ValueError('This signal has been filtered already. Cannot \
-                             filter twice.')
+            raise ValueError('This signal has been filtered already. Cannot'
+                             + ' filter twice.')
 
     def plot_waveform(self, unit='sec', newfig=False, title=''):
         if len(self._waveform) == 0:
-            raise ValueError('Cannot plot, waveform data enpty. Use Sound.read \
-                             to load the waveform')
+            raise ValueError('Cannot plot, waveform data enpty. Use Sound.read'
+                             + ' to load the waveform')
         if unit == 'sec':
-            axis_t = np.arange(0, len(self._waveform)/self._waveform_sampling_frequency, 1/self._waveform_sampling_frequency)
+            axis_t = np.arange(0, len(self._waveform)
+                               /self._waveform_sampling_frequency, 1
+                               /self._waveform_sampling_frequency)
             xlabel = 'Time (sec)'
         elif unit == 'samp':
             axis_t = np.arange(0, len(self._waveform), 1)
@@ -174,28 +175,30 @@ class Sound:
         plt.xlabel(xlabel)
         plt.ylabel('Amplitude')
         plt.title(title)
-        plt.axis([axis_t[0], axis_t[-1], min(self._waveform), max(self._waveform)])
+        plt.axis([axis_t[0], axis_t[-1],
+                  min(self._waveform),
+                  max(self._waveform)])
         plt.grid()
         plt.show()
 
     def select_snippet(self, chunk):
         if len(chunk) != 2:
-            raise ValueError('Chunk should be a list of with 2 values: \
-                             chunk=[t1, t2].')
+            raise ValueError('Chunk should be a list of with 2 values: '
+                             + 'chunk=[t1, t2].')
         elif chunk[0] >= chunk[1]:
             raise ValueError('Chunk[0] should be greater than chunk[1].')
         elif (chunk[0] < 0) | (chunk[0] > self.file_duration_sample):
-            raise ValueError('Invalid chunk start value. The sample value \
-                             chunk[0] is outside of file limit.')
+            raise ValueError('Invalid chunk start value. The sample value '
+                             + 'chunk[0] is outside of file limit.')
         elif (chunk[1] < 0) | (chunk[1] > self.file_duration_sample):
-            raise ValueError('Invalid chunk stop value. The sample value \
-                             chunk[1] is outside of file limit.')
+            raise ValueError('Invalid chunk stop value. The sample value '
+                             + 'chunk[1] is outside of file limit.')
         snippet = copy.deepcopy(self)
         snippet._waveform = self._waveform[chunk[0]:chunk[1]]
         snippet._waveform_stop_sample = snippet._waveform_start_sample + chunk[1]
         snippet._waveform_start_sample = snippet._waveform_start_sample + chunk[0]
         snippet._waveform_duration_sample = len(snippet._waveform)
-        snippet._waveform_duration_sec = snippet._waveform_duration_sec/snippet._waveform_sampling_frequency
+        snippet._waveform_duration_sec = snippet._waveform_duration_sec / snippet._waveform_sampling_frequency
         return snippet
 
 
@@ -280,10 +283,6 @@ class Sound:
     def filter_applied(self):
         return self._filter_applied
 
-    # def play(self, channel):
-
-    # def resample(self, channel):
-
 
 class Filter:
     """
@@ -309,9 +308,10 @@ class Filter:
             Type of filter
         cutoff_frequencies : list of float
             Cut-off frequencies of the filter sorted in increasing order (i.e.
-            [lowcut, highcut]). If the filter type is 'bandpass' then cutoff_frequencies
-            must be a list of 2 floats cutoff_frequencies=[lowcut, highcut], where lowcut <
-            highcut. If the filter type is 'lowpass' or 'highpass' then cutoff_frequencies
+            [lowcut, highcut]). If the filter type is 'bandpass' then 
+            cutoff_frequencies must be a list of 2 floats 
+            cutoff_frequencies=[lowcut, highcut], where lowcut < highcut. 
+            If the filter type is 'lowpass' or 'highpass' then cutoff_frequencies
             is a list with a single float.
         order : int, optional
             Order of the filter (default is 4)
@@ -320,27 +320,30 @@ class Filter:
         ------
         ValueError
             If the filter type is not set to 'bandpass', 'lowpass', or 'highpass'
-            If the cutoff_frequencies has not enough of too much values for the filter type
-            selected or are not sorted by increasing frequencies.
+            If the cutoff_frequencies has not enough of too much values for the
+            filter type selected or are not sorted by increasing frequencies.
 
         """
 
         # chech filter type
         if (type == 'bandpass') | (type == 'lowpass') | (type == 'highpass') == 0:
-            raise ValueError('Wrong filter type. Must be "bandpass", "lowpass" \
-                             , or "highpass".')
+            raise ValueError('Wrong filter type. Must be "bandpass", "lowpass"' 
+                             +', or "highpass".')
         # chech freq values
         if (type == 'bandpass'):
             if len(cutoff_frequencies) != 2:
-                raise ValueError('The type "bandpass" requires two frepuency \
-                                 values: cutoff_frequencies=[lowcut, highcut].')
+                raise ValueError('The type "bandpass" requires two frepuency '
+                                 + 'values: cutoff_frequencies=[lowcut, '
+                                 + 'highcut].')
             elif cutoff_frequencies[0] > cutoff_frequencies[1]:
-                raise ValueError('The lowcut value should be smaller than the \
-                                 highcut value: cutoff_frequencies=[lowcut, highcut].')
+                raise ValueError('The lowcut value should be smaller than the '
+                                 + 'highcut value: cutoff_frequencies=[lowcut,'
+                                 + ' highcut].')
         elif (type == 'lowpass') | (type == 'highpass'):
             if len(cutoff_frequencies) != 1:
-                raise ValueError('The type "lowpass" and "highpass" require \
-                                 one frepuency values cutoff_frequencies=[cutfreq].')
+                raise ValueError('The type "lowpass" and "highpass" require '
+                                 + 'one frepuency values cutoff_frequencies='
+                                 + '[cutfreq].')
         self.type = type
         self.cutoff_frequencies = cutoff_frequencies
         self.order = order
@@ -356,7 +359,9 @@ class Filter:
             high = self.cutoff_frequencies[1] / nyquist
             b, a = spsig.butter(self.order, [low, high], btype='band')
         elif self.type == 'lowpass':
-            b, a = spsig.butter(self.order, self.cutoff_frequencies[0]/nyquist, 'low')
+            b, a = spsig.butter(self.order,
+                                self.cutoff_frequencies[0]/nyquist, 'low')
         elif self.type == 'highpass':
-            b, a = spsig.butter(self.order, self.cutoff_frequencies[0]/nyquist, 'high')
+            b, a = spsig.butter(self.order,
+                                self.cutoff_frequencies[0]/nyquist, 'high')
         return b, a
