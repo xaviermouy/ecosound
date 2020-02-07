@@ -9,9 +9,8 @@ Created on Tue Jan 21 13:04:58 2020
 import pandas as pd
 import os
 import uuid
-import core.tools
-import core.decorators
-import core.tools
+import ecosound.core.tools
+import ecosound.core.decorators
 
 
 class Annotation():
@@ -136,7 +135,7 @@ class Annotation():
 
         Returns
         -------
-        Empty Annotation object.
+        Annotation object.
 
         """
         self.data = pd.DataFrame({

@@ -15,69 +15,95 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as spsig
 import copy
-import core.tools
+import ecosound.core.tools
 
 
 class Sound:
     """
     A class to load and manipulate a sound file
 
+    This class can load data from an entire, or part of a, sound file, filter
+    the loaded data, select subsections, and plotteh waveform. Currently a
+    Sound object can only load data from one channel at a time.
+
     Attributes
     ----------
-    infile : str
-        A formatted string providing the path and filename of the sound file
+    file_full_path : str
+        Path of the sound file, including file name and extension.
+    file_dir : str
+        Path of the sound file directory.
+    file_name : str
+        Name of the sound file withjout teh extension.
+    file_extension : str
+        Extension of the sound file (e.g. ".wav").
+    file_sampling_frequency : int
+        Sampling frequency of the original sound data, in Hz.
+    file_duration_sample : float
+        Duration of the sound data from the file, in samples.
+    file_duration_sec : float
+        Duration of the sound data from the file, in seconds.
+    channels : int
+        Number of channels available in the sound file.
+    channel_selected : int
+        Channel from which the waveform data was loaded from.
+    waveform : numpy.ndarray
+        Waveform of the loaded data for the selected channel (channel_selected)
+        and time frame selected.
+    waveform_sampling_frequency : float
+        Sampling frequency of the loaded waveform data. It can differ from
+        file_sampling_frequency if the waveform was up- or down- sampled.
+    waveform_start_sample : float
+        Index of the first sample of the loaded waveform data relative to the
+        begining of the sound file.
+    waveform_stop_sample : float
+        Index of the last sample of the loaded waveform data relative to the
+        begining of the sound file.
+    waveform_duration_sample : float
+        Duration of the loaded waveform data, in samples.
+    waveform_duration_sec : float
+        Duration of the loaded waveform data, in seconds.
+    filter_applied : bool
+        True if the waveform data was filtered.
+    filter_parameters : Filter obj
+        Filter object with all filter paramters and coefficients. Empty if no
+        filter was applied.
 
     Methods
     -------
     read(channel=0, chunk=[])
         Reads a sound file with the option to select a specific channel and
         read only a section of the file.
-    filter(Filter)
+    filter(filter_type, cutoff_frequencies, order=4)
         Applies a scientific filter on the audio signal
     plot_waveform(unit='sec', newfig=False, title='')
         Displays a graph with the waveform of the audio signal
     select_snippet(chunk)
         Extract a chunk of the waveform as a new Sound object
     tighten_waveform_window(energy_percentage)
-        Crops the start and end times of a waveform in a Sound object to reduce
-        "silences"
-    file_duration_sample()
-        Returns the number of samples of the sound file
-    file_duration_sec()
-        Returns the duration of the sound file in seconds
-    file_extension()
-        Returns the extension of the audio file
-    file_name()
-        Returns the name of teh audio file
-    file_dir()
-        Returns the path of the audio file
-    file_full_path()
-        Returns the path, filename, and extension of the audio file
-    getFilterParameters()
-        Returns the frequencies and type of filter used (if any)
-    filter_applied()
-        Indicates if a filter has alreday been applied to the sound
-    channels()
-        Returns the number of channels of the sound file
-    channel_selected()
-        Returns the channel currently selected
-    sampling_frequency()
-        Returns the sampling frequency of the sound
-    waveform()
-        Returns the waveform of the sound object. Need to use the read
-        method first
-    waveform_duration_sec()
-        Indicates the duration of the sound that was read
-    waveform_start_sample()
-        Indicates the number of the first sample of the sound read relative
-        to the beginning of the entire sound file
-    waveform_stop_sample()
-        Indicates the number of the last sample of the sound read relative
-        to the beginning of the entire sound file
+        Crops the beginning  and end times of a waveform in a Sound object
+        based on a percentage of energy.
 
     """
 
     def __init__(self, infile):
+        """
+        Initialize Sound object.
+
+        Parameters
+        ----------
+        infile : str
+            Path of the sound file.
+
+        Raises
+        ------
+        ValueError
+            If sound file can't be found.
+
+        Returns
+        -------
+        Sound object.
+
+        """
         if os.path.isfile(infile):
             myfile = sf.SoundFile(infile)
             self._file_duration_sample = myfile.seek(0, sf.SEEK_END)
@@ -96,14 +122,43 @@ class Sound:
             self._waveform_duration_sample = 0
             self._waveform_duration_sec = 0
             self._waveform_sampling_frequency = self._file_sampling_frequency
-            
             myfile.close()
         else:
             raise ValueError("The sound file can't be found. Please verify"
                              + ' sound file name and path')
 
     def read(self, channel=0, chunk=[]):
- 
+        """
+        Load data from sound file.
+
+        Load data from a sound file with the option to select a specific
+        channel and load only a section of the file. Data are loaded as a numpy
+        arrayin in the object attribute "waveform".
+
+        Parameters
+        ----------
+        channel : int, optional
+            ID of the audio channel to load. The default is 0.
+        chunk : list, optional
+            List with two floats indicating the [start time, stop time], in
+            samples, of the chunk of audio data to load. An empty list []
+            loads data from the entire audio file. The default is [].
+
+        Raises
+        ------
+        ValueError
+            If the chunk list has only 1 value.
+            If the first value in the chunk list is greater or equal to the 
+               second one.
+            If values in the chunk list exceed the audio file limits.
+            If the channel selected does not exist.
+
+        Returns
+        -------
+        None. Load audio data in the waveform attribute and update all waveform
+        related attributes.
+
+        """
         # check that the channel id is valid
         if (channel >= 0) & (channel <= self._channels - 1):
             if len(chunk) == 0:  # read the entire file
@@ -118,8 +173,8 @@ class Sound:
                     # Validate input values
                     if (chunk[0] < 0) | (chunk[0] >= self.file_duration_sample):
                         raise ValueError('Invalid chunk start value. The sample'
-                                         +' value chunk[0] is outside of the'
-                                         +' file limits.')
+                                          + ' value chunk[0] is outside of the'
+                                          + ' file limits.')
                     elif (chunk[1] < 0) | (chunk[1] > self.file_duration_sample):
                         raise ValueError('Invalid chunk stop value. The sample'
                                          + ' value chunk[1] is outside of the'
@@ -146,6 +201,40 @@ class Sound:
             raise ValueError(msg)
 
     def filter(self, filter_type, cutoff_frequencies, order=4):
+        """
+        Filter the audio signal.
+
+        Applies low-pass, high-pass, or band-pass scientific filter to the
+        audio signal. The attribute waveform is updated with the filtered 
+        signal. The same data can only be filtered once.
+
+        Parameters
+        ----------
+        filter_type : str
+            Type of filter. Can be set to 'bandpass', 'lowpass' or 'highpass'.            
+        cutoff_frequencies : list
+            Cutoff frequencies of the filter, in Hz (float). Must be a list with a
+            single float if the filter_type is set to 'lowpass' or 'highpass'.
+            Must be a list with two float values (i.e.,[fmin, fmax]) if the
+            filter_type is set to 'bandpass'.
+        order : int, optional
+            Order of the filter. The default is 4.
+
+        Raises
+        ------
+        ValueError
+            If signal is filtered more than once.
+            If the waveform attribute is empty
+            If the filter type is not set to 'bandpass', 'lowpass', or 'highpass'
+            If the cutoff_frequencies has not enough, or too much values for
+            the filter type selected.
+            If the values in cutoff_frequencies are not sorted by increasing
+            frequencies.
+
+        Returns
+        -------
+        None. Filtered signal in the 'waveform' attribute of the Sound object.
+        """
         if self._filter_applied is False:
             my_filter = Filter(filter_type, cutoff_frequencies, order)
             self._waveform = my_filter.apply(self._waveform,
@@ -157,13 +246,40 @@ class Sound:
                              + ' filter twice.')
 
     def plot_waveform(self, unit='sec', newfig=False, title=''):
+        """
+        Plot waveform of the audio signal.
+
+        PLots the waveform of the audio signal. Both the plot title and time
+        units can be asjusted. The plot can be displayed on a new or an 
+        existing figure.
+
+        Parameters
+        ----------
+        unit : str, optional
+            Time units to use. Can be either 'sec' for seconds, or 'samp' for
+            samples. The default is 'sec'.
+        newfig : bool, optional
+            PLots on a new figure if set to True. The default is False.
+        title : str, optional
+            Title of the plot. The default is ''.
+
+        Raises
+        ------
+        ValueError
+            If the waveform attribute is empty.
+
+        Returns
+        -------
+        None.
+
+        """
         if len(self._waveform) == 0:
             raise ValueError('Cannot plot, waveform data enpty. Use Sound.read'
                              + ' to load the waveform')
         if unit == 'sec':
             axis_t = np.arange(0, len(self._waveform)
-                               /self._waveform_sampling_frequency, 1
-                               /self._waveform_sampling_frequency)
+                               / self._waveform_sampling_frequency, 1
+                               / self._waveform_sampling_frequency)
             xlabel = 'Time (sec)'
         elif unit == 'samp':
             axis_t = np.arange(0, len(self._waveform), 1)
@@ -182,6 +298,31 @@ class Sound:
         plt.show()
 
     def select_snippet(self, chunk):
+        """
+        Select section of the loaded waveform.
+
+        Create a new Sound object from a section of the sound data laoded.
+
+        Parameters
+        ----------
+        chunk : list
+            List of two int values representing the [start time, stop time] of
+            the sound data to select, in samples. Start time must be smaller 
+            than stop time.
+
+        Raises
+        ------
+        ValueError
+            If chunk has only one value
+            If the start time is greater tahn the stop time
+            If the start or stop times fall outside of the wavform limits.
+
+        Returns
+        -------
+        snippet : Sound obj
+            Sound object with the selected audio data.
+
+        """
         if len(chunk) != 2:
             raise ValueError('Chunk should be a list of with 2 values: '
                              + 'chunk=[t1, t2].')
@@ -201,78 +342,112 @@ class Sound:
         snippet._waveform_duration_sec = snippet._waveform_duration_sec / snippet._waveform_sampling_frequency
         return snippet
 
-
     def tighten_waveform_window(self, energy_percentage):
-        chunk = core.tools.tighten_signal_limits(self._waveform, energy_percentage)
-        # select_snippet(self, chunk)
+        """
+        Adjust waveform window.
+
+        Crops the begining and end of the waveform to only capture the most
+        intense part of the signal (i.e., with most energy). The percentage of
+        energy is defined by the energy_percentage parameter. The attribute
+        'waveform' and all its related attricbutes are updated automatically.
+
+        Parameters
+        ----------
+        energy_percentage : float
+            Percentage of the energy the updated waveform should have.
+
+        Returns
+        -------
+        None. Updates the 'waveform' attribute alomg with all the waveform 
+        -related attributes.
+
+        """
+        chunk = ecosound.core.tools.tighten_signal_limits(self._waveform, energy_percentage)
         snip = self.select_snippet(chunk)
         self.__dict__.update(snip.__dict__)
 
     def __len__(self):
-        """Return number of samples."""
+        """Return number of samples of the waveform."""
         return self.waveform_duration_sample
 
     @property
     def waveform_sampling_frequency(self):
+        """Return the waveform_sampling_frequency attribute."""
         return self._waveform_sampling_frequency
-    
+
     @property
     def file_sampling_frequency(self):
+        """Return the file_sampling_frequency attribute."""
         return self._file_sampling_frequency
 
     @property
     def file_duration_sample(self):
+        """Return the file_duration_sample attribute."""
         return self._file_duration_sample
 
     @property
     def file_duration_sec(self):
+        """Return the file_duration_sec attribute."""
         return self._file_duration_sec
 
     @property
     def channels(self):
+        """Return the channels attribute."""
         return self._channels
 
     @property
     def channel_selected(self):
+        """Return the channel_selected attribute."""
         return self._channel_selected
 
     @property
     def file_dir(self):
+        """Return the file_dir attribute."""
         return self._file_dir
-    
+
     @property
     def file_full_path(self):
+        """Return the file_full_path attribute."""
         return os.path.join(self._file_dir, self._file_name) + self._file_extension
-    
+
     @property
     def file_extension(self):
+        """Return the file_extension attribute."""
         return self._file_extension
-    
+
     @property
     def file_name(self):
+        """Return the file_name attribute."""
         return self._file_name
+
     @property
     def waveform(self):
+        """Return the waveform attribute."""
         return self._waveform
-    
+
     @property
     def waveform_start_sample(self):
+        """Return the waveform_start_sample attribute."""
         return self._waveform_start_sample
 
     @property
     def waveform_stop_sample(self):
+        """Return the waveform_stop_sample attribute."""
         return self._waveform_stop_sample
 
     @property
     def waveform_duration_sample(self):
+        """Return the waveform_duration_sample attribute."""
         return self._waveform_duration_sample
 
     @property
     def waveform_duration_sec(self):
+        """Return the waveform_duration_sec attribute."""
         return self._waveform_duration_sec
 
     @property
     def filter_parameters(self):
+        """Return the filter_parameters attribute."""
         if self._filter_applied:
             out = self._filter_params
         else:
@@ -281,6 +456,7 @@ class Sound:
 
     @property
     def filter_applied(self):
+        """Return the filter_applied attribute."""
         return self._filter_applied
 
 
@@ -298,10 +474,19 @@ class Filter:
     order : int
         Order of the filter
 
+    Methods
+    -------
+    apply(waveform, sampling_frequency)
+        Apply filter to time vector/waveform.
+    coefficients(sampling_frequency)
+        Defines coeeficient of the filter.
+
     """
 
     def __init__(self, type, cutoff_frequencies, order=4):
         """
+        Initialize the filter.
+        
         Parameters
         ----------
         type : {'bandpass', 'lowpass', 'highpass'}
@@ -319,12 +504,15 @@ class Filter:
         Raises
         ------
         ValueError
+
             If the filter type is not set to 'bandpass', 'lowpass', or 'highpass'
             If the cutoff_frequencies has not enough of too much values for the
             filter type selected or are not sorted by increasing frequencies.
+        Returns
+        -------
+        None. Filter object.
 
-        """
-
+        """ 
         # chech filter type
         if (type == 'bandpass') | (type == 'lowpass') | (type == 'highpass') == 0:
             raise ValueError('Wrong filter type. Must be "bandpass", "lowpass"' 
@@ -347,12 +535,44 @@ class Filter:
         self.type = type
         self.cutoff_frequencies = cutoff_frequencies
         self.order = order
-    
+
     def apply(self, waveform, sampling_frequency):
+        """
+        Apply filter to time series.
+
+        Parameters
+        ----------
+        waveform : numpy.ndarray
+            Time series to filter.
+        sampling_frequency : float
+            Sampling frequency of the time series to filter, in Hz.
+
+        Returns
+        -------
+        numpy.ndarray
+            Filtered time series.
+
+        """
         b, a = self.coefficients(sampling_frequency)
         return spsig.lfilter(b, a, waveform)
-    
+
     def coefficients(self, sampling_frequency):
+        """
+        Get filter coefficients.
+
+        Parameters
+        ----------
+        sampling_frequency : float
+            Sampling frequency of the time series to filter, in Hz.
+
+        Returns
+        -------
+        b : float
+            Filter coefficient b.
+        a : float
+            Filter coefficient a.
+
+        """
         nyquist = 0.5 * sampling_frequency
         if self.type == 'bandpass':
             low = self.cutoff_frequencies[0] / nyquist

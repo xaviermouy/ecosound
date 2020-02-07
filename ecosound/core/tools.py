@@ -7,7 +7,7 @@ Created on Wed Jan 29 21:21:40 2020
 import json
 import re
 from datetime import datetime
-import core.decorators
+import ecosound.core.decorators
 import numpy as np
 
 def read_json(file):
@@ -16,7 +16,7 @@ def read_json(file):
         data = json.load(read_file)
     return data
 
-@core.decorators.listinput
+@ecosound.core.decorators.listinput
 def filename_to_datetime(files):
     """Extract date from a list of str of filenames."""
     patterns = read_json(r'./core/timestamp_formats.json')
