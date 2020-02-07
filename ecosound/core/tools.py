@@ -8,7 +8,7 @@ import json
 import re
 from datetime import datetime
 import core.decorators
-
+import numpy as np
 
 def read_json(file):
     """Load JSON file as dict."""
@@ -40,3 +40,28 @@ def filename_to_datetime(files):
     return timestamps
 
 
+def normalize_vector(vec):
+    """ Normalize amplitude of vector"""
+    # vec = vec+abs(min(vec))
+    # normVec = vec/max(vec)
+    # normVec = (normVec - 0.5)*2
+    vec = vec - np.mean(vec)
+    normVec = vec/max(vec)
+    return normVec
+
+def tighten_signal_limits(signal, energy_percentage):
+    """
+    Tighten signal limits
+
+    Redefine start and stop samples to have "energy_percentage" of the original
+    signal 
+
+    Returns a list with the new start and stop sample indices.
+
+    """
+    cumul_energy = np.cumsum(np.square(signal))
+    cumul_energy = cumul_energy/max(cumul_energy)
+    percentage_begining = (1-(energy_percentage/100))/2
+    percentage_end = 1 - percentage_begining
+    chunk = [np.nonzero(cumul_energy > percentage_begining)[0][0], np.nonzero(cumul_energy > percentage_end)[0][0]]
+    return chunk

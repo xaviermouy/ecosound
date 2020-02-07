@@ -17,9 +17,9 @@ import core.tools
 class Annotation():
     """
     A class used for manipulating annotation data.
-    
-    The Annotation object stores from both manual analysis annotations 
-    collected with software like PAMlab and Raven, and outputs from 
+
+    The Annotation object stores from both manual analysis annotations
+    collected with software like PAMlab and Raven, and outputs from
     automated detectors and classifiers.
 
     Attributes

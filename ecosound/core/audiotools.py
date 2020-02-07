@@ -19,11 +19,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as spsig
 import copy
+import core.tools
 
 
 class Sound:
     """
-    A class to load, represent and manipulate a sound file
+    A class to load and manipulate a sound file
 
     Attributes
     ----------
@@ -35,46 +36,46 @@ class Sound:
     read(channel=0, chunk=[])
         Reads a sound file with the option to select a specific channel and
         read only a section of the file.
-    applyFilter(Filter)
+    filter(Filter)
         Applies a scientific filter on the audio signal
-    plotWaveform(unit='sec', newfig=False, title='')
+    plot_waveform(unit='sec', newfig=False, title='')
         Displays a graph with the waveform of the audio signal
-    extractWaveformSnippet(chunk)
+    select_snippet(chunk)
         Extract a chunk of the waveform as a new Sound object
-    tightenWavformWindow(EnergyPercentage)
+    tighten_waveform_window(energy_percentage)
         Crops the start and end times of a waveform in a Sound object to reduce
         "silences"
-    getFileDur_samples()
+    file_duration_sample()
         Returns the number of samples of the sound file
-    getFileDur_sec()
+    file_duration_sec()
         Returns the duration of the sound file in seconds
-    getFileExtension()
+    file_extension()
         Returns the extension of the audio file
-    getFileName()
+    file_name()
         Returns the name of teh audio file
-    getFilePath()
+    file_dir()
         Returns the path of the audio file
-    getFullPath()
+    file_full_path()
         Returns the path, filename, and extension of the audio file
     getFilterParameters()
         Returns the frequencies and type of filter used (if any)
-    getFilterStatus()
+    filter_applied()
         Indicates if a filter has alreday been applied to the sound
-    getNbChannels()
+    channels()
         Returns the number of channels of the sound file
-    getSelectedChannel()
+    channel_selected()
         Returns the channel currently selected
-    getSamplingFrequencyHz()
+    sampling_frequency()
         Returns the sampling frequency of the sound
-    getWaveform()
+    waveform()
         Returns the waveform of the sound object. Need to use the read
         method first
-    getWaveformDur_sec()
+    waveform_duration_sec()
         Indicates the duration of the sound that was read
-    getWaveformStartSample()
+    waveform_start_sample()
         Indicates the number of the first sample of the sound read relative
         to the beginning of the entire sound file
-    getWaveformEndSample()
+    waveform_stop_sample()
         Indicates the number of the last sample of the sound read relative
         to the beginning of the entire sound file
 
@@ -83,214 +84,201 @@ class Sound:
     def __init__(self, infile):
         if os.path.isfile(infile):
             myfile = sf.SoundFile(infile)
-            self.nSamples = myfile.seek(0, sf.SEEK_END)
-            self.fs = myfile.samplerate
-            self.dur = self.nSamples/self.fs
-            self.nChannels = myfile.channels
-            self.selectedChannel = []
-            self.filePath = os.path.dirname(infile)
-            # self.fullPath = infile
-            self.fileName = os.path.basename(os.path.splitext(infile)[0])
-            self.fileExtension = os.path.splitext(infile)[1]
-            self.filterApplied = False
+            self._file_duration_sample = myfile.seek(0, sf.SEEK_END)
+            self._file_sampling_frequency = myfile.samplerate
+            self._file_duration_sec = self._file_duration_sample/self._file_sampling_frequency
+            self._channels = myfile.channels
+            self._channel_selected = []
+            self._file_dir = os.path.dirname(infile)
+            self._file_name = os.path.basename(os.path.splitext(infile)[0])
+            self._file_extension = os.path.splitext(infile)[1]
+            self._filter_applied = False
+            self._waveform = []
+            self._waveform_start_sample = []
+            self._waveform_stop_sample = []
+            self._waveform_duration_sample = 0
+            self._waveform_duration_sec = 0
+            self._waveform_sampling_frequency = self._file_sampling_frequency
+            
             myfile.close()
         else:
-            raise ValueError("The sound file can't be found. Please verify the\
+            raise ValueError("The sound file can't be found. Please verify \
                              sound file name and path")
 
     def read(self, channel=0, chunk=[]):
-        """
-        
-
-        Parameters
-        ----------
-        channel : TYPE, optional
-            DESCRIPTION. The default is 0.
-        chunk : TYPE, optional
-            DESCRIPTION. The default is [].
-
-        Raises
-        ------
-        ValueError
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
-
-        """
+ 
         # check that the channel id is valid
-        if (channel >= 0) & (channel <= self.nChannels - 1):
+        if (channel >= 0) & (channel <= self._channels - 1):
             if len(chunk) == 0:  # read the entire file
-                sig, fs = sf.read(self.getFullPath(), always_2d=True)
-                self.waveform = sig[:, channel]
-                self.waveformStartSample = 0
-                self.waveformEndSample = self.getFileDur_samples()-1
-                self.waveformDur_samples = len(self.waveform)
-                self.waveformDur_sec = self.waveformDur_samples/fs
+                sig, fs = sf.read(self.file_full_path(), always_2d=True)
+                self._waveform = sig[:, channel]
+                self._waveform_start_sample = 0
+                self._waveform_stop_sample = self.file_duration_sample-1
+                self._waveform_duration_sample = len(self._waveform)
+                self._waveform_duration_sec = self._waveform_duration_sample/fs
             else:
                 if len(chunk) == 2:  # only read a section of the file
                     # Validate input values
-                    if (chunk[0] < 0) | (chunk[0] >= self.getFileDur_samples()):
-                        raise ValueError('Invalid chunk start value. The sample\
+                    if (chunk[0] < 0) | (chunk[0] >= self.file_duration_sample):
+                        raise ValueError('Invalid chunk start value. The sample \
                                          value chunk[0] is outside of the file\
                                          limit.')
-                    elif (chunk[1] < 0) | (chunk[1] > self.getFileDur_samples()):
-                        raise ValueError('Invalid chunk stop value. The sample\
+                    elif (chunk[1] < 0) | (chunk[1] > self.file_duration_sample):
+                        raise ValueError('Invalid chunk stop value. The sample \
                                          value chunk[1] is outside of file limit.')
                     elif chunk[1] <= chunk[0]:
                         raise ValueError('Invalid chunk values. chunk[1] must \
                                          be greater than chunk[0]')
                     # read data
-                    sig, fs = sf.read(self.getFullPath(), start=chunk[0],
+                    sig, fs = sf.read(self.file_full_path, start=chunk[0],
                                       stop=chunk[1], always_2d=True)
-                    self.waveform = sig[:, channel]
-                    self.waveformStartSample = chunk[0]
-                    self.waveformEndSample = chunk[1]
-                    self.waveformDur_samples = len(self.waveform)
-                    self.waveformDur_sec = self.waveformDur_samples/fs
+                    self._waveform = sig[:, channel]
+                    self._waveform_start_sample = chunk[0]
+                    self._waveform_stop_sample = chunk[1]
+                    self._waveform_duration_sample = len(self._waveform)
+                    self._waveform_duration_sec = self._waveform_duration_sample/fs
                 else:
-                    raise ValueError('Invalid chunk values. The argument chunk\
+                    raise ValueError('Invalid chunk values. The argument chunk \
                                      must be a list of 2 elements.')
-            self.selectedChannel = channel
+            self._channel_selected = channel
 
         else:
             msg = 'Channel ' + str(channel) + ' does not exist ('
-            + str(self.nChannels) + ' channels available).'
+            + str(self._channels) + ' channels available).'
             raise ValueError(msg)
 
-    def applyFilter(self, Filter):
-        if self.filterApplied is False:
-            b, a = self.calcFilterCoef(Filter)
-            sigFilt = spsig.lfilter(b, a, self.waveform)
-            self.waveform = sigFilt
-            self.filterApplied = True
-            self.filterParameters = {
-                    'type': Filter.type,
-                    'freqs': Filter.freqs,
-                    'order': Filter.order}
+    def filter(self, filter_type, cutoff_frequencies, order=4):
+        if self._filter_applied is False:
+            my_filter = Filter(filter_type, cutoff_frequencies, order)
+            self._waveform = my_filter.apply(self._waveform, self._waveform_sampling_frequency)
+            self._filter_applied = True
+            self._filter_params = my_filter
         else:
-            raise ValueError('This signal has been filtered already. Cannot\
+            raise ValueError('This signal has been filtered already. Cannot \
                              filter twice.')
 
-    def calcFilterCoef(self, Filter):
-        nyq = 0.5 * self.getSamplingFrequencyHz()
-        if Filter.type == 'bandpass':
-            low = Filter.freqs[0] / nyq
-            high = Filter.freqs[1] / nyq
-            b, a = spsig.butter(Filter.order, [low, high], btype='band')
-        elif Filter.type == 'lowpass':
-            b, a = spsig.butter(Filter.order, Filter.freqs[0]/nyq, 'low')
-        elif Filter.type == 'highpass':
-            b, a = spsig.butter(Filter.order, Filter.freqs[0]/nyq, 'high')
-        return b, a
-
-    def plotWaveform(self, unit='sec', newfig=False, title=''):
-        if len(self.waveform) == 0:
-            raise ValueError('Cannot plot, waveform data enpty. Use Sound.read\
+    def plot_waveform(self, unit='sec', newfig=False, title=''):
+        if len(self._waveform) == 0:
+            raise ValueError('Cannot plot, waveform data enpty. Use Sound.read \
                              to load the waveform')
         if unit == 'sec':
-            axis_t = np.arange(0, len(self.waveform)/self.fs, 1/self.fs)
+            axis_t = np.arange(0, len(self._waveform)/self._waveform_sampling_frequency, 1/self._waveform_sampling_frequency)
             xlabel = 'Time (sec)'
         elif unit == 'samp':
-            axis_t = np.arange(0, len(self.waveform), 1)
+            axis_t = np.arange(0, len(self._waveform), 1)
             xlabel = 'Time (sample)'
         if newfig:
             plt.figure()
-        axis_t = axis_t[0:len(self.waveform)]
-        plt.plot(axis_t, self.waveform, color='black')
+        axis_t = axis_t[0:len(self._waveform)]
+        plt.plot(axis_t, self._waveform, color='black')
         plt.xlabel(xlabel)
         plt.ylabel('Amplitude')
         plt.title(title)
-        plt.axis([axis_t[0], axis_t[-1], min(self.waveform), max(self.waveform)])
+        plt.axis([axis_t[0], axis_t[-1], min(self._waveform), max(self._waveform)])
         plt.grid()
         plt.show()
 
-    def extractWaveformSnippet(self, chunk):
+    def select_snippet(self, chunk):
         if len(chunk) != 2:
             raise ValueError('Chunk should be a list of with 2 values: \
                              chunk=[t1, t2].')
         elif chunk[0] >= chunk[1]:
             raise ValueError('Chunk[0] should be greater than chunk[1].')
-        elif (chunk[0] < 0) | (chunk[0] > self.getFileDur_samples()):
+        elif (chunk[0] < 0) | (chunk[0] > self.file_duration_sample):
             raise ValueError('Invalid chunk start value. The sample value \
                              chunk[0] is outside of file limit.')
-        elif (chunk[1] < 0) | (chunk[1] > self.getFileDur_samples()):
+        elif (chunk[1] < 0) | (chunk[1] > self.file_duration_sample):
             raise ValueError('Invalid chunk stop value. The sample value \
                              chunk[1] is outside of file limit.')
         snippet = copy.deepcopy(self)
-        snippet.waveform = self.waveform[chunk[0]:chunk[1]]
-        snippet.waveformEndSample = snippet.waveformEndSample + chunk[1]
-        snippet.waveformStartSample = snippet.waveformStartSample + chunk[0]
-        snippet.waveformDur_samples = len(snippet.waveform)
-        snippet.waveformDur_sec = snippet.waveformDur_samples/snippet.getSamplingFrequencyHz() 
+        snippet._waveform = self._waveform[chunk[0]:chunk[1]]
+        snippet._waveform_stop_sample = snippet._waveform_start_sample + chunk[1]
+        snippet._waveform_start_sample = snippet._waveform_start_sample + chunk[0]
+        snippet._waveform_duration_sample = len(snippet._waveform)
+        snippet._waveform_duration_sec = snippet._waveform_duration_sec/snippet._waveform_sampling_frequency
         return snippet
 
-    def tightenWavformWindow(self, EnergyPercentage):
-        cumEn = np.cumsum(np.square(self.waveform))
-        cumEn = cumEn/max(cumEn)
-        begPerc = (1-(EnergyPercentage/100))/2
-        endPerc = 1 - begPerc
-        chunk = [np.nonzero(cumEn > begPerc)[0][0], np.nonzero(cumEn > endPerc)[0][0]]
-        print(chunk)
-        # extractWaveformSnippet(self, chunk)
-        snip = self.extractWaveformSnippet(chunk)
+
+    def tighten_waveform_window(self, energy_percentage):
+        chunk = core.tools.tighten_signal_limits(self._waveform, energy_percentage)
+        # select_snippet(self, chunk)
+        snip = self.select_snippet(chunk)
         self.__dict__.update(snip.__dict__)
-        # plt.figure()
-        # plt.plot(snip.waveform)
-        # self = copy.snip
 
-    def getSamplingFrequencyHz(self):
-        return self.fs
+    def __len__(self):
+        """Return number of samples."""
+        return self.waveform_duration_sample
 
-    def getFileDur_samples(self):
-        return self.nSamples
+    @property
+    def waveform_sampling_frequency(self):
+        return self._waveform_sampling_frequency
+    
+    @property
+    def file_sampling_frequency(self):
+        return self._file_sampling_frequency
 
-    def getFileDur_sec(self):
-        return self.dur
+    @property
+    def file_duration_sample(self):
+        return self._file_duration_sample
 
-    def getNbChannels(self):
-        return self.nChannels
+    @property
+    def file_duration_sec(self):
+        return self._file_duration_sec
 
-    def getSelectedChannel(self):
-        return self.selectedChannel
+    @property
+    def channels(self):
+        return self._channels
 
-    def getFilePath(self):
-        return self.filePath
+    @property
+    def channel_selected(self):
+        return self._channel_selected
 
-    def getFullPath(self):
-        return os.path.join(self.filePath, self.fileName) + self.fileExtension
+    @property
+    def file_dir(self):
+        return self._file_dir
+    
+    @property
+    def file_full_path(self):
+        return os.path.join(self._file_dir, self._file_name) + self._file_extension
+    
+    @property
+    def file_extension(self):
+        return self._file_extension
+    
+    @property
+    def file_name(self):
+        return self._file_name
+    @property
+    def waveform(self):
+        return self._waveform
+    
+    @property
+    def waveform_start_sample(self):
+        return self._waveform_start_sample
 
-    def getFileExtension(self):
-        return self.fileExtension
+    @property
+    def waveform_stop_sample(self):
+        return self._waveform_stop_sample
 
-    def getFileName(self):
-        return self.fileName
+    @property
+    def waveform_duration_sample(self):
+        return self._waveform_duration_sample
 
-    def getWaveform(self):
-        return self.waveform
+    @property
+    def waveform_duration_sec(self):
+        return self._waveform_duration_sec
 
-    def getWaveformStartSample(self):
-        return self.waveformStartSample
-
-    def getWaveformEndSample(self):
-        return self.waveformEndSample
-
-    def getWaveformDur_samples(self):
-        return self.waveformDur_samples
-
-    def getWaveformDur_sec(self):
-        return self.waveformDur_sec
-
-    def getFilterParameters(self):
-        if self.filterApplied:
-            out = self.filterParameters
+    @property
+    def filter_parameters(self):
+        if self._filter_applied:
+            out = self._filter_params
         else:
-            out = []
+            out = None
         return out
 
-    def getFilterStatus(self):
-        return self.filterApplied
+    @property
+    def filter_applied(self):
+        return self._filter_applied
 
     # def play(self, channel):
 
@@ -313,17 +301,17 @@ class Filter:
 
     """
 
-    def __init__(self, type, freqs, order=4):
+    def __init__(self, type, cutoff_frequencies, order=4):
         """
         Parameters
         ----------
         type : {'bandpass', 'lowpass', 'highpass'}
             Type of filter
-        freqs : list of float
+        cutoff_frequencies : list of float
             Cut-off frequencies of the filter sorted in increasing order (i.e.
-            [lowcut, highcut]). If the filter type is 'bandpass' then freqs
-            must be a list of 2 floats freqs=[lowcut, highcut], where lowcut <
-            highcut. If the filter type is 'lowpass' or 'highpass' then freqs
+            [lowcut, highcut]). If the filter type is 'bandpass' then cutoff_frequencies
+            must be a list of 2 floats cutoff_frequencies=[lowcut, highcut], where lowcut <
+            highcut. If the filter type is 'lowpass' or 'highpass' then cutoff_frequencies
             is a list with a single float.
         order : int, optional
             Order of the filter (default is 4)
@@ -332,36 +320,43 @@ class Filter:
         ------
         ValueError
             If the filter type is not set to 'bandpass', 'lowpass', or 'highpass'
-            If the freqs has not enough of too much values for the filter type
+            If the cutoff_frequencies has not enough of too much values for the filter type
             selected or are not sorted by increasing frequencies.
 
         """
 
         # chech filter type
         if (type == 'bandpass') | (type == 'lowpass') | (type == 'highpass') == 0:
-            raise ValueError('Wrong filter type. Must be "bandpass", "lowpass"\
+            raise ValueError('Wrong filter type. Must be "bandpass", "lowpass" \
                              , or "highpass".')
         # chech freq values
         if (type == 'bandpass'):
-            if len(freqs) != 2:
-                raise ValueError('The type "bandpass" requires two frepuency\
-                                 values: freqs=[lowcut, highcut].')
-            elif freqs[0] > freqs[1]:
-                raise ValueError('The lowcut value should be smaller than the\
-                                 highcut value: freqs=[lowcut, highcut].')
+            if len(cutoff_frequencies) != 2:
+                raise ValueError('The type "bandpass" requires two frepuency \
+                                 values: cutoff_frequencies=[lowcut, highcut].')
+            elif cutoff_frequencies[0] > cutoff_frequencies[1]:
+                raise ValueError('The lowcut value should be smaller than the \
+                                 highcut value: cutoff_frequencies=[lowcut, highcut].')
         elif (type == 'lowpass') | (type == 'highpass'):
-            if len(freqs) != 1:
+            if len(cutoff_frequencies) != 1:
                 raise ValueError('The type "lowpass" and "highpass" require \
-                                 one frepuency values freqs=[cutfreq].')
+                                 one frepuency values cutoff_frequencies=[cutfreq].')
         self.type = type
-        self.freqs = freqs
+        self.cutoff_frequencies = cutoff_frequencies
         self.order = order
-
-
-def normalizeVector(vec):
-    # vec = vec+abs(min(vec))
-    # normVec = vec/max(vec)
-    # normVec = (normVec - 0.5)*2
-    vec = vec - np.mean(vec)
-    normVec = vec/max(vec)
-    return normVec
+    
+    def apply(self, waveform, sampling_frequency):
+        b, a = self.coefficients(sampling_frequency)
+        return spsig.lfilter(b, a, waveform)
+    
+    def coefficients(self, sampling_frequency):
+        nyquist = 0.5 * sampling_frequency
+        if self.type == 'bandpass':
+            low = self.cutoff_frequencies[0] / nyquist
+            high = self.cutoff_frequencies[1] / nyquist
+            b, a = spsig.butter(self.order, [low, high], btype='band')
+        elif self.type == 'lowpass':
+            b, a = spsig.butter(self.order, self.cutoff_frequencies[0]/nyquist, 'low')
+        elif self.type == 'highpass':
+            b, a = spsig.butter(self.order, self.cutoff_frequencies[0]/nyquist, 'high')
+        return b, a
