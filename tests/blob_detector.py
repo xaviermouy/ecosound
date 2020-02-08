@@ -1,13 +1,20 @@
-import core.audiotools
-#import detectors
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
-from scipy import signal, ndimage
-import numpy as np
-import cv2
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Feb  7 15:41:54 2020
+
+@author: xavier.mouy
+"""
+
+import sys
+sys.path.append("..") # Adds higher directory to python modules path.
+from ecosound.core.audiotools import Sound
+from ecosound.core.spectrogram import Spectrogram
+
 
 ## Input paraneters ##########################################################
+
+single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
+
 # Spectrogram parameters
 frame = 3000
 nfft = 4096
@@ -18,33 +25,20 @@ fmax = 1000
 window_type = 'hann'
 
 # start and stop time of wavfile to analyze
-t1 = 1515
-t2 = 1541
-
-# bob detection
-binThreshold = 50#20 10
-min_area = 100 #10
-minDuration = 30
-minBandWidth = 10
-
-# Example file
-infile =r"data/AMAR173.4.20190920T161248Z.wav"
+t1 = 24
+t2 = 40
 ## ###########################################################################
 
-# Close all existing graphs
-plt.close('all')
 
 # load audio data
-sound = audiotools.Sound(infile)
-fs =sound.getSamplingFrequencyHz()
-sound.read(channel=0, chunk=[round(t1*fs),round(t2*fs)])
-#sound.plotWaveform()
+sound = Sound(single_channel_file)
+sound.read(channel=0, chunk=[t1,t2], unit='sec')
+sound.plot_waveform()
 
 # Calculates  spectrogram
-sig = sound.getWaveform()
-Spectro = Spectrogram(frame, window_type, nfft, step, fs, unit='samp')
-Spectro.compute(sig,fs)
-
+spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='samp')
+spectro.compute(sound)
+spectro.show(frequency_min=fmin, frequency_max=fmax)
 
 # # crop spectrogram
 # minRowIdx = np.where(f < fmin)
@@ -96,3 +90,7 @@ Spectro.compute(sig,fs)
 #         # box coord
 #         boxCoord.append([x,y,w,h])
 
+
+def calcVariance2D(buffer):
+    return np.var(buffer)
+    #return np.median(buffer.ravel())

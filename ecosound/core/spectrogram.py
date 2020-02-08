@@ -4,28 +4,109 @@ Created on Tue Jan  7 11:23:51 2020
 
 @author: xavier.mouy
 """
-import audiotools
-import detectors
+
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
-from scipy import signal, ndimage
 import numpy as np
-import cv2
+from scipy import signal
+
+## TODO: change Asserts by Raise
 
 class Spectrogram:
-    _valid_units = ('samp','sec')
+    """A class for spectrograms.
+
+    The Spectrogram object computes, denoises, and displays a spectrogram from
+    a Sound object.
+
+    Attributes
+    ----------
+    sampling_frequency : float
+        Sampling frequency of the sound data.
+    time_resolution : float
+        Time resolution of the spectrogram, in seconds.
+    frequency_resolution : float
+        Frequency resolution of the spectrogram, in Hz.
+    frame_samp : int
+        Frame size, in samples
+    frame_sec : float
+        Frame size, in seconds
+    step_samp : int
+        Time step between conscutive spectrogram frames, in samples.
+    step_sec : float
+        Time step between conscutive spectrogram frames, in seconds.
+    overlap_perc : float
+        Percentage of overlap between conscutive spectrogram frames.
+    overlap_samp : int
+        Overlap between conscutive spectrogram frames, in samples.
+    fft_samp : int
+        Size to the Fast Fourier Transform, in samples.
+    fft_sec : float
+        Size to the Fast Fourier Transform, in seconds.
+    window_type : str
+        Type of weighting window applied to the signal before the FFT.
+    axis_frequencies : numpy.ndarray
+        1-D array with frequency values, in Hz, for each spectrogram rows.
+    axis_times : numpy.ndarray
+        1-D array with time values, in seconds, for each spectrogram column.
+    spectrogram : numpy.ndarray
+        2-D array with spectrogram energy data.
+
+    Methods
+    -------
+    compute(sig, fs)
+        Compute spectrogram.
+    show(frequency_min=0, frequency_max = [], time_min=0, time_max=[])
+        Plot spectrogram toa  figure.
+
+    """
+
+    _valid_units = ('samp', 'sec')
     _valid_windows = ('hann',)
     def __init__(self, frame, window_type, fft, step, sampling_frequency, unit = 'sec'):
+        """
+        Initialize Spectrogram object.
+
+        Defines spectrogram parameters. 'step' and 'fft' sizes can be defined
+        in seconds (unit='sec') or in samples (unit='samp'). The 'fft' size is
+        automatically adjusted to the next power of two. Zero padding is
+        possible by defining a 'fft' size greater than the 'frame' size.
+
+        Parameters
+        ----------
+        frame : float
+            Frame size in seconds or samples, depending on 'unit'.
+        window_type : str
+            Weighting window to teh signal before the FFT. Currently, only
+            'hann' is supported.
+        fft : float
+            Size of the Fast Fourier Transform, in seconds or samples,
+            depending on 'unit'.
+        step : float
+            Time step between conscutive spectrogram frames. In samples or 
+            seconds depending on 'unit'.
+        sampling_frequency : float
+            Sampling frequency of the signal, in Hz.
+        unit : str, optional
+            Unit used when defining the 'frame' and 'fft' parameters. For
+            seconds, use 'sec'. For samples, use 'samp'. The default is 'sec'.
+
+        Returns
+        -------
+        None. Spectrogram object.
+
+        """
         # Validation of the imput parameters
-        assert (unit in Spectrogram._valid_units), ("Wrong unit value. Valid units: ", Spectrogram._valid_units)
+        assert (unit in Spectrogram._valid_units), ("Wrong unit value. Valid \
+                                           units: ", Spectrogram._valid_units)
         assert fft >= frame, " fft should alwyas be >= frame"
         assert step < frame, "step should always be <= frame"
-        assert (window_type in Spectrogram._valid_windows),("Wrong window type. Valid values: ", Spectrogram._valid_windows)
+        assert (window_type in Spectrogram._valid_windows), ("Wrong window type\
+                                . Valid values: ", Spectrogram._valid_windows)
 
         # Convert units in seconds/samples
-        self._frame_samp,self._fft_samp,self._step_samp,self._frame_sec, \
-        self._fft_sec,self._step_sec, self._overlap_perc, self._overlap_samp = \
+        self._frame_samp, self._fft_samp, self._step_samp, self._frame_sec,\
+        self._fft_sec, self._step_sec, self._overlap_perc, self._overlap_samp =\
         Spectrogram._convert_units(frame, fft, step, sampling_frequency, unit)
 
         # Time and frequency resolution
@@ -35,71 +116,12 @@ class Spectrogram:
 
         # Define all other instance attributes
         self._window_type = window_type
-        self._spectrogram =[]
-        self._axis_frequencies =[]
-        self._axis_times =[]
-
-    @property
-    def frame_samp(self):
-        return self._frame_samp
-
-    @property
-    def frame_sec(self):
-        return self._frame_sec
-
-    @property
-    def step_samp(self):
-        return self._step_samp
-
-    @property
-    def step_sec(self):
-        return self._step_sec
-
-    @property
-    def fft_samp(self):
-        return self._fft_samp
-
-    @property
-    def fft_sec(self):
-        return self._fft_sec
-
-    @property
-    def overlap_perc(self):
-        return self._overlap_perc
-
-    @property
-    def overlap_samp(self):
-        return self._overlap_samp
-
-    @property
-    def sampling_frequency(self):
-        return self._sampling_frequency
-
-    @property
-    def time_resolution(self):
-        return self._time_resolution
-
-    @property
-    def frequency_resolution(self):
-        return self._frequency_resolution
-
-    @property
-    def window_type(self):
-        return self._window_type
-
-    @property
-    def axis_frequencies(self):
-        return self._axis_frequencies
-
-    @property
-    def axis_times(self):
-        return self._axis_times
-
-    @property
-    def spectrogram(self):
-        return self._spectrogram
+        self._spectrogram = []
+        self._axis_frequencies = []
+        self._axis_times = []
 
     def _convert_units(frame, fft, step, sampling_frequency, unit):
+        """Convert frame, fft, and step values to samples/seconds"""
         if unit == 'sec':
             frame_samp = round(frame*sampling_frequency)
             fft_samp = adjust_FFT_size(round(fft*sampling_frequency))
@@ -118,17 +140,58 @@ class Spectrogram:
         overlap_perc = (overlap_samp/frame_samp)*100
         return frame_samp, fft_samp, step_samp, frame_sec, fft_sec, step_sec, overlap_perc,overlap_samp
 
-    def compute(self, sig, fs):
-        assert fs == self.sampling_frequency, "The sampling frequency provided doesn't match the one from the Spectrogram object."
+    def compute(self, sig):
+        """
+        Compute spectrogram.
+
+        Compute spectrogram from sound signal and return values in the object
+        attribute 'spectrogram'.
+
+        Parameters
+        ----------
+        sig : Sound object
+            Sound object (core.audiotools.Sound) with the signal to anayse.
+
+        Returns
+        -------
+        Populate the 'spectrogram' attribute of the Spectrogram object.
+        axis_frequencies, numpy.ndarray
+            1-D array with time axis values, in seconds.
+        axis_times, numpy.ndarray
+            1-D array with frequency axis values, in Hertz.
+        spectrogram, numpy.ndarray
+            2-D array with spectrogram values.
+
+        """
+        assert sig.waveform_sampling_frequency == self.sampling_frequency, "The sampling frequency provided doesn't match the one from the Spectrogram object."
         # Weighting window
         if self.window_type == 'hann':
             window = signal.hann(self.frame_samp)
         # Calculates  spectrogram
-        self._axis_frequencies,self._axis_times,self._spectrogram = signal.spectrogram(sig, fs=self.sampling_frequency, window=window, noverlap=self.overlap_samp,nfft=self.fft_samp, scaling='spectrum')
+        self._axis_frequencies,self._axis_times,self._spectrogram = signal.spectrogram(sig.waveform, fs=self.sampling_frequency, window=window, noverlap=self.overlap_samp,nfft=self.fft_samp, scaling='spectrum')
         self._spectrogram = 20*np.log10(self._spectrogram)
         return self._axis_frequencies, self._axis_times, self._spectrogram
 
-    def show(self,frequency_min=0, frequency_max = [], time_min=0, time_max=[]):
+    def show(self, frequency_min=0, frequency_max = [], time_min=0, time_max=[]):
+        """
+        Display spectrogram.
+
+        Parameters
+        ----------
+        frequency_min : float, optional
+            Minimum frequency limit of the plot, in Hz. The default is 0.
+        frequency_max : float, optional
+            Maximum frequency limit of the plot, in Hz. The default is [].
+        time_min : float, optional
+            Minimum time limit of the plot, in seconds. The default is 0.
+        time_max : float, optional
+            Maximum time limit of the plot, in seconds. The default is [].
+
+        Returns
+        -------
+        None.
+
+        """
         if not frequency_max:
             frequency_max = self.sampling_frequency/2
         if not time_max:
@@ -150,109 +213,94 @@ class Spectrogram:
         fig.colorbar(im, ax=ax)
         fig.tight_layout()
         return
+    
+    @property
+    def frame_samp(self):
+        """Return the frame_samp attribute."""
+        return self._frame_samp
+    
+    @property
+    def frame_sec(self):
+        """Return the frame_sec attribute."""
+        return self._frame_sec
+    
+    @property
+    def step_samp(self):
+        """Return the step_samp attribute."""
+        return self._step_samp
+    
+    @property
+    def step_sec(self):
+        """Return the step_sec attribute."""
+        return self._step_sec
+    
+    @property
+    def fft_samp(self):
+        """Return the fft_samp attribute."""
+        return self._fft_samp
+    
+    @property
+    def fft_sec(self):
+        """Return the fft_sec attribute."""
+        return self._fft_sec
+    
+    @property
+    def overlap_perc(self):
+        """Return the overlap_perc attribute."""
+        return self._overlap_perc
+    
+    @property
+    def overlap_samp(self):
+        """Return the overlap_samp attribute."""
+        return self._overlap_samp
+    
+    @property
+    def sampling_frequency(self):
+        """Return the sampling_frequency attribute."""
+        return self._sampling_frequency
+    
+    @property
+    def time_resolution(self):
+        """Return the time_resolution attribute."""
+        return self._time_resolution
+    
+    @property
+    def frequency_resolution(self):
+        """Return the frequency_resolution attribute."""
+        return self._frequency_resolution
+    
+    @property
+    def window_type(self):
+        """Return the window_type attribute."""
+        return self._window_type
+    
+    @property
+    def axis_frequencies(self):
+        """Return the axis_frequencies attribute."""
+        return self._axis_frequencies
+    
+    @property
+    def axis_times(self):
+        """Return the axis_times attribute."""
+        return self._axis_times
+    
+    @property
+    def spectrogram(self):
+        """Return the spectrogram attribute."""
+        return self._spectrogram
 
 def adjust_FFT_size(nfft):
+        """ Adjust nfft to the next power of two if necessary."""
         nfft_adjusted = next_power_of_2(nfft)
         if nfft_adjusted != nfft:
             print('Warning: FFT size automatically adjusted to ', nfft, 'samples (original size:', nfft,')')
         return nfft_adjusted
 
-def next_power_of_2(x):  
+def next_power_of_2(x):
+    """Calculate the next power of two for x."""
     return 1 if x == 0 else 2**(x - 1).bit_length()
 
 
-def calcVariance2D(buffer):
-    return np.var(buffer)
-    #return np.median(buffer.ravel())
 
-
-## Input paraneters ##########################################################
-# Spectrogram parameters
-frame = 3000
-nfft = 4096
-step = 500
-#ovlp = 2500
-fmin = 0 
-fmax = 1000
-window_type = 'hann'
-
-# start and stop time of wavfile to analyze
-t1 = 1515
-t2 = 1541
-
-# bob detection
-binThreshold = 50#20 10
-min_area = 100 #10
-minDuration = 30
-minBandWidth = 10
-
-# Example file
-infile =r"data/AMAR173.4.20190920T161248Z.wav"
-## ###########################################################################
-
-# Close all existing graphs
-plt.close('all')
-
-# load audio data
-sound = audiotools.Sound(infile)
-fs =sound.getSamplingFrequencyHz()
-sound.read(channel=0, chunk=[round(t1*fs),round(t2*fs)])
-#sound.plotWaveform()
-
-# Calculates  spectrogram
-sig = sound.getWaveform()
-Spectro = Spectrogram(frame, window_type, nfft, step, fs, unit='samp')
-Spectro.compute(sig,fs)
-
-
-# # crop spectrogram
-# minRowIdx = np.where(f < fmin)
-# maxRowIdx = np.where(f > fmax)
-# if np.size(minRowIdx) == 0:
-#     minRowIdx = 0
-# else:
-#     minRowIdx = minRowIdx[0][0]
-# if np.size(maxRowIdx) == 0:
-#     maxRowIdx = f[f.size-1]
-# else:
-#     maxRowIdx = maxRowIdx[0][0]
-# f = f[minRowIdx:maxRowIdx]
-# Sxx = Sxx[minRowIdx:maxRowIdx,:]
-
-
-# # Dislays spectrogram
-# displaySpectrogram(Sxx)
-
-# # normalize
-# Smed = ndimage.median_filter(Sxx, size=(1,100))
-# displaySpectrogram(Smed)
-# Sxx2 = Sxx-Smed
-# # floor
-# Sxx2[Sxx2<0]=0
-# displaySpectrogram(Sxx2)
-
-# # # blob detection
-# Svar = ndimage.generic_filter(Sxx2, calcVariance2D, size=(30,10), mode='mirror') #size=(50,15)
-# displaySpectrogram(Svar)
-# # binarization
-# Svar[Svar<binThreshold]=0
-# Svar[Svar>0]=1
-# displaySpectrogram(Svar)
-# Svar_gray = cv2.normalize(src=Svar, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
-# (im2, cnts, hierarchy) = cv2.findContours(Svar_gray.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)    
-
-# # loop over the contours            
-# isdetec=False
-# boxCoord =[];
-# for c in cnts:
-#     # compute the bounding box for the contour
-#     (x, y, w, h) = cv2.boundingRect(c)
-#     # if the contour is too small, ignore it
-#     if w < minDuration or  h < minBandWidth:
-#         continue
-#     else:
-#         isdetec=True
-#         # box coord
-#         boxCoord.append([x,y,w,h])
 
 

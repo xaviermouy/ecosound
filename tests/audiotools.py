@@ -4,17 +4,18 @@ Created on Thu Feb  6 22:35:31 2020
 
 @author: xavier.mouy
 """
+import sys
+sys.path.append("..") # Adds higher directory to python modules path.
+from ecosound.core.audiotools import Sound, Filter
 
-from core.audiotools import Sound, Filter
-
-single_channel_file = r"./resources/AMAR173.4.20190916T061248Z.wav"
-#multi_channel_file = r"./resources/671404070.190722162836.wav.wav"
+#single_channel_file = r"../ecosound/resources/AMAR173.4.20190916T061248Z.wav"
+multi_channel_file = r"../ecosound/resources/671404070.190722162836.wav"
 
 
 # load part of the file and plot
 print('------------------------------')
 #sig = Sound() # should return error
-sig = Sound(single_channel_file)
+sig = Sound(multi_channel_file)
 print(len(sig))
 sig.read(channel=0, chunk=[10, 1000])
 print('------------------------------')
@@ -58,7 +59,7 @@ print(len(sig2))
 # print(len(sig2))
 
 
-# sig3 = Sound(single_channel_file)
+# sig3 = Sound(multi_channel_file)
 # sig3.read(channel=0, chunk=[sig2.waveform_start_sample, sig2.waveform_stop_sample])
 # #sig3.read(channel=0, chunk=[134, 1009])
 # sig3.plot_waveform(newfig=True)

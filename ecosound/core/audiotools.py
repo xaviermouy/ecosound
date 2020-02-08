@@ -2,7 +2,7 @@
 """
 Created on Fri May 19 15:26:24 2017
 
-@author: xavier
+@author: xavier.mouy
 """
 # --------------------------------------------------------------
 ##TODO: resample waveform
@@ -127,7 +127,7 @@ class Sound:
             raise ValueError("The sound file can't be found. Please verify"
                              + ' sound file name and path')
 
-    def read(self, channel=0, chunk=[]):
+    def read(self, channel=0, chunk=[], unit='samp'):
         """
         Load data from sound file.
 
@@ -143,6 +143,9 @@ class Sound:
             List with two floats indicating the [start time, stop time], in
             samples, of the chunk of audio data to load. An empty list []
             loads data from the entire audio file. The default is [].
+        unit : str, optional
+            Time unit of the 'chunk' parameter. Can be set to 'sec' for seconds
+            or 'samp', for samples. The default is 'samp'.
 
         Raises
         ------
@@ -152,6 +155,7 @@ class Sound:
                second one.
             If values in the chunk list exceed the audio file limits.
             If the channel selected does not exist.
+            If samp is not set to 'samp' or 'sec'
 
         Returns
         -------
@@ -169,6 +173,12 @@ class Sound:
                 self._waveform_duration_sample = len(self._waveform)
                 self._waveform_duration_sec = self._waveform_duration_sample/fs
             else:
+                if unit not in ('samp','sec'):
+                    raise ValueError('Invalid unit. Should be set to "sec" or'
+                                     + '"samp".')
+                # convert chunk to sampels if needed
+                if unit in ('sec'):
+                    chunk = np.round(np.dot(chunk,self.waveform_sampling_frequency))
                 if len(chunk) == 2:  # only read a section of the file
                     # Validate input values
                     if (chunk[0] < 0) | (chunk[0] >= self.file_duration_sample):
