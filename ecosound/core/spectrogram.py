@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
-from scipy import signal
+from scipy import signal, ndimage
 
 ## TODO: change Asserts by Raise
 
@@ -214,8 +214,62 @@ class Spectrogram:
         self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx]
         self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, :]
 
-    def denoise(self, method):
-        
+    def denoise(self, method, **kwargs):
+        """
+        Denoise spectrogram.
+
+        Denoise the spectrogram using various methods. The methods implemented
+        are:
+            METHODS           :    INPUT ARGUMENTS
+            'median_equalizer':    window_size = (nrows, ncolumns)
+
+        Parameters
+        ----------
+        method : str
+            DESCRIPTION.
+        **kwargs : variable
+            Parameters for the methods selected.
+
+        Raises
+        ------
+        ValueError
+            If method is not valid.
+
+        Returns
+        -------
+        None. Denoised spectrogram matrix.
+
+        """
+        denoise_methods = ('median_equalizer',)
+        if method in denoise_methods:
+            eval("self._" + method + "(**kwargs)")
+        else:
+            raise ValueError('Method not recognized. Methods available:'
+                             + str(denoise_methods))
+
+    def _median_equalizer(self, window_size):
+        """
+        Median equalizer.
+
+        Denoises the spectrogram matrix by subtracting the meidan spectrogram
+        compuetd with a median filter of window "window_sixe" to the original
+        spectrogram. Negative values of teh denoised spectrogram are set to
+        zero.
+
+        Parameters
+        ----------
+        window_size : tuple with 2 x Int
+            Size of the median filter (nrows, ncolumns).
+
+        Returns
+        -------
+        None. Denoised spectrogram matrix.
+
+        """
+        Smed = ndimage.median_filter(self._spectrogram, window_size)
+        self._spectrogram = self._spectrogram-Smed
+        self._spectrogram[self._spectrogram < 0] = 0  # floor
+
     def show(self, frequency_min=0, frequency_max=[], time_min=0, time_max=[]):
         """
         Display spectrogram.

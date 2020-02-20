@@ -43,13 +43,11 @@ spectro.compute(sound)
 spectro.crop(frequency_min=fmin, frequency_max=fmax)
 spectro.show(frequency_min=fmin, frequency_max=fmax)
 
-# # normalize
-# Smed = ndimage.median_filter(Sxx, size=(1,100))
-# displaySpectrogram(Smed)
-# Sxx2 = Sxx-Smed
-# # floor
-# Sxx2[Sxx2<0]=0
-# displaySpectrogram(Sxx2)
+# Denoise
+spectro.denoise('median_equalizer', window_size=(1,100))
+spectro.show(frequency_min=fmin, frequency_max=fmax)
+
+
 
 # # # blob detection
 # Svar = ndimage.generic_filter(Sxx2, calcVariance2D, size=(30,10), mode='mirror') #size=(50,15)
