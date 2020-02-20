@@ -168,11 +168,55 @@ class Spectrogram:
         if self.window_type == 'hann':
             window = signal.hann(self.frame_samp)
         # Calculates  spectrogram
-        self._axis_frequencies,self._axis_times,self._spectrogram = signal.spectrogram(sig.waveform, fs=self.sampling_frequency, window=window, noverlap=self.overlap_samp,nfft=self.fft_samp, scaling='spectrum')
+        self._axis_frequencies, self._axis_times, self._spectrogram = signal.spectrogram(sig.waveform, fs=self.sampling_frequency, window=window, noverlap=self.overlap_samp, nfft=self.fft_samp, scaling='spectrum')
         self._spectrogram = 20*np.log10(self._spectrogram)
         return self._axis_frequencies, self._axis_times, self._spectrogram
 
-    def show(self, frequency_min=0, frequency_max = [], time_min=0, time_max=[]):
+    def crop(self, frequency_min=None, frequency_max=None):
+        """
+        Crop frequencies from the spectrogram.
+
+        Crop the spectrogram matrix by keeping only frequency rows above
+        frequency_min and below frequency_max. If frequency_min is not provided
+        then, only spectrogram rows above frequency_max will be removed. If
+        frequency_max is not provided then, only spectrogram rows below
+        frequency_min will be removed. The axis_frequencies attribute of the
+        spectrogram object are automatically updated.
+
+        Parameters
+        ----------
+        frequency_min : float, optional
+            Minimum frequency limit, in Hz. The default is None.
+        frequency_max : float, optional
+            Maximum frequency limit, in Hz. The default is None.
+
+        Returns
+        -------
+        None. Cropped spectrogram matrix.
+
+        """
+        if frequency_min is None:
+            min_row_idx = 0
+        else:
+            min_row_idx = np.where(self._axis_frequencies < frequency_min)
+        if frequency_max is None:
+            max_row_idx = self._axis_frequencies.size-1
+        else:
+            max_row_idx = np.where(self._axis_frequencies > frequency_max)
+        if np.size(min_row_idx) == 0:
+            min_row_idx = 0
+        else:
+            min_row_idx = min_row_idx[0][0]
+        if np.size(max_row_idx) == 0:
+            max_row_idx = self._axis_frequencies.size-1
+        else:
+            max_row_idx = max_row_idx[0][0]
+        self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx]
+        self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, :]
+
+    def denoise(self, method):
+        
+    def show(self, frequency_min=0, frequency_max=[], time_min=0, time_max=[]):
         """
         Display spectrogram.
 

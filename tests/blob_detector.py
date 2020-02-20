@@ -38,25 +38,10 @@ sound.plot_waveform()
 # Calculates  spectrogram
 spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='samp')
 spectro.compute(sound)
+
+# Crop unused frequencies
+spectro.crop(frequency_min=fmin, frequency_max=fmax)
 spectro.show(frequency_min=fmin, frequency_max=fmax)
-
-# # crop spectrogram
-# minRowIdx = np.where(f < fmin)
-# maxRowIdx = np.where(f > fmax)
-# if np.size(minRowIdx) == 0:
-#     minRowIdx = 0
-# else:
-#     minRowIdx = minRowIdx[0][0]
-# if np.size(maxRowIdx) == 0:
-#     maxRowIdx = f[f.size-1]
-# else:
-#     maxRowIdx = maxRowIdx[0][0]
-# f = f[minRowIdx:maxRowIdx]
-# Sxx = Sxx[minRowIdx:maxRowIdx,:]
-
-
-# # Dislays spectrogram
-# displaySpectrogram(Sxx)
 
 # # normalize
 # Smed = ndimage.median_filter(Sxx, size=(1,100))
