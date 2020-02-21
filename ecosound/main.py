@@ -1,4 +1,4 @@
-import core.audiotools
+import ecosound.core.audiotools
 #import detectors
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas

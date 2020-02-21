@@ -9,7 +9,7 @@ import sys
 sys.path.append("..") # Adds higher directory to python modules path.
 from ecosound.core.audiotools import Sound
 from ecosound.core.spectrogram import Spectrogram
-
+from ecosound.detection.detectors_builder import DetectorFactory
 
 ## Input paraneters ##########################################################
 
@@ -47,6 +47,8 @@ spectro.show(frequency_min=fmin, frequency_max=fmax)
 spectro.denoise('median_equalizer', window_size=(1,100))
 spectro.show(frequency_min=fmin, frequency_max=fmax)
 
+# Detector
+detec = DetectorFactory('BlobDetectowr',dd=56)
 
 
 # # # blob detection
