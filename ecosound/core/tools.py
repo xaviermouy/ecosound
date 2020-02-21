@@ -26,7 +26,7 @@ def filename_to_datetime(files):
     p = re.compile(regex_string)
     for idx, file in enumerate(files):
         datestr = p.search(file)
-        for time_format in time_formats:        
+        for time_format in time_formats:
             ok_flag = False
             try:
                 timestamps[idx] = datetime.strptime(datestr[0], time_format)

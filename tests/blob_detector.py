@@ -44,38 +44,12 @@ spectro.crop(frequency_min=fmin, frequency_max=fmax)
 spectro.show(frequency_min=fmin, frequency_max=fmax)
 
 # Denoise
-spectro.denoise('median_equalizer', window_size=(1,100))
+spectro.denoise('median_equalizer', window_duration=3)
 spectro.show(frequency_min=fmin, frequency_max=fmax)
 
 # Detector
-detec = DetectorFactory('BlobDetectowr',dd=56)
+detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.01, bandwidth_min=40)
+detections = detector.run(spectro, debug=True)
 
 
-# # # blob detection
-# Svar = ndimage.generic_filter(Sxx2, calcVariance2D, size=(30,10), mode='mirror') #size=(50,15)
-# displaySpectrogram(Svar)
-# # binarization
-# Svar[Svar<binThreshold]=0
-# Svar[Svar>0]=1
-# displaySpectrogram(Svar)
-# Svar_gray = cv2.normalize(src=Svar, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
-# (im2, cnts, hierarchy) = cv2.findContours(Svar_gray.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)    
 
-# # loop over the contours            
-# isdetec=False
-# boxCoord =[];
-# for c in cnts:
-#     # compute the bounding box for the contour
-#     (x, y, w, h) = cv2.boundingRect(c)
-#     # if the contour is too small, ignore it
-#     if w < minDuration or  h < minBandWidth:
-#         continue
-#     else:
-#         isdetec=True
-#         # box coord
-#         boxCoord.append([x,y,w,h])
-
-
-def calcVariance2D(buffer):
-    return np.var(buffer)
-    #return np.median(buffer.ravel())

@@ -221,7 +221,7 @@ class Spectrogram:
         Denoise the spectrogram using various methods. The methods implemented
         are:
             METHODS           :    INPUT ARGUMENTS
-            'median_equalizer':    window_size = (nrows, ncolumns)
+            'median_equalizer':    window_duration in seconds.
 
         Parameters
         ----------
@@ -247,7 +247,7 @@ class Spectrogram:
             raise ValueError('Method not recognized. Methods available:'
                              + str(denoise_methods))
 
-    def _median_equalizer(self, window_size):
+    def _median_equalizer(self, window_duration):
         """
         Median equalizer.
 
@@ -258,15 +258,15 @@ class Spectrogram:
 
         Parameters
         ----------
-        window_size : tuple with 2 x Int
-            Size of the median filter (nrows, ncolumns).
+        window_duration : float
+            Durations of the median filter, in seconds.
 
         Returns
         -------
         None. Denoised spectrogram matrix.
 
         """
-        Smed = ndimage.median_filter(self._spectrogram, window_size)
+        Smed = ndimage.median_filter(self._spectrogram, (1,round(window_duration/self.time_resolution)))
         self._spectrogram = self._spectrogram-Smed
         self._spectrogram[self._spectrogram < 0] = 0  # floor
 

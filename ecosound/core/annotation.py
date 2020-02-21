@@ -274,7 +274,7 @@ class Annotation():
 
         """
         data = Annotation._import_files(files)
-        files_timestamp = core.tools.filename_to_datetime(data['Begin Path'].tolist())
+        files_timestamp = ecosound.core.tools.filename_to_datetime(data['Begin Path'].tolist())
         self.data['audio_file_start_date'] = files_timestamp
         self.data['audio_channel'] = data['Channel']
         self.data['audio_file_name'] = data['Begin Path'].apply(
@@ -398,7 +398,7 @@ class Annotation():
 
         """
         data = Annotation._import_files(files)
-        files_timestamp = core.tools.filename_to_datetime(
+        files_timestamp = ecosound.core.tools.filename_to_datetime(
             data['Soundfile'].tolist())
         self.data['audio_file_start_date'] = files_timestamp
         self.data['operator_name'] = data['Operator']
@@ -641,7 +641,7 @@ class Annotation():
         return list(self.data.columns)
 
     @staticmethod
-    @core.decorators.listinput
+    @ecosound.core.decorators.listinput
     def _import_files(files):
         """Import one or several text files with header to a Panda datafrane."""
         assert type(files) in (str, list), "Input must be of type str (single \
@@ -671,7 +671,7 @@ class Annotation():
 
     def __add__(self, other):
         """Concatenate data from several annotation objects."""
-        assert type(other) is core.annotation.Annotation, "Object type not \
+        assert type(other) is ecosound.core.annotation.Annotation, "Object type not \
             supported. Can only concatenate Annotation objects together."
         self.data = pd.concat([self.data, other.data],
                               ignore_index=True,
