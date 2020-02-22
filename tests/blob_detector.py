@@ -9,7 +9,8 @@ import sys
 sys.path.append("..") # Adds higher directory to python modules path.
 from ecosound.core.audiotools import Sound
 from ecosound.core.spectrogram import Spectrogram
-from ecosound.detection.detectors_builder import DetectorFactory
+from ecosound.detection.detector_builder import DetectorFactory
+from ecosound.visualization.grapher_builder import GrapherFactory
 
 ## Input paraneters ##########################################################
 
@@ -51,5 +52,7 @@ spectro.show(frequency_min=fmin, frequency_max=fmax)
 detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.01, bandwidth_min=40)
 detections = detector.run(spectro, debug=True)
 
+# Plot
+grapher = GrapherFactory('SoundPlotter')
 
 

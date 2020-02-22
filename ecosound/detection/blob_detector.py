@@ -4,7 +4,7 @@ Created on Fri Feb  7 15:27:39 2020
 
 @author: xavier.mouy
 """
-from .detectors_builder import BaseClass
+from .detector_builder import BaseClass
 from ecosound.core.spectrogram import Spectrogram
 from ecosound.core.annotation import Annotation
 
