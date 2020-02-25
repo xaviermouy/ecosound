@@ -3,6 +3,7 @@
 Created on Fri Feb  7 15:41:54 2020
 
 @author: xavier.mouy
+
 """
 
 import sys
@@ -44,15 +45,21 @@ spectro.compute(sound)
 spectro.crop(frequency_min=fmin, frequency_max=fmax)
 spectro.show(frequency_min=fmin, frequency_max=fmax)
 
-# Denoise
-spectro.denoise('median_equalizer', window_duration=3)
-spectro.show(frequency_min=fmin, frequency_max=fmax)
+# # Denoise
+# spectro.denoise('median_equalizer', window_duration=3)
+# spectro.show(frequency_min=fmin, frequency_max=fmax)
 
-# Detector
-detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.01, bandwidth_min=40)
-detections = detector.run(spectro, debug=True)
+# # Detector
+# detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.01, bandwidth_min=40)
+# detections = detector.run(spectro, debug=True)
 
 # Plot
 grapher = GrapherFactory('SoundPlotter')
+grapher.add_data(spectro)
+#grapher.add_data(sound,spectro)
+#grapher.add_annotations(detections)
+grapher.show()
+#grapher.to_png(outfile, borders = None)
+
 
 
