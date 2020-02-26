@@ -54,7 +54,7 @@ class SoundPlotter(BaseClass):
     title : [str, str, ...] or str
         Title(s) of the figure/subplots.
     colormap : str
-        Color map for the spectrogram. Uses names from Matplotlib. The default 
+        Color map for the spectrogram. Uses names from Matplotlib. The default
         is 'jet'
 
     Methods

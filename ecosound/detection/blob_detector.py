@@ -16,8 +16,47 @@ import uuid
 
 
 class BlobDetector(BaseClass):
-    
-    
+    """Blob detector.
+
+    A detector to find transient events in a spectrogram object. The local
+    variance is calculated in the spectrogram for each time-frequency bin using
+    a local area (e.g. kernel) defined by 'kernel_duration' and
+    'kernel_bandwidth'. Bins or the spectrogram with a local variance less than
+    'threshold' are set to zero, while all the bins greater than 'threshold'
+    are set to one. The Moors Neighborhood  algorithm is then used to define
+    the time and frequency boudaries of the adjacent spectrogram bins taht
+    equal one. All detections with a duration less than 'duration_min' and a
+    bandwidth less than 'bandwidth_min' are discarded.
+
+    The BlobDetector detector must be instantiated using the DetectorFactory
+    with the positional argument 'BlobDetector':
+
+    from ecosound.detection.detector_builder import DetectorFactory
+    detector = DetectorFactory('BlobDetector', args)
+
+    Attributes
+    ----------
+    name : str
+        Name of the detector
+    version : str
+        Version of the detector
+    kernel_duration : float
+        Duration of the kernel, in seconds.
+    kernel_bandwidth : float
+        Bandwidth of teh kernel, in Hz.
+    threshold : float
+        Variance threshold for teh binarization.
+    duration_min : float
+        Minimum duration of detection accepted,in seconds.
+    bandwidth_min : float
+        Minimum bandwidth of detection accepted,in seconds.
+
+    Methods
+    -------
+    run(spectro, debug=False)
+        Run the detector on a spectrogram object.
+    """
+
     detector_parameters = ('kernel_duration',
                            'kernel_bandwidth',
                            'threshold',
@@ -25,6 +64,29 @@ class BlobDetector(BaseClass):
                            'bandwidth_min')
 
     def __init__(self, *args, **kwargs):
+        """
+        Initialize the detector.
+
+        Parameters
+        ----------
+        *args : str
+            Do not use. Only used by the DetectorFactory.
+        kernel_duration : float
+            Duration of the kernel, in seconds.
+        kernel_bandwidth : float
+            Bandwidth of teh kernel, in Hz.
+        threshold : float
+            Variance threshold for the binarization.
+        duration_min : float
+            Minimum duration of detection accepted,in seconds.
+        bandwidth_min : float
+            Minimum bandwidth of detection accepted,in seconds.
+
+        Returns
+        -------
+        None. Detector object.
+
+        """
         # Initialize all detector parameters to None
         self.__dict__.update(dict(zip(self.detector_parameters,
                                       [None]*len(self.detector_parameters))))
@@ -44,6 +106,7 @@ class BlobDetector(BaseClass):
         return version
 
     def _prerun_check(self, spectrogram):
+        """Run several verifications before the run."""
         # check that all required arguments are defined
         if True in [self.__dict__.get(keys) is None for keys in self.detector_parameters]:
             raise ValueError('Not all detector parameters have been defined.'
@@ -53,35 +116,67 @@ class BlobDetector(BaseClass):
         if not isinstance(spectrogram, Spectrogram):
             raise ValueError('Input must be an ecosound Spectrogram object'
                              + '(ecosound.core.spectrogram).')
+
     def _plot_matrix(self, Matrix, title):
+        """Plot spectyrogram matrix when in debug mode."""
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(
-        figsize=(16,4),
-        sharex=True
-        )
-        im = ax.pcolormesh(Matrix, cmap = 'jet')
+            figsize=(16, 4),
+            sharex=True)
+        ax.pcolormesh(Matrix, cmap='jet')
         ax.set_title(title)
 
     def run(self, spectro, debug=False):
+        """Run detector.
+
+        Runs the detector on the spectrogram object.
+
+        Parameters
+        ----------
+        spectro : Spectrogram
+            Spectrogram object to detect from.
+        debug : bool, optional
+            Displays binarization results for debugging purpused.The default
+            is False.
+
+        Returns
+        -------
+        detec : Annotation
+            Annotation object with the detection results.
+
+        """
         # Pre-run verifications
         self._prerun_check(spectro)
         # Convert units to spectrogram bins
-        kernel_duration = max(round(self.kernel_duration/spectro.time_resolution), 1)
-        kernel_bandwidth = max(round(self.kernel_bandwidth/spectro.frequency_resolution), 1)
-        duration_min = max(round(self.duration_min/spectro.time_resolution), 1)
-        bandwidth_min = max(round(self.bandwidth_min/spectro.frequency_resolution), 1)
+        kernel_duration = max(
+            round(self.kernel_duration/spectro.time_resolution), 1)
+        kernel_bandwidth = max(
+            round(self.kernel_bandwidth/spectro.frequency_resolution), 1)
+        duration_min = max(
+            round(self.duration_min/spectro.time_resolution), 1)
+        bandwidth_min = max(
+            round(self.bandwidth_min/spectro.frequency_resolution), 1)
         # Apply filter
-        Svar = ndimage.generic_filter(spectro.spectrogram, calcVariance2D, (kernel_bandwidth, kernel_duration), mode='mirror')
+        Svar = ndimage.generic_filter(spectro.spectrogram, calcVariance2D,
+                                      (kernel_bandwidth, kernel_duration),
+                                      mode='mirror')
         # binarization
-        Svar[Svar<self.threshold] = 0
-        Svar[Svar>0] = 1
+        Svar[Svar < self.threshold] = 0
+        Svar[Svar > 0] = 1
         if debug:
-             self._plot_matrix(Svar, 'Binarized spectrogram matrix')
+            self._plot_matrix(Svar, 'Binarized spectrogram matrix')
         # Define contours
-        Svar_gray = cv2.normalize(src=Svar, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
-        (im2, cnts, hierarchy) = cv2.findContours(Svar_gray.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        Svar_gray = cv2.normalize(src=Svar,
+                                  dst=None,
+                                  alpha=0,
+                                  beta=255,
+                                  norm_type=cv2.NORM_MINMAX,
+                                  dtype=cv2.CV_8UC1)
+        (im2, cnts, hierarchy) = cv2.findContours(Svar_gray.copy(),
+                                                  cv2.RETR_EXTERNAL,
+                                                  cv2.CHAIN_APPROX_SIMPLE)
         # loop over the contours
-        isdetec=False
+        isdetec = False
         t1 = []
         t2 = []
         fmin = []
@@ -90,10 +185,10 @@ class BlobDetector(BaseClass):
             # Compute the bounding box for the contour
             (x, y, w, h) = cv2.boundingRect(c)
             # if the contour is too small, ignore it
-            if w < duration_min or  h < bandwidth_min:
+            if w < duration_min or h < bandwidth_min:
                 continue
             else:
-                isdetec=True
+                isdetec = True
                 # box coord
                 t1.append(x)
                 t2.append(x+w)
@@ -111,10 +206,11 @@ class BlobDetector(BaseClass):
         detec.data['software_version'] = self.version
         detec.data['entry_date'] = datetime.now()
         detec.data['uuid'] = detec.data.apply(lambda _: str(uuid.uuid4()), axis=1)
-
         return detec
 
+
 def calcVariance2D(buffer):
+    """Calculate the 2D variance."""
     return np.var(buffer)
-    #return np.median(buffer.ravel())
-    #return np.mean(buffer.ravel())
+    # return np.median(buffer.ravel())
+    # return np.mean(buffer.ravel())

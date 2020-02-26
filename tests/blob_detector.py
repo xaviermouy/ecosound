@@ -47,18 +47,14 @@ spectro.crop(frequency_min=fmin, frequency_max=fmax)
 spectro.denoise('median_equalizer', window_duration=3)
 
 # Detector
-detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.01, bandwidth_min=40)
+detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.05, bandwidth_min=40)
 detections = detector.run(spectro, debug=False)
 
 # Plot
 graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
 graph.add_data(sound)
 graph.add_data(spectro)
-graph.add_annotation(detections, color='red')
-#graph.add_annotation(detections, panel=0, color='black', description='Detections')
-#graph.add_annotation(detections, panel=1, color='red', description='Detections2')
-#graph.to_file('test.png')
-#graph.colormap = 'gray'
+graph.add_annotation(detections)
 graph.colormap = 'binary'
 graph.show()
 
