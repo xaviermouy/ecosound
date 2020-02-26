@@ -16,7 +16,11 @@ import uuid
 
 
 class BlobDetector(BaseClass):
-    detector_parameters = ('kernel_duration','kernel_bandwidth', 'threshold','duration_min','bandwidth_min')
+    detector_parameters = ('kernel_duration',
+                           'kernel_bandwidth',
+                           'threshold',
+                           'duration_min',
+                           'bandwidth_min')
 
     def __init__(self, *args, **kwargs):
         # Initialize all detector parameters to None
@@ -27,7 +31,7 @@ class BlobDetector(BaseClass):
 
     @property
     def name(self):
-        """Return name of teh detector."""
+        """Return name of the detector."""
         detector_name = 'BlobDetector'
         return detector_name
 
