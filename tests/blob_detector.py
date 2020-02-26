@@ -35,7 +35,6 @@ t2 = 40
 # load audio data
 sound = Sound(single_channel_file)
 sound.read(channel=0, chunk=[t1,t2], unit='sec')
-#sound.plot_waveform()
 
 # Calculates  spectrogram
 spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='samp')
@@ -43,11 +42,9 @@ spectro.compute(sound)
 
 # Crop unused frequencies
 spectro.crop(frequency_min=fmin, frequency_max=fmax)
-#spectro.show(frequency_min=fmin, frequency_max=fmax)
 
 # Denoise
 spectro.denoise('median_equalizer', window_duration=3)
-# spectro.show(frequency_min=fmin, frequency_max=fmax)
 
 # Detector
 detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.01, bandwidth_min=40)
@@ -55,12 +52,13 @@ detections = detector.run(spectro, debug=False)
 
 # Plot
 graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max = 1000)
-graph.add_data(sound,spectro)
+graph.add_data(sound, spectro)
 graph.add_annotation(detections)
 #graph.add_annotation(detections, panel=0, color='black', description='Detections')
 #graph.add_annotation(detections, panel=1, color='red', description='Detections2')
-graph.show()
 #graph.to_file('test.png')
+graph.show()
+
 
 
 
