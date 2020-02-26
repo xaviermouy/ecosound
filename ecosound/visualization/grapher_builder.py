@@ -16,14 +16,13 @@ class BaseClass(object):
 
     def __init__(self, grapher_name):
         self.grapher_name = grapher_name
-        print('yeah')
 
     @classmethod
     def is_grapher_for(cls, grapher_name):
         """
         Check grapher name.
 
-        Compare the requested grapher_name with each grapher classe
+        Compare the requested grapher_name with each grapher class
         available.
 
         Parameters

@@ -16,6 +16,8 @@ import uuid
 
 
 class BlobDetector(BaseClass):
+    
+    
     detector_parameters = ('kernel_duration',
                            'kernel_bandwidth',
                            'threshold',

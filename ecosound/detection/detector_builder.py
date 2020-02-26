@@ -16,7 +16,6 @@ class BaseClass(object):
 
     def __init__(self, detector_name):
         self.detector_name = detector_name
-        print('yeah')
 
     @classmethod
     def is_detector_for(cls, detector_name):
