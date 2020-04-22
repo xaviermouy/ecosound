@@ -67,14 +67,14 @@ graph.show()
 
 #measurement = Measurement()
 
-detecSpectro = spectro.crop(10, 40)
+## To test the .crop method
+#detecSpectro = spectro.crop(time_min=2,time_max=10, inplace=False)
+#detecSpectro = spectro.crop(time_max=10, inplace=False)
+#detecSpectro = spectro.crop(frequency_min=50, inplace=False)
+#detecSpectro = spectro.crop(frequency_max=800,inplace=False)
+detecSpectro = spectro.crop(frequency_min=0,frequency_max=600,time_min=10,time_max=10.3, inplace=False)
 
-detecSpectro2 = detecSpectro.crop(10, 20,inplace=True)
 
-graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
-graph.add_data(spectro)
-graph.show()
-
-graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
+graph = GrapherFactory('SoundPlotter', title='Detection', frequency_max=1000)
 graph.add_data(detecSpectro)
 graph.show()
