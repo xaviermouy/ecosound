@@ -172,7 +172,7 @@ class BlobDetector(BaseClass):
                                   beta=255,
                                   norm_type=cv2.NORM_MINMAX,
                                   dtype=cv2.CV_8UC1)
-        (im2, cnts, hierarchy) = cv2.findContours(Svar_gray.copy(),
+        (cnts, hierarchy) = cv2.findContours(Svar_gray.copy(),
                                                   cv2.RETR_EXTERNAL,
                                                   cv2.CHAIN_APPROX_SIMPLE)
         # loop over the contours

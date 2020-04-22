@@ -10,6 +10,7 @@ import sys
 sys.path.append("..") # Adds higher directory to python modules path.
 from ecosound.core.audiotools import Sound
 from ecosound.core.spectrogram import Spectrogram
+#from ecosound.core.measurement import Measurement
 from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
 
@@ -41,10 +42,10 @@ spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_fr
 spectro.compute(sound)
 
 # Crop unused frequencies
-spectro.crop(frequency_min=fmin, frequency_max=fmax)
+spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
 
 # Denoise
-spectro.denoise('median_equalizer', window_duration=3)
+spectro.denoise('median_equalizer', window_duration=3,inplace=True)
 
 # Detector
 detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.05, bandwidth_min=40)
@@ -53,11 +54,27 @@ detections = detector.run(spectro, debug=False)
 # Plot
 graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
 graph.add_data(sound)
+graph.add_annotation(detections, panel=0, color='red')
 graph.add_data(spectro)
-graph.add_annotation(detections)
-graph.colormap = 'binary'
+graph.add_annotation(detections, panel=1)
+#graph.colormap = 'binary'
+graph.colormap = 'jet'
+
 graph.show()
 
+# Maasurements
+#import xarray as xr
 
+#measurement = Measurement()
 
+detecSpectro = spectro.crop(10, 40)
 
+detecSpectro2 = detecSpectro.crop(10, 20,inplace=True)
+
+graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
+graph.add_data(spectro)
+graph.show()
+
+graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
+graph.add_data(detecSpectro)
+graph.show()

@@ -9,6 +9,7 @@ import re
 from datetime import datetime
 import ecosound.core.decorators
 import numpy as np
+import os, sys
 
 def read_json(file):
     """Load JSON file as dict."""
@@ -19,7 +20,8 @@ def read_json(file):
 @ecosound.core.decorators.listinput
 def filename_to_datetime(files):
     """Extract date from a list of str of filenames."""
-    patterns = read_json(r'./core/timestamp_formats.json')
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    patterns = read_json(os.path.join(current_dir,r'timestamp_formats.json'))
     regex_string ='|'.join([pattern['string_pattern'] for pattern in patterns])
     time_formats =[pattern['time_format'] for pattern in patterns]
     timestamps =[None]*len(files)

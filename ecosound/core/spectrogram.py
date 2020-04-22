@@ -10,6 +10,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
 from scipy import signal, ndimage
+import copy
 
 ## TODO: change Asserts by Raise
 
@@ -56,9 +57,13 @@ class Spectrogram:
     -------
     compute(sig, fs)
         Compute spectrogram.
-    show(frequency_min=0, frequency_max = [], time_min=0, time_max=[])
-        Plot spectrogram toa  figure.
-
+    crop(frequency_min, frequency_max)
+        Crop frequencies from the spectrogram.
+    denoise(method, **kwargs)
+        Denoise the spectrogram using various methods. 
+        Methods implemented:
+        METHODS           :    INPUT ARGUMENTS
+        'median_equalizer':    window_duration in seconds.
     """
 
     _valid_units = ('samp', 'sec')
@@ -172,7 +177,7 @@ class Spectrogram:
         self._spectrogram = 20*np.log10(self._spectrogram)
         return self._axis_frequencies, self._axis_times, self._spectrogram
 
-    def crop(self, frequency_min=None, frequency_max=None):
+    def crop(self, frequency_min=None, frequency_max=None, inplace=False):
         """
         Crop frequencies from the spectrogram.
 
@@ -189,6 +194,8 @@ class Spectrogram:
             Minimum frequency limit, in Hz. The default is None.
         frequency_max : float, optional
             Maximum frequency limit, in Hz. The default is None.
+        inplace : bool, optional
+            If True, do operation inplace and return None. The default is False
 
         Returns
         -------
@@ -211,8 +218,15 @@ class Spectrogram:
             max_row_idx = self._axis_frequencies.size-1
         else:
             max_row_idx = max_row_idx[0][0]
-        self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx]
-        self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, :]
+        if inplace:
+            self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx]
+            self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, :]
+            out_object = None
+        else:
+            out_object = copy.copy(self)
+            out_object._axis_frequencies = out_object._axis_frequencies[min_row_idx:max_row_idx]
+            out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx, :]
+        return out_object
 
     def denoise(self, method, **kwargs):
         """
@@ -222,6 +236,7 @@ class Spectrogram:
         are:
             METHODS           :    INPUT ARGUMENTS
             'median_equalizer':    window_duration in seconds.
+                                   inplace 
 
         Parameters
         ----------
@@ -247,7 +262,7 @@ class Spectrogram:
             raise ValueError('Method not recognized. Methods available:'
                              + str(denoise_methods))
 
-    def _median_equalizer(self, window_duration):
+    def _median_equalizer(self, window_duration, inplace=False):
         """
         Median equalizer.
 
@@ -260,57 +275,66 @@ class Spectrogram:
         ----------
         window_duration : float
             Durations of the median filter, in seconds.
-
+        inplace : bool, optional
+            If True, do operation inplace and return None. The default is False
+            
         Returns
         -------
-        None. Denoised spectrogram matrix.
+        Denoised spectrogram matrix.
 
         """
         Smed = ndimage.median_filter(self._spectrogram, (1,round(window_duration/self.time_resolution)))
-        self._spectrogram = self._spectrogram-Smed
-        self._spectrogram[self._spectrogram < 0] = 0  # floor
+        if inplace:
+            self._spectrogram = self._spectrogram-Smed
+            self._spectrogram[self._spectrogram < 0] = 0  # floor
+            out_object = None
+        else:
+            out_object = copy.copy(self)
+            out_object._spectrogram = out_object._spectrogram-Smed
+            out_object._spectrogram[out_object._spectrogram < 0] = 0  # floor            
+        return out_object
 
-    def show(self, frequency_min=0, frequency_max=[], time_min=0, time_max=[]):
-        """
-        Display spectrogram.
+    # def show(self, frequency_min=0, frequency_max=[], time_min=0, time_max=[]):
+    #     """
+    #     Display spectrogram.
 
-        Parameters
-        ----------
-        frequency_min : float, optional
-            Minimum frequency limit of the plot, in Hz. The default is 0.
-        frequency_max : float, optional
-            Maximum frequency limit of the plot, in Hz. The default is [].
-        time_min : float, optional
-            Minimum time limit of the plot, in seconds. The default is 0.
-        time_max : float, optional
-            Maximum time limit of the plot, in seconds. The default is [].
+    #     Parameters
+    #     ----------
+    #     frequency_min : float, optional
+    #         Minimum frequency limit of the plot, in Hz. The default is 0.
+    #     frequency_max : float, optional
+    #         Maximum frequency limit of the plot, in Hz. The default is [].
+    #     time_min : float, optional
+    #         Minimum time limit of the plot, in seconds. The default is 0.
+    #     time_max : float, optional
+    #         Maximum time limit of the plot, in seconds. The default is [].
 
-        Returns
-        -------
-        None.
+    #     Returns
+    #     -------
+    #     None.
 
-        """
-        if not frequency_max:
-            frequency_max = self.sampling_frequency/2
-        if not time_max:
-            time_max = self.axis_times[-1]
-        assert len(self.spectrogram)>0, "Spectrogram not computed yet. Use the .compute() method first."
-        assert frequency_min < frequency_max, "Incorrect frequency bounds, frequency_min must be < frequency_max "
-        assert frequency_min < frequency_max, "Incorrect frequency bounds, frequency_min must be < frequency_max "
+    #     """
+    #     if not frequency_max:
+    #         frequency_max = self.sampling_frequency/2
+    #     if not time_max:
+    #         time_max = self.axis_times[-1]
+    #     assert len(self.spectrogram)>0, "Spectrogram not computed yet. Use the .compute() method first."
+    #     assert frequency_min < frequency_max, "Incorrect frequency bounds, frequency_min must be < frequency_max "
+    #     assert frequency_min < frequency_max, "Incorrect frequency bounds, frequency_min must be < frequency_max "
 
-        fig, ax = plt.subplots(
-        figsize=(16,4),
-        sharex=True
-        )
-        im = ax.pcolormesh(self.axis_times, self.axis_frequencies, self.spectrogram, cmap = 'jet',vmin = np.percentile(self.spectrogram,50), vmax= np.percentile(self.spectrogram,99.9))
-        ax.axis([time_min,time_max,frequency_min,frequency_max])
-        #ax.set_clim(np.percentile(Sxx,50), np.percentile(Sxx,99.9))
-        ax.set_ylabel('Frequency [Hz]')
-        ax.set_xlabel('Time [sec]')
-        ax.set_title('Original spectrogram')
-        fig.colorbar(im, ax=ax)
-        fig.tight_layout()
-        return
+    #     fig, ax = plt.subplots(
+    #     figsize=(16,4),
+    #     sharex=True
+    #     )
+    #     im = ax.pcolormesh(self.axis_times, self.axis_frequencies, self.spectrogram, cmap = 'jet',vmin = np.percentile(self.spectrogram,50), vmax= np.percentile(self.spectrogram,99.9))
+    #     ax.axis([time_min,time_max,frequency_min,frequency_max])
+    #     #ax.set_clim(np.percentile(Sxx,50), np.percentile(Sxx,99.9))
+    #     ax.set_ylabel('Frequency [Hz]')
+    #     ax.set_xlabel('Time [sec]')
+    #     ax.set_title('Original spectrogram')
+    #     fig.colorbar(im, ax=ax)
+    #     fig.tight_layout()
+    #     return
     
     @property
     def frame_samp(self):
