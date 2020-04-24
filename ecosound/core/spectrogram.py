@@ -198,7 +198,6 @@ class Spectrogram:
             Minimum time limit, in sec. The default is None.
         time_max : float, optional
             Maximum time limit, in sec. The default is None.
-        
         inplace : bool, optional
             If True, do operation inplace and return None. The default is False
 
@@ -224,7 +223,7 @@ class Spectrogram:
                 max_row_idx = self._axis_frequencies.size-1
             else:
                 max_row_idx = max_row_idx[0][0]
-        # Find time indices    
+        # Find time indices
         if time_min is None:
             min_col_idx = 0
         else:
@@ -234,23 +233,23 @@ class Spectrogram:
             else:
                 min_col_idx = min_col_idx[0][-1]
         if time_max is None:
-            max_col_idx = self._axis_times.size-1
+            max_col_idx = self._axis_times.size
         else:
             max_col_idx = np.where(self._axis_times > time_max)
             if np.size(max_col_idx) == 0:
-                max_col_idx = self._axis_times.size-1
+                max_col_idx = self._axis_times.size
             else:
                 max_col_idx = max_col_idx[0][0]
         # update spectrogram and axes
         if inplace:
             self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx]
-            self._axis_times = np.arange(0,(max_col_idx+1 - min_col_idx)*self._time_resolution,self._time_resolution)
+            self._axis_times = np.arange(0,(max_col_idx - min_col_idx)*self._time_resolution,self._time_resolution)
             self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]   
             out_object = None
         else:
             out_object = copy.copy(self)
             out_object._axis_frequencies = out_object._axis_frequencies[min_row_idx:max_row_idx]
-            out_object._axis_times = np.arange(0,(max_col_idx+1 - min_col_idx)*out_object._time_resolution,out_object._time_resolution)
+            out_object._axis_times = np.arange(0,(max_col_idx - min_col_idx)*out_object._time_resolution,out_object._time_resolution)
             out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]   
         return out_object
 

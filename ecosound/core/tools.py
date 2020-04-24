@@ -9,6 +9,7 @@ import re
 from datetime import datetime
 import ecosound.core.decorators
 import numpy as np
+from scipy import interpolate
 import os, sys
 
 def read_json(file):
@@ -67,3 +68,14 @@ def tighten_signal_limits(signal, energy_percentage):
     percentage_end = 1 - percentage_begining
     chunk = [np.nonzero(cumul_energy > percentage_begining)[0][0], np.nonzero(cumul_energy > percentage_end)[0][0]]
     return chunk
+
+def resample_1D_array(x, y, resolution, kind='linear'):
+    """
+    Interpolate values of coordinates x and y with a given resolution.
+    Default uisn linear interpolation
+    
+    """
+    f = interpolate.interp1d(x, y, kind=kind, fill_value='extrapolate')
+    xnew = np.arange(x[0], x[-1]+resolution, resolution)
+    ynew = f(xnew)
+    return xnew, ynew 

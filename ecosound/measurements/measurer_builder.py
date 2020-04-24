@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb 20 10:02:51 2020
+Created on Thu Apr 22 10:02:51 2020
 
 @author: xavier.mouy
 """
@@ -8,71 +8,71 @@ Created on Thu Feb 20 10:02:51 2020
 
 class BaseClass(object):
     """
-    Base class for all detectors.
+    Base class for all measurers.
 
-    All detectors need to inheritate from this BaseClass in order to be built
-    by the DetectorFactory.
+    All measurers need to inheritate from this BaseClass in order to be built
+    by the MeasurerFactory.
     """
 
-    def __init__(self, detector_name):
-        self.detector_name = detector_name
+    def __init__(self, measurer_name):
+        self.measurer_name = measurer_name
 
     @classmethod
-    def is_detector_for(cls, detector_name):
+    def is_measurer_for(cls, measurer_name):
         """
-        Check detector name.
+        Check measurer name.
 
-        Compare the requested detector_name with each detector classe
+        Compare the requested measurer_name with each measurer class
         available.
 
         Parameters
         ----------
-        detector_name : str
+        measurer_name : str
         Name of the detector class.
 
         Returns
         -------
         bool
         """
-        return detector_name == cls.__name__
+        return measurer_name == cls.__name__
 
 
-def DetectorFactory(detector_name, *args, **kwargs):
+def MeasurerFactory(measurer_name, *args, **kwargs):
     """
-    Detector Factory.
+    Measurer Factory.
 
-    Loads the detector class defined by detector_name. Each detector class must
+    Loads the measurer class defined by measurer_name. Each measurer class must
     be added to the __init__.py file.
 
     For example :
-    from .detector1 import Detector1
+    from .measurer1 import Measurer1
 
-    where Detector1 is the name of the detector class to load from teh .py
-    file detection1
+    where Measurer1 is the name of the measurer class to load from the .py
+    file measurer1
 
     Parameters
     ----------
-    detector_name : str
-        Name of the detector class.
+    measurer_name : str
+        Name of the measurer class.
     *args : any
-        Input arguments for the detector selected.
+        Input arguments for the measurer selected.
     **kwargs : any
-        Keyword arguments for the detector selected.
+        Keyword arguments for the measurer selected.
 
     Raises
     ------
     ValueError
-        If detector_name doesn't correspond to any of the detectors available.
+        If measurer_name doesn't correspond to any of the measurers available.
 
     Returns
     -------
-    Detector object
+    Measurer object
 
     """
-    detec_list = []
+    meas_list = []
     for cls in BaseClass.__subclasses__():
-        detec_list.append(cls.__name__)
-        if cls.is_detector_for(detector_name):
-            return cls(detector_name, *args, **kwargs)
-    raise ValueError("Invalid detector name. Detectors available: "
-                     + str(detec_list))
+        meas_list.append(cls.__name__)
+        if cls.is_measurer_for(measurer_name):
+            return cls(measurer_name, *args, **kwargs)
+    raise ValueError("Invalid measurer name. Measurers available: "
+                     + str(meas_list))

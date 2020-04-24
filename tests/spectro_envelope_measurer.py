@@ -69,10 +69,10 @@ graph.show()
 #detecSpectro = spectro.crop(time_max=10, inplace=False)
 #detecSpectro = spectro.crop(frequency_min=50, inplace=False)
 #detecSpectro = spectro.crop(frequency_max=800,inplace=False)
-detecSpectro = spectro.crop(frequency_min=0,frequency_max=600,time_min=10,time_max=10.3, inplace=False)
-graph = GrapherFactory('SoundPlotter', title='Detection', frequency_max=1000)
-graph.add_data(detecSpectro)
-graph.show()
+# detecSpectro = spectro.crop(frequency_min=0,frequency_max=600,time_min=10,time_max=10.3, inplace=False)
+# graph = GrapherFactory('SoundPlotter', title='Detection', frequency_max=1000)
+# graph.add_data(detecSpectro)
+# graph.show()
 
 # Maasurements
 #import xarray as xr
