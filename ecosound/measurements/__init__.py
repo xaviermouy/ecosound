@@ -1,1 +1,1 @@
-from .spectro_envelope_features import SpectroEnvelopeFeatures
+from .spectrogram_features import SpectrogramFeatures

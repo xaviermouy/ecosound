@@ -561,7 +561,7 @@ class Annotation():
 
     def insert_values(self, **kwargs):
         """
-        nsert constant values for given Annotation fields.
+        Insert constant values for given Annotation fields.
 
         Fill in entire columns of the annotation dataframe with constant
         values. It is usefull for adding project related informations that may
@@ -639,6 +639,11 @@ class Annotation():
 
         """
         return list(self.data.columns)
+    
+    # @property
+    # def data(self):
+    #     """Return the spectrogram attribute."""
+    #     return self._data
 
     @staticmethod
     @ecosound.core.decorators.listinput

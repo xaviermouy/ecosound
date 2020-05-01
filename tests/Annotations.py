@@ -5,7 +5,7 @@ Created on Thu Feb  6 15:28:29 2020
 @author: xavier.mouy
 """
 import sys
-sys.path.append("..") # Adds higher directory to python modules path.
+sys.path.append("..")  # Adds higher directory to python modules path.
 from ecosound.core.annotation import Annotation
 
 

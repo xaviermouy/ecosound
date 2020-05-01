@@ -74,11 +74,5 @@ graph = GrapherFactory('SoundPlotter', title='Detection', frequency_max=1000)
 graph.add_data(detecSpectro)
 graph.show()
 
-# Maasurements
-#import xarray as xr
-
-measurements = MeasurerFactory('SpectroEnvelopeFeatures')
-measurements.compute(spectro,detections)
-
 
 
