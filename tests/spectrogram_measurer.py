@@ -63,5 +63,6 @@ graph.show()
 
 # Maasurements
 detections.data = detections.data.iloc[4:5].reset_index()
-spectro_features = MeasurerFactory('SpectrogramFeatures')
-measurements = spectro_features.compute(spectro, detections, interp='linear', debug=True, verbose=True)
+spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.001, resolution_freq=0.1, interp='linear')
+
+measurements = spectro_features.compute(spectro, detections, debug=True, verbose=False)
