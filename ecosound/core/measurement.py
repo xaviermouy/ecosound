@@ -11,6 +11,24 @@ import pandas as pd
 class Measurement(Annotation):
 
     def __init__(self, measurer_name, measurer_version, measurements_name):
+        """ Measurement object.
+
+        Inheritate all methods from the ecosound Annotaion class.
+
+        Parameters
+        ----------
+        measurer_name : str
+            Name of the measurer that was used to calculate the measurements.
+        measurer_version : str
+            Version of the measurer that was used to calculate the measurements
+        measurements_name : list of str
+            List with the name of each measurement.
+
+        Returns
+        -------
+        None. ecosound Measurement object with a .data and .metadata dataframes
+
+        """
         super(Measurement, self).__init__()
         metadata = {'measurer_name': measurer_name,
                     'measurer_version': measurer_version,

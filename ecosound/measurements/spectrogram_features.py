@@ -9,7 +9,7 @@ from .measurer_builder import BaseClass
 from ecosound.core.annotation import Annotation
 from ecosound.core.spectrogram import Spectrogram
 from ecosound.core.measurement import Measurement
-from ecosound.visualization.grapher_builder import GrapherFactory
+# from ecosound.visualization.grapher_builder import GrapherFactory
 import ecosound.core.tools
 import numpy as np
 from scipy.stats import kurtosis, skew
@@ -20,7 +20,6 @@ from matplotlib.patches import Rectangle
 
 
 class SpectrogramFeatures(BaseClass):
-    
     """Spectrogram features.
 
     This class extracts a set of spectral and temporal features from a
@@ -39,11 +38,11 @@ class SpectrogramFeatures(BaseClass):
                                             debug=False,
                                             verbose=False)
 
-    The measurement object returned has all the features appended to the
-    original annotat fields in the pandas datafrane measurment.data. Measurer's
-    name, version and features' name are in the pandas Dataframe 
+    The Measurement object returned has all the features appended to the
+    original annotation fields in the pandas datafrane measurment.data.
+    Measurer's name, version and features' name are in the pandas Dataframe
     measurement.metadata. Spectrogram features include:
-        
+
         1- 'freq_peak': peak frequency in the frequency envelop, in Hz.
         2- 'freq_bandwidth': Bandwidth of the frequency envelop, in Hz.
         3- 'freq_bandwidth90': 90% bandwidth of the frequency envelop, in Hz.
@@ -97,13 +96,13 @@ class SpectrogramFeatures(BaseClass):
     version : str
         Version of the measurer
     resolution_freq : float
-        frequency resolution of the interpolated spectral envelope, in Hz. 
+        frequency resolution of the interpolated spectral envelope, in Hz.
         Default is 0.1.
     resolution_time : float
-        Time resolution of the interpolated temporal envelope, in seconds. 
+        Time resolution of the interpolated temporal envelope, in seconds.
         Default is 0.001.
     interp : str
-        Type of interpolation method for interpolating time and frequency 
+        Type of interpolation method for interpolating time and frequency
         envelopes. Can be 'linear' or 'quadratic'. Default is 'linear'.
 
     Methods
@@ -112,26 +111,28 @@ class SpectrogramFeatures(BaseClass):
         Calculate spectrogram features each detection in the spectrogram.
 
     """
+
     measurer_parameters = ('resolution_freq',
                            'resolution_time',
                            'interp',
                            )
+
     def __init__(self, *args, **kwargs):
         """
-        Initialize the measurer
+        Initialize the measurer.
 
         Parameters
         ----------
         *args : str
             Do not use. Only used by the MeasurerFactory.
         resolution_freq : float, optional
-            frequency resolution of the interpolated spectral envelope, in Hz. 
+            frequency resolution of the interpolated spectral envelope, in Hz.
             Default is 0.1.
         resolution_time : float, optional
-            Time resolution of the interpolated temporal envelope, in seconds. 
+            Time resolution of the interpolated temporal envelope, in seconds.
             Default is 0.001.
         interp : str, optional
-            Type of interpolation method for interpolating time and frequency 
+            Type of interpolation method for interpolating time and frequency
             envelopes. Can be 'linear' or 'quadratic'. Default is 'linear'.
 
         Returns
@@ -179,27 +180,33 @@ class SpectrogramFeatures(BaseClass):
 
     def compute(self, spectro, annotations, debug=False, verbose=False):
         """ Compute spectrogram features.
-        
+
         Goes through each annotation and compute features from the spectrogram.
 
         Parameters
         ----------
-        spectro : TYPE
-            DESCRIPTION.
-        annotations : TYPE
-            DESCRIPTION.
-        debug : TYPE, optional
-            DESCRIPTION. The default is False.
-        verbose : TYPE, optional
-            DESCRIPTION. The default is False.
+        spectro : ecosound Spectrogram object
+            Spectrogram of the recording to analyze.
+        annotations : ecosound Annotation object
+            Annotations of the sounds to measure. Can be from manual analysis
+            or from an automatic detector.
+        debug : bool, optional
+            Displays figures for each annotation with the spectrogram, spectral
+            and time envelopes, and tables with all associated measurements.
+            The default is False.
+        verbose : bool, optional
+            Prints in the console the annotation being processed. The default
+            is False.
 
         Returns
         -------
-        measurements : TYPE
-            DESCRIPTION.
+        measurements : ecosound Measurement object
+            Measurement object containing the measurements appended to the
+            original annotation fields. Measurements are in the .data data
+            frame. Metadata with mearurer name, version and measurements names
+            are in the .metadata datafreame.
 
         """
-        
         self._prerun_check(spectro, annotations)
         # loop through each annotation
         for index, annot in annotations.data.iterrows():
@@ -345,7 +352,50 @@ class SpectrogramFeatures(BaseClass):
         return measurements
 
     def envelop_features(self, axis, values):
-        """ Extract fetaures from time or frequency envelop. """
+        """Extract fetaures from time or frequency envelop.
+
+        These measurements are mostly based on Mellinger and Bradbury, 2007:
+        Mellinger, D.K. and J.W. Bradbury. 2007. Acoustic measurement of marine
+        mammal sounds in noisy environments. Proceedings of the Second
+        International Conference on Underwater Acoustic Measurements:
+        Technologies and Results, Heraklion, Greece, pp. 273-280. ftp://ftp.
+        pmel.noaa.gov/newport/mellinger/papers/Mellinger+Bradbury07-Bioacoustic
+        MeasurementInNoise-UAM,Crete.pdf.
+
+        Measurements include:
+            1- peak_position
+            2- peak_position_relative
+            3- length
+            4- length_90
+            5- pct5_position
+            6- pct25_position
+            7- pct50_position
+            8- pct75_position
+            9- pct95_position
+           10- IQR
+           11- asymmetry
+           12- concentration
+           13- std
+           14- kurtosis
+           15- skewness
+           16- entropy
+           17- flatness
+           18- roughness
+           19- centroid
+        
+        Parameters
+        ----------
+        axis : numpy array
+            axis of the envelope in Hz or seconds.
+        values : numpy array
+            time of frequency envelope. Has the same length as axis.
+
+        Returns
+        -------
+        features : pandas dataframe
+            Dataframe with measurmenets of the envelope.
+
+        """
         # peak
         peak_value, peak_position_unit, peak_position_relative = SpectrogramFeatures.peak(values, axis)
         # Position of percentiles
@@ -400,6 +450,45 @@ class SpectrogramFeatures(BaseClass):
         return features
 
     def spectrogram_features(self, minigram1, adjusted_bounds=None):
+        """Extract fetaures from the spectrogram.
+
+        These measurements are mostly based on Mellinger and Bradbury, 2007:
+        Mellinger, D.K. and J.W. Bradbury. 2007. Acoustic measurement of marine
+        mammal sounds in noisy environments. Proceedings of the Second
+        International Conference on Underwater Acoustic Measurements:
+        Technologies and Results, Heraklion, Greece, pp. 273-280. ftp://ftp.
+        pmel.noaa.gov/newport/mellinger/papers/Mellinger+Bradbury07-Bioacoustic
+        MeasurementInNoise-UAM,Crete.pdf.
+
+        Measurements include:
+           1- freq_peak
+           2- freq_median_mean
+           3- freq_median_std
+           4- freq_entropy_mean
+           5- freq_entropy_std
+           6- freq_upsweep_mean
+           7- freq_upsweep_fraction
+           8- snr
+
+        Parameters
+        ----------
+        minigram1 : ecosound Spectrogram object
+            Spectrogram of the sound to analyse.
+        adjusted_bounds : list, optional
+            List with defining the 90% energy time-frequency window for the 
+            measurmenets. 
+            adjusted_bounds = [Time min., Time max., Freq. min., Freq. max.]. 
+            Times is seconds, frequencies in Hz. The default is None.
+
+        Returns
+        -------
+        features : pandas dataframe
+            dataframe with spectrogram measuremnets.
+        frequency_points : pandas dataframe
+            Dataframe with the median and peak frequency vectors with their
+            time axis vector. Only used for plotting and debugging purposes.
+
+        """
         if adjusted_bounds:
             minigram = minigram1.crop(time_min=adjusted_bounds[0],
                                       time_max=adjusted_bounds[1],
@@ -468,15 +557,17 @@ class SpectrogramFeatures(BaseClass):
 
     @staticmethod
     def get_envelops(minigram, normalize=False):
+        """Extract time and frequency envelop from spectrogram."""
         envelop_freq = np.sum(minigram.spectrogram, axis=1)
         envelop_time = np.sum(minigram.spectrogram, axis=0)
         if normalize:
             envelop_freq = envelop_freq/sum(envelop_freq)
             envelop_time = envelop_time/sum(envelop_time)
         return envelop_time, envelop_freq
-    
+
     @staticmethod
     def _plot_envelop_features(axis_orig, envelop_orig, axis_interp, envelop_interp, features, title):
+        """Plot envelope along with measurments table."""
         # plot - for debuging
         fig, ax = plt.subplots(1, 2, constrained_layout=True)
         ax[0].plot(axis_interp, envelop_interp, '.r')
@@ -491,17 +582,18 @@ class SpectrogramFeatures(BaseClass):
         ax[1].axis('off')
         fig.suptitle(title)
         fig.patch.set_visible(False)
-    
+
     @staticmethod
     def _plot_spectrogram_features(minigram, features, adjusted_bounds, frequency_points, title=''):
+        """"Plot spectrogram along with measurments table."""
         # plot - for debuging
         fig, ax = plt.subplots(1, 2, constrained_layout=True)
         ax[0].pcolormesh(minigram.axis_times,
                          minigram.axis_frequencies,
                          minigram.spectrogram,
-                         cmap = 'jet',
-                         vmin = np.percentile(minigram.spectrogram,50),
-                         vmax= np.percentile(minigram.spectrogram,99.9)
+                         cmap='jet',
+                         vmin=np.percentile(minigram.spectrogram, 50),
+                         vmax=np.percentile(minigram.spectrogram, 99.9)
                          )
         # ax[0].grid()
         ax[0].add_patch(Rectangle((adjusted_bounds[0], adjusted_bounds[2]),
@@ -524,7 +616,7 @@ class SpectrogramFeatures(BaseClass):
         table = ax[1].table(cellText=features.values.T,
                             rowLabels=features.columns,
                             loc='center',
-                            colWidths=[0.8,0.4]
+                            colWidths=[0.8, 0.4]
                             )
         table.set_fontsize(20)
         ax[1].axis('off')
@@ -533,15 +625,13 @@ class SpectrogramFeatures(BaseClass):
 
     @staticmethod
     def length(array, resolution):
-        """ duration/bandwidth of a time/frequency envelop."""
+        """Duration/bandwidth of a time/frequency envelop."""
         return len(array)*resolution
 
     @staticmethod
     def peak(array, axis):
-        """ 
-        Return peak value, poistion and relative position of a 
-        time/frequency envelop.
-        """
+        """Return peak value, poistion and relative position of a 
+        time/frequency envelop."""
         peak_value = np.amax(array)
         idxmax = np.where(array == peak_value)[0][0]
         peak_position_unit = axis[idxmax]
@@ -550,10 +640,26 @@ class SpectrogramFeatures(BaseClass):
 
     @staticmethod
     def percentiles_position(array, percentiles, axis=None):
-        """Provide position of a percentile in an array of values."""
+        """Provide position of a percentile in an array of values.
+
+        Parameters
+        ----------
+        array : numpy array
+            array with values.
+        percentiles : list
+            List with the percentiles to "find" (e.g. [50, 75]).
+        axis : numpy array, optional
+            array with axis for the array values. The default is None.
+
+        Returns
+        -------
+        pct_position : dict
+            Dictionary with position of the percentile. Dict keys are the 
+            values of the percentiles requested (e.g. pct_position['50']).
+        """
         if axis is None:
-            axis= range(0,len(array),1)
-        pct_position=dict()
+            axis = range(0, len(array), 1)
+        pct_position = dict()
         values_sum = np.sum(array)
         values_cumsum = np.cumsum(array)
         for pct in percentiles:
@@ -562,52 +668,58 @@ class SpectrogramFeatures(BaseClass):
             pct_val_unit = axis[pct_val_idx]
             pct_position[str(pct)] = pct_val_unit
         return pct_position
-    
+
     @staticmethod
     def asymmetry(pct25, pct50, pct75):
+        """Calculate envelope assymetry."""
         return (pct25+pct75-(2*pct50))/(pct25+pct75)  # feat
-    
+
     @staticmethod
-    def concentration(array, axis): 
+    def concentration(array, axis):
+        """Calculate envelope concentration."""
         sort_idx = np.argsort(-array)
         values_sorted = array[sort_idx]
         axis_sorted = axis[sort_idx]
-        values_sorted_cumsum = np.cumsum(values_sorted)
         idx_pct50 = SpectrogramFeatures.percentiles_position(values_sorted, [50])['50']
         unit_min = np.min(axis_sorted[0:idx_pct50])
         unit_max = np.max(axis_sorted[0:idx_pct50])
         concentration_unit = unit_max - unit_min  # feat
         return concentration_unit
-    
+
     @staticmethod
     def flatness(array):
+        """Calculate envelope flatness."""
         # normalize and add 1 to account for zero values
         array =  array/max(array)+1
         return gmean(array)/np.mean(array)
-    
+
     @staticmethod
     def roughness(array):
+        """Calculate envelope roughness."""
         array_norm = array/max(array)
         deriv2 = ecosound.core.tools.derivative_1d(array_norm, order=2)
         return np.sum(np.power(deriv2, 2))
-    
+
     @staticmethod
     def centroid(array, axis):
+        """Calculate envelope centroid."""
         return np.dot(axis, array) / np.sum(array)  # feat
-    
+
     @staticmethod
     def upsweep_index(array):
+        """Calculate envelope upsweep mean and upsweep fraction."""
         freq_median_delta = np.subtract(array[1:], array[0:-1])
         upsweep_mean = np.mean(freq_median_delta)
         upsweep_fraction = len(np.where(freq_median_delta >= 0)[0]) / len(freq_median_delta)
         return upsweep_mean, upsweep_fraction
-    
+
     @staticmethod
     def snr(array):
+        """Calculate signal to noise ratio."""
         sig = np.amax(array)
         noise = np.percentile(array, 25)
         if noise > 0:
             snr = 10*np.log10(sig/noise)
         else:
-            snr = 10*np.log10(sig) #feat
+            snr = 10*np.log10(sig)  #f eat
         return snr
