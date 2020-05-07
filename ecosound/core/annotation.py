@@ -108,8 +108,10 @@ class Annotation():
                 latitude of the deployment location in decimal degrees.
             -'location_lon': float,
                 longitude of the deployment location in decimal degrees.
-            'location_water_depth': float,
+            -'location_water_depth': float,
                 Water depth at the deployment location in meters.
+            -'deployment_ID': str,
+                Unique ID of the deployment.
             -'frequency_min': float,
                 Minimum frequency of the annotaion in Hz.
             -'frequency_max': float,
@@ -163,6 +165,7 @@ class Annotation():
             'location_lat': [],
             'location_lon': [],
             'location_water_depth': [],
+            'deployment_ID': [],
             'frequency_min': [],
             'frequency_max': [],
             'time_min_offset': [],
@@ -257,7 +260,9 @@ class Annotation():
         ----------
         files : str, list
             Path of the txt file to import. Can be a str if importing a single
-            file. Needs to be a list if importing multiple files.
+            file. Needs to be a list if importing multiple files. If 'files' is
+            a folder, all files in that folder ending with '.selections.txt'
+            will be imported.
         class_header : str, optional
             Name of the header in the Raven file corresponding to the class
             name. The default is 'Sound type'.
@@ -273,6 +278,14 @@ class Annotation():
         None.
 
         """
+        if os.path.isdir(files):
+            files = ecosound.core.tools.list_files(files,
+                                                   '.selections.txt',
+                                                   recursive=False,
+                                                   case_sensitive=True,
+                                                   )
+            if verbose:
+                print(len(files), 'annotation files found.')
         data = Annotation._import_files(files)
         files_timestamp = ecosound.core.tools.filename_to_datetime(data['Begin Path'].tolist())
         self.data['audio_file_start_date'] = files_timestamp
@@ -302,6 +315,8 @@ class Annotation():
         self.data['uuid'] = self.data.apply(lambda _: str(uuid.uuid4()), axis=1)
         self.data['duration'] = self.data['time_max_offset'] - self.data['time_min_offset']
         self.check_integrity(verbose=verbose, ignore_frequency_duplicates=True)
+        if verbose:
+                print(len(self), 'annotations imported.')
 
     def to_raven(self, outdir, single_file=False):
         """
@@ -379,7 +394,7 @@ class Annotation():
 
     def from_pamlab(self, files, verbose=False):
         """
-        Import data from 1 or several Raven files.
+        Import data from 1 or several PAMlab files.
 
         Load annotation data from .log files gnereated by the software PAMlab.
 
@@ -387,7 +402,9 @@ class Annotation():
         ----------
         files : str, list
             Path of the txt file to import. Can be a str if importing a single
-            file. Needs to be a list if importing multiple files.
+            file. Needs to be a list if importing multiple files. If 'files' is
+            a folder, all files in that folder ending with 'annotations.log'
+            will be imported.
         verbose : bool, optional
             If set to True, print the summary of the annatation integrity test.
             The default is False.
@@ -397,6 +414,14 @@ class Annotation():
         None.
 
         """
+        if os.path.isdir(files):
+            files = ecosound.core.tools.list_files(files,
+                                                   ' annotations.log',
+                                                   recursive=False,
+                                                   case_sensitive=True,
+                                                   )
+            if verbose:
+                print(len(files), 'annotation files found.')
         data = Annotation._import_files(files)
         files_timestamp = ecosound.core.tools.filename_to_datetime(
             data['Soundfile'].tolist())
@@ -567,7 +592,7 @@ class Annotation():
         values. It is usefull for adding project related informations that may
         not be included in data imported from Raven or PAMlab files (e.g.,
         'location_lat', 'location_lon'). Values can be inserted for several
-        annattions fields at a time by setting several keywords. This should
+        annotations fields at a time by setting several keywords. This should
         only be used for filling in static values (i.e., not for variable
         values such as time/frequency boundaries of the annotations). Keywords
         must have the exact same name as the annotation field (see method

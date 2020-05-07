@@ -112,3 +112,48 @@ def derivative_1d(array, order=1):
     for n in range(0, order, 1):
         array = np.subtract(array[1:], array[0:-1])
     return array
+
+def list_files(indir, suffix, case_sensitive=True, recursive=False):
+    """
+    List files in folder whose name ends with a given suffix/extension.
+    
+    Parameters
+    ----------
+    indir : str
+        Path of the folder to search.
+    suffix : str
+        Suffix of the filename. 
+    case_sensitive : bool, optional
+        If set to True, search using case sensitive filenames. The default is
+        True.
+    recursive : bool, optional
+        If set to True, search in parent folder but also in all its subfolders.
+        The default is False.
+
+    Returns
+    -------
+    files_list : list
+        List of strings with full path of files found.
+
+    """
+    if os.path.isdir(indir):
+        files_list = []
+        if case_sensitive is False:
+            suffix = suffix.lower()
+        if recursive:  # scans subfolders recursively
+            for root, dirs, files in os.walk(indir):
+                for file in files:
+                    if case_sensitive is False:
+                        file = file.lower()
+                    if file.endswith(suffix):
+                        files_list.append(os.path.join(root, file))
+                        #print(os.path.join(root, file))
+        else:  # only scans parent folder
+            for file in os.listdir(indir):
+                if case_sensitive is False:
+                    file = file.lower()
+                if file.endswith(suffix):
+                    files_list.append(os.path.join(indir, file))
+                    #print(os.path.join(indir, file))
+    return files_list
+            
