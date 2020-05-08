@@ -685,18 +685,38 @@ class Annotation():
         """
         return list(self.data.columns)
 
-    def summary(self):
-        """Print annotation summary.
-
-        Print summary of number of annotations per class labels and 
+    def summary(self, rows='deployment_ID',columns='label_class'):
+        """Produce a summary table of the number of annotations.
+        
+        Create a pivot table summarizing the number of annotations for each
+        deployment and each label class. The optional arguments 'rows' and 
+        'columns' can be used to change the fields of the annotations to be
+        displayed in the table.
+        
         deployment ID.
+        Parameters
+        ----------
+        rows : 'str', optional
+            Name of the annotation field for the rows of the table. The default
+            is 'deployment_ID'.
+        columns : 'str', optional
+            Name of the annotation field for the columns of the table. The 
+            default default is 'label_class'.
+
+        Returns
+        -------
+        summary : pandas DataFrame
+            Pivot table with the number of annotations in each category.
+
         """
-        pt = self.data.pivot_table(index='deployment_ID',
-                                   columns='label_class',
+        summary = self.data.pivot_table(index=rows,
+                                   columns=columns,
                                    aggfunc='size',
                                    fill_value=0)
-        #print(pt)
-        return pt 
+        # Add a "Total" row and column
+        summary.loc['Total']= summary.sum()
+        summary['Total']= summary.sum(axis=1)
+        return summary
     # @property
     # def data(self):
     #     """Return the spectrogram attribute."""
