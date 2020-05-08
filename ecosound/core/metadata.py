@@ -31,7 +31,10 @@ class DeploymentInfo():
             raise ValueError('File already exists.')
             
         metadata = pd.DataFrame({
+            'audio_channel_number': [],
             'UTC_offset': [],
+            'sampling_frequency': [],
+            'bit_depth': [],
             'mooring_platform_name': [],
             'recorder_type': [],
             'recorder_SN': [],

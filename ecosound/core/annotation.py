@@ -318,7 +318,7 @@ class Annotation():
         if verbose:
                 print(len(self), 'annotations imported.')
 
-    def to_raven(self, outdir, single_file=False):
+    def to_raven(self, outdir, outfile='Raven.Table.1.selections.txt', single_file=False):
         """
         Write data to 1 or several Raven files.
 
@@ -331,6 +331,9 @@ class Annotation():
         ----------
         outdir : str
             Path of the output directory where the Raven files are written.
+        outfile : str
+            Name of the output file. Only used is single_file is True. The
+            default is 'Raven.Table.1.selections.txt'.
         single_file : bool, optional
             If set to True, writes a single output file with all annotations.
             The default is False.
@@ -381,16 +384,16 @@ class Annotation():
                                   for x, y in zip(annot['audio_file_name'],
                                                   annot['audio_file_extension'])]
             outdf = outdf.fillna(0)
-            outdf.to_csv(os.path.join(
-                outdir, str(annot['audio_file_name'].iloc[0]))
-                + str(annot['audio_file_extension'].iloc[0])
-                + '.chan' + str(annot['audio_channel'].iloc[0])
-                + '.Table.1.selections.txt',
-                sep='\t',
-                encoding='utf-8',
-                header=True,
-                columns=cols,
-                index=False)
+            if single_file:
+                outfilename =  os.path.join(outdir, outfile)
+            else:
+                outfilename = os.path.join(outdir, str(annot['audio_file_name'].iloc[0])) + str(annot['audio_file_extension'].iloc[0])                 + '.chan' + str(annot['audio_channel'].iloc[0]) + '.Table.1.selections.txt'
+            outdf.to_csv(outfilename,
+                         sep='\t',
+                         encoding='utf-8',
+                         header=True,
+                         columns=cols,
+                         index=False)
 
     def from_pamlab(self, files, verbose=False):
         """
@@ -461,8 +464,10 @@ class Annotation():
         self.data['uuid'] = self.data.apply(lambda _: str(uuid.uuid4()), axis=1)
         self.data['duration'] = self.data['time_max_offset'] - self.data['time_min_offset']
         self.check_integrity(verbose=verbose)
+        if verbose:
+                print(len(self), 'annotations imported.')
 
-    def to_pamlab(self, outdir, single_file=False):
+    def to_pamlab(self, outdir, outfile='PAMlab annotations.log', single_file=False):
         """
         Write data to 1 or several PAMlab files.
 
@@ -475,6 +480,9 @@ class Annotation():
         ----------
         outdir : str
             Path of the output directory where the Raven files are written.
+        outfile : str
+            Name of teh output file. Only used is single_file is True. The
+            default is 'PAMlab annotations.log'.
         single_file : bool, optional
             If set to True, writes a single output file with all annotations.
             The default is False.
@@ -535,18 +543,20 @@ class Annotation():
                                                      annot['audio_file_name'],
                                                      annot['audio_file_extension'])]
             outdf = outdf.fillna(0)
-            outdf.to_csv(os.path.join(outdir, str(annot['audio_file_name'].iloc[0]))
-                         + str(annot['audio_file_extension'].iloc[0])
-                         + ' annotations.log',
+            if single_file:
+                outfilename = os.path.join(outdir, outfile)
+            else:
+                outfilename = os.path.join(outdir, str(annot['audio_file_name'].iloc[0])) + str(annot['audio_file_extension'].iloc[0]) + ' annotations.log'
+            outdf.to_csv(outfilename,
                          sep='\t',
                          encoding='utf-8',
                          header=True,
                          columns=cols,
                          index=False)
 
-    def from_parquet(self, file):
+    def from_parquet(self, file, verbose=False):
         """
-        Import data to a Parquet file.
+        Import data from a Parquet file.
 
         Load annotations from a .parquet file. This format allows for fast and
         efficient data storage and access.
@@ -554,14 +564,21 @@ class Annotation():
         Parameters
         ----------
         file : str
-            Path of the output directory where the Raven files are written.
+            Path of the input parquet file.
 
+        verbose : bool, optional
+            If set to True, print the summary of the annatation integrity test.
+            The default is False.        
+        
         Returns
         -------
         None.
 
         """
         self.data = pd.read_parquet(file)
+        self.check_integrity(verbose=verbose)
+        if verbose:
+                print(len(self), 'annotations imported.')
 
     def to_parquet(self, file):
         """
@@ -573,13 +590,16 @@ class Annotation():
         Parameters
         ----------
         file : str
-            Path of the output directory where the Raven files are written.
+            Path of the output directory where the parquet files is written.
 
         Returns
         -------
         None.
 
         """
+        # make sure the HP SN column are strings
+        self.data.hydrophone_SN = self.data.hydrophone_SN.astype(str)
+        # save
         self.data.to_parquet(file,
                              coerce_timestamps='ms',
                              allow_truncated_timestamps=True)
@@ -664,7 +684,19 @@ class Annotation():
 
         """
         return list(self.data.columns)
-    
+
+    def summary(self):
+        """Print annotation summary.
+
+        Print summary of number of annotations per class labels and 
+        deployment ID.
+        """
+        pt = self.data.pivot_table(index='deployment_ID',
+                                   columns='label_class',
+                                   aggfunc='size',
+                                   fill_value=0)
+        #print(pt)
+        return pt 
     # @property
     # def data(self):
     #     """Return the spectrogram attribute."""
