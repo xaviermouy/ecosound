@@ -10,6 +10,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
 from scipy import signal, ndimage
+from dask import delayed, compute
 import copy
 
 ## TODO: change Asserts by Raise
@@ -145,7 +146,7 @@ class Spectrogram:
         overlap_perc = (overlap_samp/frame_samp)*100
         return frame_samp, fft_samp, step_samp, frame_sec, fft_sec, step_sec, overlap_perc,overlap_samp
 
-    def compute(self, sig):
+    def _compute_old(self, sig):
         """
         Compute spectrogram.
 
@@ -177,6 +178,61 @@ class Spectrogram:
         self._spectrogram = 20*np.log10(self._spectrogram)
         return self._axis_frequencies, self._axis_times, self._spectrogram
 
+    def compute(self, sig, dB=False, dask=False, dask_chunks=40):
+        # Weighting window
+        if self.window_type == 'hann':
+            win = np.hanning(self.frame_samp)
+        #sig = self.waveform
+        #step = self.frame_samp - self.overlap_samp
+        starts = np.arange(0,len(sig.waveform)-self.frame_samp, self.step_samp, dtype=int)
+        stops = starts + self.frame_samp
+        start_chunks = np.array_split(starts, dask_chunks)
+        stop_chunks = np.array_split(stops, dask_chunks)
+        spectrogram = []
+        idx=0
+        for start_chunk, stop_chunk in zip(start_chunks, stop_chunks):
+            sig_chunk = sig.waveform[start_chunk[0]:stop_chunk[-1]]
+            chunk_size = len(start_chunk)
+            if dask:
+                spectro_chunk = delayed(self._calc_spectrogram)(sig_chunk,win,
+                                           start_chunk-start_chunk[0],
+                                           stop_chunk-start_chunk[0],
+                                           self.fft_samp)
+            else:
+                spectro_chunk = self._calc_spectrogram(sig_chunk,win,
+                                start_chunk-start_chunk[0],
+                                stop_chunk-start_chunk[0],
+                                self.fft_samp)
+            spectrogram.append(spectro_chunk)
+            idx += chunk_size
+        if dask:
+            spectrogram = compute(spectrogram)
+            spectrogram = np.concatenate(spectrogram[0][:], axis=1)
+        else:
+            spectrogram = np.concatenate(spectrogram[:], axis=1)
+        if dB:
+            spectrogram = 20*np.log10(spectrogram)
+        self._spectrogram = spectrogram
+        self._axis_times = starts/self.sampling_frequency  # ?? needed ?
+        self._axis_frequencies = np.arange(0,self._sampling_frequency/2,self._frequency_resolution) # ?? needed ?
+        return self._axis_frequencies, self._axis_times, self._spectrogram
+        
+    def _calc_spectrogram(self, sig, win, starts, stops, fft_samp):
+        fnyq = int(np.round(fft_samp/2))
+        spectro = np.empty((fnyq,len(starts))) # the default 
+        idx=0
+        for start, stop in zip(starts, stops):
+            s = sig[start:stop]*win
+            Spectrum = np.fft.fft(s, fft_samp)
+            Spectrum = abs(Spectrum) # amplitude
+            Spectrum = Spectrum*2
+            #Spectrum = Spectrum**2
+            #ts_window = getFFT(sig[start:stop],fft_samp)
+            spectro[:,idx] = Spectrum[0:fnyq]
+            idx+=1
+        return spectro    
+        
+        
     def crop(self, frequency_min=None, frequency_max=None, time_min=None, time_max=None, inplace=False):
         """
         Crop frequencies from the spectrogram.

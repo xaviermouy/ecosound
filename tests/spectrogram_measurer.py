@@ -12,6 +12,8 @@ from ecosound.core.spectrogram import Spectrogram
 from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
 from ecosound.measurements.measurer_builder import MeasurerFactory
+import ecosound.core.tools
+import time
 
 
 ## Input paraneters ##########################################################
@@ -28,9 +30,10 @@ fmax = 1000
 window_type = 'hann'
 
 # start and stop time of wavfile to analyze
-t1 = 24
-t2 = 40
+t1 = 0 # 24
+t2 = 20 # 40
 ## ###########################################################################
+tic = time.perf_counter()
 
 
 # load audio data
@@ -48,8 +51,9 @@ spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
 spectro.denoise('median_equalizer', window_duration=3, inplace=True)
 
 # Detector
-detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.05, bandwidth_min=40)
-detections = detector.run(spectro, debug=False)
+file_timestamp = ecosound.core.tools.filename_to_datetime(single_channel_file)[0]
+detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=40, duration_min=0.05, bandwidth_min=60)
+detections = detector.run(spectro, start_time=file_timestamp, debug=False)
 
 # Plot
 graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
@@ -62,7 +66,11 @@ graph.colormap = 'jet'
 graph.show()
 
 # Maasurements
-detections.data = detections.data.iloc[4:5].reset_index()
+#detections.data = detections.data.iloc[4:5].reset_index()
 spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.001, resolution_freq=0.1, interp='linear')
+measurements = spectro_features.compute(spectro, detections, debug=False, verbose=False)
+#measurements.to_netcdf('test.nc')
 
-measurements = spectro_features.compute(spectro, detections, debug=True, verbose=False)
+toc = time.perf_counter()
+print(f"Executed in {toc - tic:0.4f} seconds")
+# #########################################

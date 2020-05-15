@@ -235,6 +235,10 @@ class SpectrogramFeatures(BaseClass):
                 envelop_freq,
                 resolution=self.resolution_freq,
                 kind=self.interp)
+            if sum(envelop_freq2)==0:
+                print('here')
+            if sum(envelop_time2)==0:
+                print('here')
             # Frequency envelop features
             features_envelop_freq = self.envelop_features(axis_f, envelop_freq2)
             if debug:
@@ -382,7 +386,7 @@ class SpectrogramFeatures(BaseClass):
            17- flatness
            18- roughness
            19- centroid
-        
+
         Parameters
         ----------
         axis : numpy array
@@ -476,7 +480,7 @@ class SpectrogramFeatures(BaseClass):
             Spectrogram of the sound to analyse.
         adjusted_bounds : list, optional
             List with defining the 90% energy time-frequency window for the 
-            measurmenets. 
+            measurmenets.
             adjusted_bounds = [Time min., Time max., Freq. min., Freq. max.]. 
             Times is seconds, frequencies in Hz. The default is None.
 
@@ -504,35 +508,63 @@ class SpectrogramFeatures(BaseClass):
         peak_amp = []
         median_f = []
         entropy_agg = []
-        #root4_magnitude = []
-        for spectrum in spectro:
-            axis_f, spectrum2 = ecosound.core.tools.resample_1D_array(
-                minigram.axis_frequencies,
-                spectrum,
-                resolution=self.resolution_freq,
-                kind=self.interp)
-            # track peak frequency
-            peak_value, peak_position, _ = SpectrogramFeatures.peak(spectrum2, axis_f)
-            peak_amp.append(peak_value)
-            peak_f.append(peak_position)
-            # track median frequency
-            pct50_position = SpectrogramFeatures.percentiles_position(spectrum2,[50],axis_f)['50']
-            median_f.append(pct50_position)
-            # entropy
-            entropy_agg.append(ecosound.core.tools.entropy(spectrum))
-            #root4_magnitude.append(np.power(np.sum(spectrum2), 1/4))
-        # overall frequency peak
-        _, freq_peak, _ = SpectrogramFeatures.peak(peak_amp, peak_f)
-        # mean of median frequency track
-        freq_median_mean = np.mean(median_f)
-        # standard deviation of median frequency track
-        freq_median_std = np.std(median_f)
-        # mean of spectral entropy track
-        freq_entropy_mean = np.mean(entropy_agg)
-        # mean of spectral entropy track
-        freq_entropy_std = np.std(entropy_agg)
-        # Upsweep mean/fraction
-        upsweep_mean, upsweep_fraction = SpectrogramFeatures.upsweep_index(median_f)
+        
+        if spectro.shape[1] > 1: #  must be at least 1 bin of bandwidth
+            #root4_magnitude = []
+            for spectrum in spectro:
+                axis_f, spectrum2 = ecosound.core.tools.resample_1D_array(
+                    minigram.axis_frequencies,
+                    spectrum,
+                    resolution=self.resolution_freq,
+                    kind=self.interp)
+                if sum(spectrum)>0:
+                    # track peak frequency
+                    peak_value, peak_position, _ = SpectrogramFeatures.peak(spectrum2, axis_f)
+                    peak_amp.append(peak_value)
+                    peak_f.append(peak_position)
+                    # track median frequency
+                    pct50_position = SpectrogramFeatures.percentiles_position(spectrum2,[50],axis_f)['50']
+                    median_f.append(pct50_position)
+                    # entropy
+                    entropy_agg.append(ecosound.core.tools.entropy(spectrum))
+                    #root4_magnitude.append(np.power(np.sum(spectrum2), 1/4))
+            if len(median_f) > 1:
+                # overall frequency peak
+                _, freq_peak, _ = SpectrogramFeatures.peak(peak_amp, peak_f)
+                # mean of median frequency track
+                freq_median_mean = np.nanmean(median_f)
+                # standard deviation of median frequency track
+                freq_median_std = np.nanstd(median_f)
+                # mean of spectral entropy track
+                freq_entropy_mean = np.nanmean(entropy_agg)
+                # mean of spectral entropy track
+                freq_entropy_std = np.nanstd(entropy_agg)
+                # Upsweep mean/fraction
+                upsweep_mean, upsweep_fraction = SpectrogramFeatures.upsweep_index(median_f)
+            else:
+                freq_peak = np.nan
+                freq_median_mean = np.nan
+                freq_median_std = np.nan
+                freq_entropy_mean = np.nan
+                freq_entropy_std = np.nan
+                upsweep_mean = np.nan
+                upsweep_fraction = np.nan     
+        elif spectro.shape[1] == 1: # only 1 bin of bandwidth
+            freq_peak = minigram.axis_frequencies[0]
+            freq_median_mean = minigram.axis_frequencies[0]
+            freq_median_std = 0
+            freq_entropy_mean = np.nan
+            freq_entropy_std = np.nan
+            upsweep_mean = 0
+            upsweep_fraction = 0
+        else:
+            freq_peak = np.nan
+            freq_median_mean = np.nan
+            freq_median_std = np.nan
+            freq_entropy_mean = np.nan
+            freq_entropy_std = np.nan
+            upsweep_mean = np.nan
+            upsweep_fraction = np.nan
         # signal to noise ratio
         snr = SpectrogramFeatures.snr(spectro)
         # FM features

@@ -122,12 +122,13 @@ class Sound:
             self._waveform_duration_sample = 0
             self._waveform_duration_sec = 0
             self._waveform_sampling_frequency = self._file_sampling_frequency
+            self.detrended = []
             myfile.close()
         else:
             raise ValueError("The sound file can't be found. Please verify"
                              + ' sound file name and path')
 
-    def read(self, channel=0, chunk=[], unit='samp'):
+    def read(self, channel=0, chunk=[], unit='samp', detrend=False):
         """
         Load data from sound file.
 
@@ -146,6 +147,9 @@ class Sound:
         unit : str, optional
             Time unit of the 'chunk' parameter. Can be set to 'sec' for seconds
             or 'samp', for samples. The default is 'samp'.
+        detrend : bool, optional
+            Remove DC offset of the waveform by subtracting the mean. The
+            default is False.
 
         Raises
         ------
@@ -166,7 +170,7 @@ class Sound:
         # check that the channel id is valid
         if (channel >= 0) & (channel <= self._channels - 1):
             if len(chunk) == 0:  # read the entire file
-                sig, fs = sf.read(self.file_full_path(), always_2d=True)
+                sig, fs = sf.read(self.file_full_path, always_2d=True)
                 self._waveform = sig[:, channel]
                 self._waveform_start_sample = 0
                 self._waveform_stop_sample = self.file_duration_sample-1
@@ -204,6 +208,8 @@ class Sound:
                     raise ValueError('Invalid chunk values. The argument chunk'
                                      + ' must be a list of 2 elements.')
             self._channel_selected = channel
+            if detrend: # removes DC offset
+                self._waveform = self._waveform - np.mean(self._waveform)
 
         else:
             msg = ''.join(['Channel ', str(channel), ' does not exist (',

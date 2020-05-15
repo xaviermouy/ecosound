@@ -11,18 +11,19 @@ from scipy import signal
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-
-from dask import delayed, compute, visualize
-from dask.distributed import Client, progress
-
 from numpy.fft import fft
+from dask import delayed, compute
+# from dask.distributed import Client, LocalCluster
+# cluster = LocalCluster()
+# client = Client(cluster,processes=False)
+
 
 single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
 
 
 # start and stop time of wavfile to analyze
 t1 = 1
-t2 = 2#1000
+t2 = 120#1000
 ## ###########################################################################
 
 
@@ -74,7 +75,7 @@ def slice(sound, start, frame_samp):
 
 def spectro_loop_dask(frame_samp,overlap_samp,fft_samp):
     tic = time.perf_counter()
-    client = Client(n_workers=4)
+    #client = Client(n_workers=4)
     starts = np.arange(0,len(sound.waveform),frame_samp-overlap_samp,dtype=int)
     starts = starts[starts + frame_samp < len(sound.waveform)]
     xns = []
@@ -93,7 +94,7 @@ def spectro_loop_dask(frame_samp,overlap_samp,fft_samp):
     #specX = specX.compute()
     toc = time.perf_counter()
     print(f"Dexecuted in {toc - tic:0.4f} seconds")
-    client.close()
+    #client.close()
     
 # ## Using Dask #########################################
 # from dask import delayed

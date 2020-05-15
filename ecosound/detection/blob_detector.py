@@ -11,6 +11,7 @@ from ecosound.core.annotation import Annotation
 from scipy import signal, ndimage
 from datetime import datetime
 import numpy as np
+import pandas as pd
 import cv2
 import uuid
 
@@ -126,7 +127,7 @@ class BlobDetector(BaseClass):
         ax.pcolormesh(Matrix, cmap='jet')
         ax.set_title(title)
 
-    def run(self, spectro, debug=False):
+    def run(self, spectro, start_time=None, debug=False):
         """Run detector.
 
         Runs the detector on the spectrogram object.
@@ -138,7 +139,10 @@ class BlobDetector(BaseClass):
         debug : bool, optional
             Displays binarization results for debugging purpused.The default
             is False.
-
+        start_time : datetime.datetime, ooptional
+            Start time/date of the signal being processed. If defined, the 
+            fields 'time_min_date' and 'time_max_date' of the detection 
+            annotation object are populated. The default is None.
         Returns
         -------
         detec : Annotation
@@ -160,11 +164,29 @@ class BlobDetector(BaseClass):
         Svar = ndimage.generic_filter(spectro.spectrogram, calcVariance2D,
                                       (kernel_bandwidth, kernel_duration),
                                       mode='mirror')
+        
+        # import dask_image.ndfilters
+        # import dask.array
+        # import matplotlib.pyplot as plt
+        # dask_spectro = dask.array.from_array(spectro.spectrogram)
+        # Svar = dask_image.ndfilters.generic_filter(dask_spectro,
+        #                                             calcVariance2D,
+        #                                             size=(kernel_bandwidth, kernel_duration),
+        #                                             mode='mirror')
+        
+        #fig, ax = plt.subplots(nrows=1, ncols=1)
+        #ax.imshow(Svar, cmap='jet')
+        #ax1.imshow(smoothed_image - combined_image, cmap='gray')
+        #Svar = Svar.compute()
+
         # binarization
         Svar[Svar < self.threshold] = 0
         Svar[Svar > 0] = 1
         if debug:
             self._plot_matrix(Svar, 'Binarized spectrogram matrix')
+        
+        #new
+        #Svar = cv2.cvtColor(cv2.UMat(Svar), cv2.COLOR_RGB2GRAY)
         # Define contours
         Svar_gray = cv2.normalize(src=Svar,
                                   dst=None,
@@ -206,6 +228,9 @@ class BlobDetector(BaseClass):
         detec.data['software_version'] = self.version
         detec.data['entry_date'] = datetime.now()
         detec.data['uuid'] = detec.data.apply(lambda _: str(uuid.uuid4()), axis=1)
+        if start_time:
+            detec.data['time_min_date']= pd.to_datetime(start_time + pd.to_timedelta(detec.data['time_min_offset'], unit='s'))
+            detec.data['time_max_date']= pd.to_datetime(start_time + pd.to_timedelta(detec.data['time_max_offset'], unit='s'))
         return detec
 
 
