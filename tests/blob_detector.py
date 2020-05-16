@@ -41,27 +41,27 @@ sound.read(channel=0, chunk=[t1, t2], unit='sec', detrend=True)
 
 # Calculates  spectrogram
 spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='samp')
-spectro.compute(sound, dB=True, dask=True, dask_chunks=40)
+spectro.compute(sound, dB=True, use_dask=True, dask_chunks=40)
 
 # Crop unused frequencies
 spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
 
 # Denoise
-spectro.denoise('median_equalizer', window_duration=3,inplace=True)
+spectro.denoise('median_equalizer', window_duration=3, use_dask=True, dask_chunks=(2048,1000), inplace=True)
 
 # Detector
-detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=10, duration_min=0.05, bandwidth_min=40)
+detector = DetectorFactory('BlobDetector', use_dask=True, dask_chunks=(2048,2000), kernel_duration=0.1, kernel_bandwidth=300, threshold=10, duration_min=0.05, bandwidth_min=40)
 detections = detector.run(spectro, debug=False)
 
 toc = time.perf_counter()
 print(f"Executed in {toc - tic:0.4f} seconds")
-    
-# Plot
+
+# # Plot
 # graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
 # graph.add_data(sound)
-# # graph.add_annotation(detections, panel=0, color='red')
+# graph.add_annotation(detections, panel=0, color='red')
 # graph.add_data(spectro)
-# # graph.add_annotation(detections, panel=1)
+# graph.add_annotation(detections, panel=1)
 # #graph.colormap = 'binary'
 # graph.colormap = 'jet'
 # graph.show()

@@ -11,7 +11,7 @@ import ecosound.core.decorators
 import numpy as np
 from scipy import interpolate
 import os, sys
-
+from numba import njit
 
 def read_json(file):
     """Load JSON file as dict."""
@@ -44,7 +44,7 @@ def filename_to_datetime(files):
             raise ValueError('Time format not recognized:' + file)
     return timestamps
 
-
+#@njit
 def normalize_vector(vec):
     """ 
     Normalize amplitude of vector.
@@ -56,7 +56,7 @@ def normalize_vector(vec):
     normVec = vec/max(vec)
     return normVec
 
-
+#@njit
 def tighten_signal_limits(signal, energy_percentage):
     """
     Tighten signal limits
@@ -73,7 +73,7 @@ def tighten_signal_limits(signal, energy_percentage):
              np.nonzero(cumul_energy > percentage_end)[0][0]]
     return chunk
 
-
+#@njit
 def resample_1D_array(x, y, resolution, kind='linear'):
     """
     Interpolate values of coordinates x and y with a given resolution.
@@ -84,7 +84,7 @@ def resample_1D_array(x, y, resolution, kind='linear'):
     ynew = f(xnew)
     return xnew, ynew 
 
-
+#@njit
 def entropy(array_1d, apply_square=False):
         """ 
         Aggregate (SHannon's) entropy as defined in the Raven manual
@@ -102,6 +102,7 @@ def entropy(array_1d, apply_square=False):
                 H += ratio*np.log2(ratio)
         return H
 
+#@njit
 def derivative_1d(array, order=1):
     """
     Derivative of order "order" of a 1D array. Subtract the element i+1 to i.

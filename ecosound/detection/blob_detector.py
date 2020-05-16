@@ -14,7 +14,10 @@ import numpy as np
 import pandas as pd
 import cv2
 import uuid
-
+from numba import njit
+import dask
+import dask_image.ndfilters
+import dask.array
 
 class BlobDetector(BaseClass):
     """Blob detector.
@@ -127,7 +130,7 @@ class BlobDetector(BaseClass):
         ax.pcolormesh(Matrix, cmap='jet')
         ax.set_title(title)
 
-    def run(self, spectro, start_time=None, debug=False):
+    def run(self, spectro, start_time=None, use_dask=False, dask_chunks=(1000,1000), debug=False):
         """Run detector.
 
         Runs the detector on the spectrogram object.
@@ -160,24 +163,19 @@ class BlobDetector(BaseClass):
             round(self.duration_min/spectro.time_resolution), 1)
         bandwidth_min = max(
             round(self.bandwidth_min/spectro.frequency_resolution), 1)
-        # Apply filter
-        Svar = ndimage.generic_filter(spectro.spectrogram, calcVariance2D,
-                                      (kernel_bandwidth, kernel_duration),
-                                      mode='mirror')
-        
-        # import dask_image.ndfilters
-        # import dask.array
-        # import matplotlib.pyplot as plt
-        # dask_spectro = dask.array.from_array(spectro.spectrogram)
-        # Svar = dask_image.ndfilters.generic_filter(dask_spectro,
-        #                                             calcVariance2D,
-        #                                             size=(kernel_bandwidth, kernel_duration),
-        #                                             mode='mirror')
-        
-        #fig, ax = plt.subplots(nrows=1, ncols=1)
-        #ax.imshow(Svar, cmap='jet')
-        #ax1.imshow(smoothed_image - combined_image, cmap='gray')
-        #Svar = Svar.compute()
+        # # Apply filter
+        if use_dask:
+            dask_spectro = dask.array.from_array(spectro.spectrogram, chunks=dask_chunks)
+            Svar = dask_image.ndfilters.generic_filter(dask_spectro,
+                                                       calcVariance2D,
+                                                       size=(kernel_bandwidth, kernel_duration),
+                                                       mode='mirror')
+            Svar = Svar.compute()
+        else:
+            Svar = ndimage.generic_filter(spectro.spectrogram,
+                                          calcVariance2D,
+                                          (kernel_bandwidth, kernel_duration),
+                                          mode='mirror')
 
         # binarization
         Svar[Svar < self.threshold] = 0
@@ -233,7 +231,7 @@ class BlobDetector(BaseClass):
             detec.data['time_max_date']= pd.to_datetime(start_time + pd.to_timedelta(detec.data['time_max_offset'], unit='s'))
         return detec
 
-
+@njit()
 def calcVariance2D(buffer):
     """Calculate the 2D variance."""
     return np.var(buffer)

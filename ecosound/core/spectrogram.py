@@ -12,6 +12,10 @@ import numpy as np
 from scipy import signal, ndimage
 from dask import delayed, compute
 import copy
+from numba import njit
+import dask
+import dask.array
+import dask_image.ndfilters
 
 ## TODO: change Asserts by Raise
 
@@ -178,7 +182,8 @@ class Spectrogram:
         self._spectrogram = 20*np.log10(self._spectrogram)
         return self._axis_frequencies, self._axis_times, self._spectrogram
 
-    def compute(self, sig, dB=False, dask=False, dask_chunks=40):
+    def compute(self, sig, dB=False, use_dask=False, dask_chunks=40):
+        
         # Weighting window
         if self.window_type == 'hann':
             win = np.hanning(self.frame_samp)
@@ -193,19 +198,19 @@ class Spectrogram:
         for start_chunk, stop_chunk in zip(start_chunks, stop_chunks):
             sig_chunk = sig.waveform[start_chunk[0]:stop_chunk[-1]]
             chunk_size = len(start_chunk)
-            if dask:
-                spectro_chunk = delayed(self._calc_spectrogram)(sig_chunk,win,
+            if use_dask:
+                spectro_chunk = delayed(Spectrogram._calc_spectrogram)(sig_chunk,win,
                                            start_chunk-start_chunk[0],
                                            stop_chunk-start_chunk[0],
                                            self.fft_samp)
             else:
-                spectro_chunk = self._calc_spectrogram(sig_chunk,win,
+                spectro_chunk = Spectrogram._calc_spectrogram(sig_chunk,win,
                                 start_chunk-start_chunk[0],
                                 stop_chunk-start_chunk[0],
                                 self.fft_samp)
             spectrogram.append(spectro_chunk)
             idx += chunk_size
-        if dask:
+        if use_dask:
             spectrogram = compute(spectrogram)
             spectrogram = np.concatenate(spectrogram[0][:], axis=1)
         else:
@@ -216,23 +221,26 @@ class Spectrogram:
         self._axis_times = starts/self.sampling_frequency  # ?? needed ?
         self._axis_frequencies = np.arange(0,self._sampling_frequency/2,self._frequency_resolution) # ?? needed ?
         return self._axis_frequencies, self._axis_times, self._spectrogram
-        
-    def _calc_spectrogram(self, sig, win, starts, stops, fft_samp):
-        fnyq = int(np.round(fft_samp/2))
-        spectro = np.empty((fnyq,len(starts))) # the default 
-        idx=0
+
+    @staticmethod
+    #@njit
+    def _calc_spectrogram(sig, win, starts, stops, fft_samp):
+        fft_samp = np.int32(fft_samp)
+        fnyq0 = np.round(fft_samp/2)
+        fnyq = np.int(fnyq0)
+        spectro = np.empty((fnyq, len(starts)))  # the default
+        idx = 0
         for start, stop in zip(starts, stops):
             s = sig[start:stop]*win
             Spectrum = np.fft.fft(s, fft_samp)
-            Spectrum = abs(Spectrum) # amplitude
+            Spectrum = abs(Spectrum)  # amplitude
             Spectrum = Spectrum*2
-            #Spectrum = Spectrum**2
-            #ts_window = getFFT(sig[start:stop],fft_samp)
-            spectro[:,idx] = Spectrum[0:fnyq]
-            idx+=1
-        return spectro    
-        
-        
+            # Spectrum = Spectrum**2
+            # ts_window = getFFT(sig[start:stop],fft_samp)
+            spectro[:, idx] = Spectrum[0:fnyq]
+            idx += 1
+        return spectro
+
     def crop(self, frequency_min=None, frequency_max=None, time_min=None, time_max=None, inplace=False):
         """
         Crop frequencies from the spectrogram.
@@ -343,7 +351,7 @@ class Spectrogram:
             raise ValueError('Method not recognized. Methods available:'
                              + str(denoise_methods))
 
-    def _median_equalizer(self, window_duration, inplace=False):
+    def _median_equalizer(self, window_duration, use_dask=False, dask_chunks=(1000,1000), inplace=False):
         """
         Median equalizer.
 
@@ -358,13 +366,21 @@ class Spectrogram:
             Durations of the median filter, in seconds.
         inplace : bool, optional
             If True, do operation inplace and return None. The default is False
-            
+
         Returns
         -------
         Denoised spectrogram matrix.
 
         """
-        Smed = ndimage.median_filter(self._spectrogram, (1,round(window_duration/self.time_resolution)))
+        if use_dask:
+            dask_spectro = dask.array.from_array(self._spectrogram, chunks=dask_chunks)
+            Smed = dask_image.ndfilters.median_filter(dask_spectro,
+                                                       size=(1,round(window_duration/self.time_resolution)),
+                                                       mode='mirror')
+            Smed = Smed.compute()
+        else:
+            Smed = ndimage.median_filter(self._spectrogram, (1,round(window_duration/self.time_resolution)))
+        
         if inplace:
             self._spectrogram = self._spectrogram-Smed
             self._spectrogram[self._spectrogram < 0] = 0  # floor
