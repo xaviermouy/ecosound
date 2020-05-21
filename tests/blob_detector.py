@@ -31,7 +31,7 @@ window_type = 'hann'
 
 # start and stop time of wavfile to analyze
 t1 = 0#24
-t2 = 1800#40
+t2 = 24#40
 ## ###########################################################################
 tic = time.perf_counter()
 

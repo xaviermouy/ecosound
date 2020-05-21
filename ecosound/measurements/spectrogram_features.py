@@ -17,7 +17,8 @@ from scipy.stats.mstats import gmean
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-
+from numba import njit
+from dask import delayed, compute, visualize
 
 class SpectrogramFeatures(BaseClass):
     """Spectrogram features.
@@ -178,7 +179,7 @@ class SpectrogramFeatures(BaseClass):
             raise ValueError('Input must be an ecosound Annotation object'
                              + '(ecosound.core.annotation).')
 
-    def compute(self, spectro, annotations, debug=False, verbose=False):
+    def compute_old(self, spectro, annotations, debug=False, verbose=False):
         """ Compute spectrogram features.
 
         Goes through each annotation and compute features from the spectrogram.
@@ -354,6 +355,255 @@ class SpectrogramFeatures(BaseClass):
                                    measurements_name=features_name)
         measurements.data = meas
         return measurements
+    
+    def compute(self, spectro, annotations, debug=False, verbose=False, use_dask=False):
+        """ Compute spectrogram features.
+
+        Goes through each annotation and compute features from the spectrogram.
+
+        Parameters
+        ----------
+        spectro : ecosound Spectrogram object
+            Spectrogram of the recording to analyze.
+        annotations : ecosound Annotation object
+            Annotations of the sounds to measure. Can be from manual analysis
+            or from an automatic detector.
+        debug : bool, optional
+            Displays figures for each annotation with the spectrogram, spectral
+            and time envelopes, and tables with all associated measurements.
+            The default is False.
+        verbose : bool, optional
+            Prints in the console the annotation being processed. The default
+            is False.
+
+        Returns
+        -------
+        measurements : ecosound Measurement object
+            Measurement object containing the measurements appended to the
+            original annotation fields. Measurements are in the .data data
+            frame. Metadata with mearurer name, version and measurements names
+            are in the .metadata datafreame.
+
+        """
+        self._prerun_check(spectro, annotations)
+        
+        #init
+        features = self._init_dataframe()
+        features_name = list(features.columns)
+        # loop through each annotation
+        df_list=[]
+        for index, annot in annotations.data.iterrows():
+            # feature for 1 annot
+            # tmp = self.compute_single_annot(annot, spectro, debug, verbose)
+            # # stack features for each annotation
+            # features = pd.concat([features, tmp], ignore_index=False)
+            
+            # feature for 1 annot
+            if use_dask:
+                df = delayed(self.compute_single_annot)(annot, spectro, debug, verbose)
+            else:
+                df = self.compute_single_annot(annot, spectro, debug, verbose)
+            # stack features for each annotation
+            df_list.append(df)
+        if use_dask:
+            features = delayed(pd.concat)(df_list, ignore_index=False)
+            #features.visualize('measuremnets')
+            features = features.compute()
+        else:
+            features = pd.concat(df_list, ignore_index=False)
+        # merge with annotation fields
+        annotations.data.set_index('uuid', inplace=True, drop=False)
+        features.set_index('uuid', inplace=True, drop=True)
+        meas = pd.concat([annotations.data, features], axis=1, join='inner')
+        meas.reset_index(drop=True, inplace=True)
+        # create Measurement object
+        measurements = Measurement(measurer_name=self.name,
+                                   measurer_version=self.version,
+                                   measurements_name=features_name)
+        measurements.data = meas
+        return measurements
+    
+    def _init_dataframe(self):
+        tmp = pd.DataFrame({
+                'uuid': [],
+                # from frequency envelop
+                'freq_peak': [],
+                'freq_bandwidth': [],
+                'freq_bandwidth90': [],
+                'freq_pct5': [],
+                'freq_pct25': [],
+                'freq_pct50': [],
+                'freq_pct75': [],
+                'freq_pct95': [],
+                'freq_iqr': [],
+                'freq_asymmetry': [],
+                'freq_concentration': [],
+                'freq_std': [],
+                'freq_kurtosis': [],
+                'freq_skewness': [],
+                'freq_entropy': [],
+                'freq_flatness': [],
+                'freq_roughness': [],
+                'freq_centroid': [],
+                # from full spectrogram
+                'freq_overall_peak': [],
+                'freq_median_mean': [],
+                'freq_median_std': [],
+                'freq_entropy_mean': [],
+                'freq_entropy_std': [],
+                'freq_upsweep_mean': [],
+                'freq_upsweep_fraction': [],
+                'snr': [],
+                # from time envelop
+                'time_peak_sec': [],
+                'time_peak_perc': [],
+                'time_duration': [],
+                'time_duration90': [],
+                'time_pct5': [],
+                'time_pct25': [],
+                'time_pct50': [],
+                'time_pct75': [],
+                'time_pct95': [],
+                'time_iqr': [],
+                'time_asymmetry': [],
+                'time_concentration': [],
+                'time_std': [],
+                'time_kurtosis': [],
+                'time_skewness': [],
+                'time_entropy': [],
+                'time_flatness': [],
+                'time_roughness': [],
+                'time_centroid': [],
+                })
+        return tmp
+    def compute_single_annot(self, annot, spectro, debug, verbose):
+            if verbose:
+                print('processing annotation ', index)
+            tmin = annot['time_min_offset']
+            tmax = annot['time_max_offset']
+            fmin = annot['frequency_min']
+            fmax = annot['frequency_max']
+            # extract minmgram for that detection
+            minigram = spectro.crop(frequency_min=fmin,
+                                    frequency_max=fmax,
+                                    time_min=tmin,
+                                    time_max=tmax)
+            # extract time and frequency envelops
+            envelop_time, envelop_freq = SpectrogramFeatures.get_envelops(minigram,
+                                                            normalize=True)
+            # interpolate each envelop
+            axis_t, envelop_time2 = ecosound.core.tools.resample_1D_array(
+                minigram.axis_times,
+                envelop_time,
+                resolution=self.resolution_time,
+                kind=self.interp)
+            axis_f, envelop_freq2 = ecosound.core.tools.resample_1D_array(
+                minigram.axis_frequencies,
+                envelop_freq,
+                resolution=self.resolution_freq,
+                kind=self.interp)
+            if sum(envelop_freq2)==0:
+                print('here')
+            if sum(envelop_time2)==0:
+                print('here')
+            # Frequency envelop features
+            features_envelop_freq = self.envelop_features(axis_f, envelop_freq2)
+            if debug:
+                axis_orig = minigram.axis_frequencies
+                envelop_orig = envelop_freq
+                axis_interp = axis_f
+                envelop_interp = envelop_freq2
+                features = features_envelop_freq
+                title = 'Frequency envelop'
+                SpectrogramFeatures._plot_envelop_features(axis_orig,
+                                           envelop_orig,
+                                           axis_interp,
+                                           envelop_interp,
+                                           features,
+                                           title=title)
+            # Time envelop features
+            features_envelop_time = self.envelop_features(axis_t, envelop_time2)
+            if debug:
+                axis_orig = minigram.axis_times
+                envelop_orig = envelop_time
+                axis_interp = axis_t
+                envelop_interp = envelop_time2
+                features = features_envelop_time
+                title = 'Time envelop'
+                SpectrogramFeatures._plot_envelop_features(axis_orig,
+                                           envelop_orig,
+                                           axis_interp,
+                                           envelop_interp,
+                                           features,
+                                           title=title)
+            # Amplitude modulation features
+            # TO DO
+            # Full spectrogram matrix features
+            adjusted_bounds = [features_envelop_time['pct5_position'].values[0],
+                               features_envelop_time['pct95_position'].values[0],
+                               features_envelop_freq['pct5_position'].values[0],
+                               features_envelop_freq['pct95_position'].values[0],
+                               ]
+            features_spectrogram, frequency_points = self.spectrogram_features(minigram,adjusted_bounds=adjusted_bounds)
+            if debug:
+                SpectrogramFeatures._plot_spectrogram_features(minigram,
+                                               features_spectrogram,
+                                               adjusted_bounds,
+                                               frequency_points,
+                                               title='spectrogram features')
+            # stack all features
+            tmp = pd.DataFrame({
+                'uuid': [annot['uuid']],
+                # from frequency envelop
+                'freq_peak': features_envelop_freq['peak_position'],
+                'freq_bandwidth': features_envelop_freq['length'],
+                'freq_bandwidth90': features_envelop_freq['length_90'],
+                'freq_pct5': features_envelop_freq['pct5_position'],
+                'freq_pct25': features_envelop_freq['pct25_position'],
+                'freq_pct50': features_envelop_freq['pct50_position'],
+                'freq_pct75': features_envelop_freq['pct75_position'],
+                'freq_pct95': features_envelop_freq['pct95_position'],
+                'freq_iqr': features_envelop_freq['IQR'],
+                'freq_asymmetry': features_envelop_freq['asymmetry'],
+                'freq_concentration': features_envelop_freq['concentration'],
+                'freq_std': features_envelop_freq['std'],
+                'freq_kurtosis': features_envelop_freq['kurtosis'],
+                'freq_skewness': features_envelop_freq['skewness'],
+                'freq_entropy': features_envelop_freq['entropy'],
+                'freq_flatness': features_envelop_freq['flatness'],
+                'freq_roughness': features_envelop_freq['roughness'],
+                'freq_centroid': features_envelop_freq['centroid'],
+                # from full spectrogram
+                'freq_overall_peak': features_spectrogram['freq_peak'],
+                'freq_median_mean': features_spectrogram['freq_median_mean'],
+                'freq_median_std': features_spectrogram['freq_median_std'],
+                'freq_entropy_mean': features_spectrogram['freq_entropy_mean'],
+                'freq_entropy_std': features_spectrogram['freq_entropy_std'],
+                'freq_upsweep_mean': features_spectrogram['freq_upsweep_mean'],
+                'freq_upsweep_fraction': features_spectrogram['freq_upsweep_fraction'],
+                'snr': features_spectrogram['snr'],
+                # from time envelop
+                'time_peak_sec': features_envelop_time['peak_position'],
+                'time_peak_perc': features_envelop_time['peak_position_relative'],
+                'time_duration': features_envelop_time['length'],
+                'time_duration90': features_envelop_time['length_90'],
+                'time_pct5': features_envelop_time['pct5_position'],
+                'time_pct25': features_envelop_time['pct25_position'],
+                'time_pct50': features_envelop_time['pct50_position'],
+                'time_pct75': features_envelop_time['pct75_position'],
+                'time_pct95': features_envelop_time['pct95_position'],
+                'time_iqr': features_envelop_time['IQR'],
+                'time_asymmetry': features_envelop_time['asymmetry'],
+                'time_concentration': features_envelop_time['concentration'],
+                'time_std': features_envelop_time['std'],
+                'time_kurtosis': features_envelop_time['kurtosis'],
+                'time_skewness': features_envelop_time['skewness'],
+                'time_entropy': features_envelop_time['entropy'],
+                'time_flatness': features_envelop_time['flatness'],
+                'time_roughness': features_envelop_time['roughness'],
+                'time_centroid': features_envelop_time['centroid'],
+                })
+            return tmp
 
     def envelop_features(self, axis, values):
         """Extract fetaures from time or frequency envelop.
@@ -656,6 +906,7 @@ class SpectrogramFeatures(BaseClass):
         fig.patch.set_visible(False)
 
     @staticmethod
+    @njit
     def length(array, resolution):
         """Duration/bandwidth of a time/frequency envelop."""
         return len(array)*resolution
@@ -669,6 +920,37 @@ class SpectrogramFeatures(BaseClass):
         peak_position_unit = axis[idxmax]
         peak_position_relative = (idxmax/len(array))*100
         return peak_value, peak_position_unit, peak_position_relative
+
+    @staticmethod
+    def percentiles_position_old(array, percentiles, axis=None):
+        """Provide position of a percentile in an array of values.
+
+        Parameters
+        ----------
+        array : numpy array
+            array with values.
+        percentiles : list
+            List with the percentiles to "find" (e.g. [50, 75]).
+        axis : numpy array, optional
+            array with axis for the array values. The default is None.
+
+        Returns
+        -------
+        pct_position : dict
+            Dictionary with position of the percentile. Dict keys are the 
+            values of the percentiles requested (e.g. pct_position['50']).
+        """
+        if axis is None:
+            axis = range(0, len(array), 1)
+        pct_position = dict()
+        values_sum = np.sum(array)
+        values_cumsum = np.cumsum(array)
+        for pct in percentiles:
+            pct_val = pct/100*values_sum
+            pct_val_idx = np.where(values_cumsum > pct_val)[0][0]
+            pct_val_unit = axis[pct_val_idx]
+            pct_position[str(pct)] = pct_val_unit
+        return pct_position
 
     @staticmethod
     def percentiles_position(array, percentiles, axis=None):
@@ -702,6 +984,7 @@ class SpectrogramFeatures(BaseClass):
         return pct_position
 
     @staticmethod
+    @njit
     def asymmetry(pct25, pct50, pct75):
         """Calculate envelope assymetry."""
         return (pct25+pct75-(2*pct50))/(pct25+pct75)  # feat
@@ -719,11 +1002,19 @@ class SpectrogramFeatures(BaseClass):
         return concentration_unit
 
     @staticmethod
+    @njit
     def flatness(array):
         """Calculate envelope flatness."""
         # normalize and add 1 to account for zero values
-        array =  array/max(array)+1
-        return gmean(array)/np.mean(array)
+        array = array/max(array)+1
+        # arithmetic mean
+        arithmetic_mean = np.mean(array)
+        # geometric mean
+        n = len(array)
+        multiply = np.prod(array)
+        geometric_mean = (multiply)**(1/n)
+        #geometric_mean = gmean(array)
+        return geometric_mean/arithmetic_mean
 
     @staticmethod
     def roughness(array):

@@ -73,7 +73,6 @@ def tighten_signal_limits(signal, energy_percentage):
              np.nonzero(cumul_energy > percentage_end)[0][0]]
     return chunk
 
-#@njit
 def resample_1D_array(x, y, resolution, kind='linear'):
     """
     Interpolate values of coordinates x and y with a given resolution.
@@ -82,9 +81,9 @@ def resample_1D_array(x, y, resolution, kind='linear'):
     f = interpolate.interp1d(x, y, kind=kind, fill_value='extrapolate')
     xnew = np.arange(x[0], x[-1]+resolution, resolution)
     ynew = f(xnew)
-    return xnew, ynew 
+    return xnew, ynew
 
-#@njit
+@njit
 def entropy(array_1d, apply_square=False):
         """ 
         Aggregate (SHannon's) entropy as defined in the Raven manual
@@ -102,7 +101,7 @@ def entropy(array_1d, apply_square=False):
                 H += ratio*np.log2(ratio)
         return H
 
-#@njit
+@njit
 def derivative_1d(array, order=1):
     """
     Derivative of order "order" of a 1D array. Subtract the element i+1 to i.

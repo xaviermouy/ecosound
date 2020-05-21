@@ -31,7 +31,7 @@ window_type = 'hann'
 
 # start and stop time of wavfile to analyze
 t1 = 0#24
-t2 = 60#40
+t2 = 1800#40
 ## ###########################################################################
 tic = time.perf_counter()
 
@@ -50,8 +50,8 @@ spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
 spectro.denoise('median_equalizer', window_duration=3, use_dask=True, dask_chunks=(2048,1000), inplace=True)
 
 # Detector
-detector = DetectorFactory('BlobDetector', use_dask=True, dask_chunks=(2048,1000), kernel_duration=0.1, kernel_bandwidth=300, threshold=10, duration_min=0.05, bandwidth_min=40)
-detections = detector.run(spectro, debug=False)
+detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=10, duration_min=0.05, bandwidth_min=40)
+detections = detector.run(spectro, use_dask=True, dask_chunks=(2048,1000), debug=False)
 
 # # Plot
 # graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
@@ -65,8 +65,12 @@ detections = detector.run(spectro, debug=False)
 
 # Maasurements
 spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.001, resolution_freq=0.1, interp='linear')
-measurements = spectro_features.compute(spectro, detections, debug=False, verbose=False)
-#measurements.to_netcdf('test.nc')
+measurements = spectro_features.compute(spectro,
+                                        detections,
+                                        debug=False,
+                                        verbose=False,
+                                        use_dask=Falsealse)
+measurements.to_netcdf('test.nc')
 
 toc = time.perf_counter()
 print(f"Executed in {toc - tic:0.4f} seconds")

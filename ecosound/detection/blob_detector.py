@@ -182,7 +182,7 @@ class BlobDetector(BaseClass):
         Svar[Svar > 0] = 1
         if debug:
             self._plot_matrix(Svar, 'Binarized spectrogram matrix')
-        
+
         #new
         #Svar = cv2.cvtColor(cv2.UMat(Svar), cv2.COLOR_RGB2GRAY)
         # Define contours
@@ -192,7 +192,7 @@ class BlobDetector(BaseClass):
                                   beta=255,
                                   norm_type=cv2.NORM_MINMAX,
                                   dtype=cv2.CV_8UC1)
-        (cnts, hierarchy) = cv2.findContours(Svar_gray.copy(),
+        (_,cnts, hierarchy) = cv2.findContours(Svar_gray.copy(),
                                                   cv2.RETR_EXTERNAL,
                                                   cv2.CHAIN_APPROX_SIMPLE)
         # loop over the contours
