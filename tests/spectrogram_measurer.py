@@ -18,8 +18,8 @@ import time
 
 ## Input paraneters ##########################################################
 
-single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
-
+#single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
+single_channel_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_hornby-island_2019\audio_data\AMAR173.4.20190916T004248Z.wav"
 # Spectrogram parameters
 frame = 3000
 nfft = 4096
@@ -31,7 +31,7 @@ window_type = 'hann'
 
 # start and stop time of wavfile to analyze
 t1 = 0#24
-t2 = 1800#40
+t2 = 1799#40
 ## ###########################################################################
 tic = time.perf_counter()
 
@@ -64,12 +64,12 @@ detections = detector.run(spectro, use_dask=True, dask_chunks=(2048,1000), debug
 # graph.show()
 
 # Maasurements
-spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.001, resolution_freq=0.1, interp='linear')
+spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.01, resolution_freq=1, interp='linear')
 measurements = spectro_features.compute(spectro,
                                         detections,
                                         debug=False,
                                         verbose=False,
-                                        use_dask=Falsealse)
+                                        use_dask=False)
 measurements.to_netcdf('test.nc')
 
 toc = time.perf_counter()

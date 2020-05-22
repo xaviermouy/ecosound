@@ -334,6 +334,14 @@ class SoundPlotter(BaseClass):
                                        label=annot['label'],
                                        color=annot['color'],
                                        )
+                if annot['label'] is not False:
+                    handles, labels = current_ax.get_legend_handles_labels()
+                    unique_labels=list(set(labels))
+                    new_handles=[]
+                    for l in unique_labels:
+                        new_handles.append(handles[labels.index(l)])                        
+                    
+                    current_ax.legend(new_handles,unique_labels)
         return fig, ax
 
     def to_file(self, filename):
@@ -390,7 +398,8 @@ class SoundPlotter(BaseClass):
                                  linewidth=1,
                                  edgecolor=color,
                                  facecolor=facecolor,
-                                 alpha=alpha)
+                                 alpha=alpha,
+                                 label=label)
             ax.add_patch(rect)
 
     def _stack_data(self, args):
