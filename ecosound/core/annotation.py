@@ -7,8 +7,10 @@ Created on Tue Jan 21 13:04:58 2020
 # TODO: kjlkjkl;j
 
 import pandas as pd
+import xarray as xr
 import os
 import uuid
+import warnings
 import ecosound.core.tools
 import ecosound.core.decorators
 
@@ -177,7 +179,8 @@ class Annotation():
             'label_subclass': [],
             'confidence': []
             })
-
+        self._enforce_dtypes()
+    
     def check_integrity(self, verbose=False, ignore_frequency_duplicates=False):
         """
         Check integrity of Annotation object.
@@ -315,6 +318,7 @@ class Annotation():
         self.data['uuid'] = self.data.apply(lambda _: str(uuid.uuid4()), axis=1)
         self.data['duration'] = self.data['time_max_offset'] - self.data['time_min_offset']
         self.check_integrity(verbose=verbose, ignore_frequency_duplicates=True)
+        #self._enforce_dtypes()
         if verbose:
                 print(len(self), 'annotations imported.')
 
@@ -464,6 +468,7 @@ class Annotation():
         self.data['uuid'] = self.data.apply(lambda _: str(uuid.uuid4()), axis=1)
         self.data['duration'] = self.data['time_max_offset'] - self.data['time_min_offset']
         self.check_integrity(verbose=verbose)
+        #self._enforce_dtypes()
         if verbose:
                 print(len(self), 'annotations imported.')
 
@@ -577,6 +582,7 @@ class Annotation():
         """
         self.data = pd.read_parquet(file)
         self.check_integrity(verbose=verbose)
+        #self._enforce_dtypes()
         if verbose:
                 print(len(self), 'annotations imported.')
 
@@ -603,6 +609,33 @@ class Annotation():
         self.data.to_parquet(file,
                              coerce_timestamps='ms',
                              allow_truncated_timestamps=True)
+    
+    def to_netcdf(self, file):
+        if file.endswith('.nc') == False:
+            file = file + '.nc'
+        meas = self.data
+        meas.set_index('time_min_date', drop=False, inplace=True)
+        meas.index.name = 'date'
+        dxr1 = meas.to_xarray()
+        dxr1.attrs['datatype'] = 'Annotation'
+        dxr1.to_netcdf(file, engine='netcdf4', format='NETCDF4')
+     
+    def from_netcdf(self, file, verbose=False):
+        dxr = xr.open_dataset(file)
+        if dxr.attrs['datatype'] == 'Annotation':
+            self.data = dxr.to_dataframe()
+            self.data.reset_index(inplace=True)
+        elif dxr.attrs['datatype'] == 'Measurement':
+            self.data = dxr.to_dataframe()
+            self.data.reset_index(inplace=True)
+            warnings.warn('Importing Measurement data as Annotation >> Not all Measurement data are loaded.')
+            #Warning('Importing Measurement data as Annotation >> Not all Measurement data are loaded.')
+        else:
+            raise ValueError('Not an Annotation file.')            
+        self.check_integrity(verbose=verbose)
+        #self._enforce_dtypes()
+        if verbose:
+                print(len(self), 'annotations imported.')
 
     def insert_values(self, **kwargs):
         """
@@ -722,6 +755,48 @@ class Annotation():
     #     """Return the spectrogram attribute."""
     #     return self._data
 
+    def overlap_with(self, annot):
+        """filters annotations by only keeping the ones that overlap with annot"""
+
+    def _enforce_dtypes(self):
+        self.data = self.data.astype({
+            'uuid': 'str',
+            'from_detector': 'bool',  # True, False
+            'software_name': 'str',
+            'software_version': 'str',
+            'operator_name': 'str',
+            'UTC_offset': 'float',
+            'entry_date': 'datetime64[ns]',
+            'audio_channel': 'int',
+            'audio_file_name': 'str',
+            'audio_file_dir': 'str',
+            'audio_file_extension': 'str',
+            'audio_file_start_date': 'datetime64[ns]',
+            'audio_sampling_frequency': 'int',
+            'audio_bit_depth': 'int',
+            'mooring_platform_name': 'str',
+            'recorder_type': 'str',
+            'recorder_SN': 'str',
+            'hydrophone_model': 'str',
+            'hydrophone_SN': 'str',
+            'hydrophone_depth': 'float',
+            'location_name': 'str',
+            'location_lat': 'float',
+            'location_lon': 'float',
+            'location_water_depth': 'float',
+            'deployment_ID': 'str',
+            'frequency_min': 'float',
+            'frequency_max': 'float',
+            'time_min_offset': 'float',
+            'time_max_offset': 'float',
+            'time_min_date': 'datetime64[ns]',
+            'time_max_date': 'datetime64[ns]',
+            'duration': 'float',
+            'label_class': 'str',
+            'label_subclass': 'str',
+            'confidence': 'float',
+            })
+
     @staticmethod
     @ecosound.core.decorators.listinput
     def _import_files(files):
@@ -755,6 +830,8 @@ class Annotation():
         """Concatenate data from several annotation objects."""
         assert type(other) is ecosound.core.annotation.Annotation, "Object type not \
             supported. Can only concatenate Annotation objects together."
+        self._enforce_dtypes()
+        other._enforce_dtypes()
         self.data = pd.concat([self.data, other.data],
                               ignore_index=True,
                               sort=False)
