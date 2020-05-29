@@ -341,7 +341,7 @@ class SoundPlotter(BaseClass):
                     for l in unique_labels:
                         new_handles.append(handles[labels.index(l)])                        
                     
-                    current_ax.legend(new_handles,unique_labels)
+                    current_ax.legend(new_handles,unique_labels,loc='upper right')
         return fig, ax
 
     def to_file(self, filename):

@@ -14,6 +14,7 @@ import warnings
 import ecosound.core.tools
 import ecosound.core.decorators
 from ecosound.core.metadata import DeploymentInfo
+import copy
 
 
 class Annotation():
@@ -712,7 +713,99 @@ class Annotation():
                            location_water_depth=dep_info.data['location_water_depth'].values[0],
                            deployment_ID=dep_info.data['deployment_ID'].values[0],
                           )
+    def filter_overlap_with(self, annot, freq_ovp=True,dur_factor_max=None,dur_factor_min=None,ovlp_ratio_min=None,remove_duplicates=False,inherit_metadata=False,filter_deploymentID=True, inplace=False):
+        """
         
+
+        Parameters
+        ----------
+        annot : TYPE
+            DESCRIPTION.
+        freq_ovp : TYPE, optional
+            DESCRIPTION. The default is True.
+        dur_factor_max : TYPE, optional
+            DESCRIPTION. The default is None.
+        dur_factor_min : TYPE, optional
+            DESCRIPTION. The default is None.
+        ovlp_ratio_min : TYPE, optional
+            DESCRIPTION. The default is None.
+        remove_duplicates : TYPE, optional
+            DESCRIPTION. The default is False.
+        inherit_metadata : TYPE, optional
+            DESCRIPTION. The default is False.
+        filter_deploymentID : TYPE, optional
+            DESCRIPTION. The default is True.
+        inplace : TYPE, optional
+            DESCRIPTION. The default is False.
+
+        Returns
+        -------
+        out_object : TYPE
+            DESCRIPTION.
+
+        """
+        
+        stack = []
+        det = self.data
+        for index, an in annot.data.iterrows(): #for each annotation
+            ## restrict to the specific deploymnetID of the annotation if file names are not unique
+            if filter_deploymentID:
+                df = det[det.deployment_ID == an.deployment_ID]
+            ## filter detections to same file and deployment ID as the current annotation
+            df = det[det.audio_file_name == an.audio_file_name]
+            ## check overlap in time first
+            if len(df) > 0:
+                df = det[((det.time_min_offset <= an.time_min_offset) & (det.time_max_offset >= an.time_max_offset)) |  # 1- annot inside detec
+                         ((det.time_min_offset >= an.time_min_offset) & (det.time_max_offset <= an.time_max_offset)) |  # 2- detec inside annot
+                         ((det.time_min_offset < an.time_min_offset) & (det.time_max_offset < an.time_max_offset) & (det.time_max_offset > an.time_min_offset)) | # 3- only the end of the detec overlaps with annot
+                         ((det.time_min_offset > an.time_min_offset) & (det.time_min_offset < an.time_max_offset) & (det.time_max_offset > an.time_max_offset)) # 4- only the begining of the detec overlaps with annot
+                          ]
+            # then looks at frequency overlap. Can be turned off if freq bounds are not reliable
+            if (len(df) > 0) & freq_ovp:
+                df = df[((df.frequency_min <= an.frequency_min) & (df.frequency_max >= an.frequency_max)) | # 1- annot inside detec
+                        ((df.frequency_min >= an.frequency_min) & (df.frequency_max <= an.frequency_max)) | # 2- detec inside annot
+                        ((df.frequency_min < an.frequency_min) & (df.frequency_max < an.frequency_max) & (df.frequency_max > an.frequency_min)) | # 3- only the top of the detec overlaps with annot
+                        ((df.frequency_min > an.frequency_min) & (df.frequency_min < an.frequency_max) & (df.frequency_max > an.frequency_max)) # 4- only the bottom of the detec overlaps with annot
+                        ]
+            # discard if durations are too different 
+            if (len(df) > 0) & (dur_factor_max is not None):
+                df = df[df.duration < an.duration*dur_factor_max]
+            if (len(df) > 0) & (dur_factor_min is not None):
+                df = df[df.duration > an.duration*dur_factor_min]
+        
+            # discard if they don't overlap enough
+            if (len(df) > 0) & (ovlp_ratio_min is not None):
+                df_ovlp = (df['time_max_offset'].apply(lambda x: min(x,an.time_max_offset)) - df['time_min_offset'].apply(lambda x: max(x,an.time_min_offset))) / an.duration
+                df = df[df_ovlp>=ovlp_ratio_min]
+        
+            if (len(df) > 1) & remove_duplicates:
+                df = df.iloc[[df_ovlp.values.argmax()]] # pick teh one with max time overlap
+                
+            if len(df) > 0:
+                if inherit_metadata:
+                    df['mooring_platform_name'] = an['mooring_platform_name']
+                    df['recorder_type'] = an['recorder_type']
+                    df['recorder_SN'] = an['recorder_SN']
+                    df['hydrophone_model'] = an['hydrophone_model']
+                    df['hydrophone_SN'] = an['hydrophone_SN']
+                    df['hydrophone_depth'] = an['hydrophone_depth']
+                    df['location_name'] = an['location_name']
+                    df['location_lat'] = an['location_lat']
+                    df['location_lon'] = an['location_lon']
+                    df['location_water_depth'] = an['location_water_depth']
+                    df['deployment_ID'] = an['deployment_ID']
+                    df['label_class'] = an['label_class']
+                    df['label_subclass'] = an['label_subclass']
+                stack.append(df)
+        ovlp = pd.concat(stack, ignore_index=True)
+        if inplace:
+            self.data = ovlp
+            out_object = None
+        else:
+            out_object = copy.copy(self)
+            out_object.data = ovlp
+        return out_object
+
     def get_labels_class(self):
         """
         Get all the unique class labels of the annotations.

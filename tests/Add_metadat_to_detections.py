@@ -17,9 +17,9 @@ outdir= r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dat
 ext='.nc'
 
 
-indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset\UWW_hornby-island_2014'
-deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UWW_hornby-island_2014\deployment_info.csv'
-data_dir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UWW_hornby-island_2014\audio_data'
+indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset\UVIC_mill-bay_2019'
+deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_mill-bay_2019\deployment_info.csv'
+data_dir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_mill-bay_2019\audio_data'
 
 # load meta data
 operator_name = platform.uname().node
@@ -41,7 +41,7 @@ for idx,  file in enumerate(files):
 
     file_name = os.path.splitext(os.path.basename(file))[0]
     meas.insert_values(operator_name=platform.uname().node,
-                       audio_file_name=file_name,
+                       audio_file_name=os.path.splitext(os.path.basename(file_name))[0],
                        audio_file_dir=data_dir,
                        audio_file_extension='.wav',
                        audio_file_start_date= ecosound.core.tools.filename_to_datetime(file_name)[0]
