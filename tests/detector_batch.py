@@ -15,13 +15,13 @@ from ecosound.measurements.measurer_builder import MeasurerFactory
 import ecosound.core.tools
 import time
 import os
-
+import platform
 # from dask.distributed import Client, LocalCluster
 # cluster = LocalCluster()
 # client = Client(cluster,processes=False)
 
     
-def run_detector(infile, outdir):
+def run_detector(infile, outdir, deployment_file=None):
     ## Input paraneters ##########################################################   
     
     
@@ -75,29 +75,49 @@ def run_detector(infile, outdir):
                                                 debug=False,
                                                 verbose=False,
                                                 use_dask=True)
+        
+        # Add metadata
+        if deployment_file:
+            measurements.insert_metadata(deployment_file)
+        
+        # Add file informations
+        file_name = os.path.splitext(os.path.basename(infile))[0]
+        file_dir = os.path.dirname(infile)
+        file_ext = os.path.splitext(infile)[1]
+        measurements.insert_values(operator_name=platform.uname().node,
+                                   audio_file_name=file_name,
+                                   audio_file_dir=file_dir,
+                                   audio_file_extension=file_ext,
+                                   audio_file_start_date= ecosound.core.tools.filename_to_datetime(infile)[0]
+                                   )
+    
         measurements.to_netcdf(outfile)
     else:
         print('Recording already processed.')
 
 
-indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets'
-#outdir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\UVIC_hornby-island_2019'
-outdir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset'
+indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data'
+outdir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\etst'
 ext='.wav'
-
+deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\deployment_info.csv'
 files = ecosound.core.tools.list_files(indir,
                                         ext,
-                                        recursive=True,
+                                        recursive=False,
                                         case_sensitive=True)
 
 for idx,  file in enumerate(files):
     print(str(idx)+r'/'+str(len(files))+': '+ file)
-    try:
-        tic = time.perf_counter()
-        run_detector(file, outdir)
-        toc = time.perf_counter()
-    except:
-        print('ERROR HERE --------------------------------------')
+    # try:
+    #     tic = time.perf_counter()
+    #     run_detector(file, outdir, deployment_file=deployment_file)
+    #     toc = time.perf_counter()
+    # except:
+    #     print('ERROR HERE --------------------------------------')
+        
+    tic = time.perf_counter()
+    run_detector(file, outdir, deployment_file=deployment_file)
+    toc = time.perf_counter()
+
             
     print(f"Executed in {toc - tic:0.4f} seconds")
 

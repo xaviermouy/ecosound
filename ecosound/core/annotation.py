@@ -13,6 +13,7 @@ import uuid
 import warnings
 import ecosound.core.tools
 import ecosound.core.decorators
+from ecosound.core.metadata import DeploymentInfo
 
 
 class Annotation():
@@ -674,6 +675,44 @@ class Annotation():
                 raise ValueError('The annotation object has no field: '
                                  + str(key))
 
+    def insert_metadata(self, deployment_info_file):
+        """
+        Insert metadata infoation to the annotation.
+
+        Uses the Deployment_info_file to fill in the metadata of the annotation
+        . The deployment_info_file must be created using the DeploymentInfo
+        class from ecosound.core.metadata using DeploymentInfo.write_template.
+
+        Parameters
+        ----------
+        deployment_info_file : str
+            Csv file readable by ecosound.core.meta.DeploymentInfo.read(). It
+            contains all the deployment metadata.
+
+        Returns
+        -------
+        None.
+
+        """
+        dep_info = DeploymentInfo()
+        dep_info.read(deployment_info_file)
+        self.insert_values(UTC_offset=dep_info.data['UTC_offset'].values[0],
+                           audio_channel=dep_info.data['audio_channel_number'].values[0],                 
+                           audio_sampling_frequency=dep_info.data['sampling_frequency'].values[0],
+                           audio_bit_depth=dep_info.data['bit_depth'].values[0],
+                           mooring_platform_name = dep_info.data['mooring_platform_name'].values[0],
+                           recorder_type=dep_info.data['recorder_type'].values[0],
+                           recorder_SN=dep_info.data['recorder_SN'].values[0],
+                           hydrophone_model=dep_info.data['hydrophone_model'].values[0],
+                           hydrophone_SN=dep_info.data['hydrophone_SN'].values[0],
+                           hydrophone_depth=dep_info.data['hydrophone_depth'].values[0],
+                           location_name=dep_info.data['location_name'].values[0],
+                           location_lat=dep_info.data['location_lat'].values[0],
+                           location_lon=dep_info.data['location_lon'].values[0],
+                           location_water_depth=dep_info.data['location_water_depth'].values[0],
+                           deployment_ID=dep_info.data['deployment_ID'].values[0],
+                          )
+        
     def get_labels_class(self):
         """
         Get all the unique class labels of the annotations.

@@ -62,6 +62,7 @@ remove_duplicates = True # dfault - False
 inherit_metadata = True # default False
 
 # here <-= filter per filename and deployment ID
+
 stack = []
 det = detec.data
 for index, an in annot.data.iterrows(): #for each annotation
