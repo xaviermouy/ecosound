@@ -771,7 +771,6 @@ class Annotation():
             Filtered Annotation object.
 
         """
-        
         stack = []
         det = self.data
         for index, an in annot.data.iterrows(): #for each annotation
@@ -799,15 +798,15 @@ class Annotation():
                 df = df[df.duration < an.duration*dur_factor_max]
             if (len(df) > 0) & (dur_factor_min is not None):
                 df = df[df.duration > an.duration*dur_factor_min]
-        
+
             # discard if they don't overlap enough
             if (len(df) > 0) & (ovlp_ratio_min is not None):
                 df_ovlp = (df['time_max_offset'].apply(lambda x: min(x,an.time_max_offset)) - df['time_min_offset'].apply(lambda x: max(x,an.time_min_offset))) / an.duration
                 df = df[df_ovlp>=ovlp_ratio_min]
-        
+
             if (len(df) > 1) & remove_duplicates:
                 df = df.iloc[[df_ovlp.values.argmax()]] # pick teh one with max time overlap
-                
+
             if len(df) > 0:
                 if inherit_metadata:
                     df['mooring_platform_name'] = an['mooring_platform_name']
