@@ -66,7 +66,7 @@ inherit_metadata = True # default False
 stack = []
 det = detec.data
 for index, an in annot.data.iterrows(): #for each annotation
-    ovlp_dur = []
+    ovlp_dur = []  
     ## check overlap in time first
     df = det[((det.time_min_offset <= an.time_min_offset) & (det.time_max_offset >= an.time_max_offset)) |  # 1- annot inside detec
              ((det.time_min_offset >= an.time_min_offset) & (det.time_max_offset <= an.time_max_offset)) |  # 2- detec inside annot
