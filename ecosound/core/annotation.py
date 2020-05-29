@@ -715,33 +715,60 @@ class Annotation():
                           )
     def filter_overlap_with(self, annot, freq_ovp=True,dur_factor_max=None,dur_factor_min=None,ovlp_ratio_min=None,remove_duplicates=False,inherit_metadata=False,filter_deploymentID=True, inplace=False):
         """
+        Filter overalaping annotations.
         
+        Only keep annotations that overlap in time and/or frequency with the
+        annotation object "annot".
 
         Parameters
         ----------
-        annot : TYPE
-            DESCRIPTION.
-        freq_ovp : TYPE, optional
-            DESCRIPTION. The default is True.
-        dur_factor_max : TYPE, optional
-            DESCRIPTION. The default is None.
-        dur_factor_min : TYPE, optional
-            DESCRIPTION. The default is None.
-        ovlp_ratio_min : TYPE, optional
-            DESCRIPTION. The default is None.
-        remove_duplicates : TYPE, optional
-            DESCRIPTION. The default is False.
-        inherit_metadata : TYPE, optional
-            DESCRIPTION. The default is False.
-        filter_deploymentID : TYPE, optional
-            DESCRIPTION. The default is True.
-        inplace : TYPE, optional
-            DESCRIPTION. The default is False.
+        annot : ecosound.annotation.Annotation object
+            Annotation object used to filter the current annotations.
+        freq_ovp : bool, optional
+            If set to True, filters not only annotations that overlap in time
+            but also overlap in frequency. The default is True.
+        dur_factor_max : float, optional
+            Constraint dictating the maximum duration overlapped
+            annotations must not exceed in order to be "kept". Any annotations
+            whose duration exceed dur_factor_max*annot.duration are discareded,
+            even if they overlap in time/frequency. If set to None, no maximum
+            duration constraints are applied. The default is None.
+        dur_factor_min : float, optional
+            Constraint dictating the minimum duration overlapped
+            annotations must exceed in order to be "kept". Any annotations
+            whose duration does not exceed dur_factor_min*annot.duration are
+            discareded, even if they overlap in time/frequency. If set to None,
+            no minimum duration constraints are applied. The default is None.
+        ovlp_ratio_min : float, optional
+            Constraint dictating the minimum amount (percentage) of overlap in
+            time annotations must have in order to be "kept". If set to None,
+            no minimum time overlap constraints are applied. The default is
+            None.
+        remove_duplicates : bool, optional
+            If set to True, only selects a single annotation overlaping with 
+            annotations from the annot object. This is relevant only if several
+            annotations overlap with an annotation from the annot object. The 
+            default is False.
+        inherit_metadata : bool, optional
+            If set to True, the filtered annotations inherit all the metadata
+            information from the matched annotations in the annot object. It
+            includes 'label_class', 'label_subclass', 'mooring_platform_name',
+            'recorder_type', 'recorder_SN', 'hydrophone_model', 'hydrophone_SN'
+            , 'hydrophone_depth', 'location_name', 'location_lat',
+            'location_lon', 'location_water_depth', and 'deployment_ID'. The
+            default is False.
+        filter_deploymentID : bool, optional
+            If set to False, doesn't use the deploymentID to match annotations
+            together but just the frequency and time offset boundaries of the
+            annotations. The default is True.
+        inplace : bool, optional
+            If set to True, updates the urrent object with the filter results.
+            The default is False.
 
         Returns
         -------
-        out_object : TYPE
-            DESCRIPTION.
+        out_object : ecosound.annotation.Annotation
+            Filtered Annotation object.
 
         """
         
