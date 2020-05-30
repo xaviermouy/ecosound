@@ -291,7 +291,7 @@ class Annotation():
                                                    )
             if verbose:
                 print(len(files), 'annotation files found.')
-        data = Annotation._import_files(files)
+        data = Annotation._import_csv_files(files)
         files_timestamp = ecosound.core.tools.filename_to_datetime(data['Begin Path'].tolist())
         self.data['audio_file_start_date'] = files_timestamp
         self.data['audio_channel'] = data['Channel']
@@ -411,9 +411,9 @@ class Annotation():
         ----------
         files : str, list
             Path of the txt file to import. Can be a str if importing a single
-            file. Needs to be a list if importing multiple files. If 'files' is
-            a folder, all files in that folder ending with 'annotations.log'
-            will be imported.
+            file or entire folder. Needs to be a list if importing multiple 
+            files. If 'files' is a folder, all files in that folder ending with
+            'annotations.log' will be imported.
         verbose : bool, optional
             If set to True, print the summary of the annatation integrity test.
             The default is False.
@@ -423,15 +423,16 @@ class Annotation():
         None.
 
         """
-        if os.path.isdir(files):
-            files = ecosound.core.tools.list_files(files,
-                                                   ' annotations.log',
-                                                   recursive=False,
-                                                   case_sensitive=True,
-                                                   )
-            if verbose:
-                print(len(files), 'annotation files found.')
-        data = Annotation._import_files(files)
+        if type(files) is str:
+            if os.path.isdir(files):
+                files = ecosound.core.tools.list_files(files,
+                                                       ' annotations.log',
+                                                       recursive=False,
+                                                       case_sensitive=True,
+                                                       )
+                if verbose:
+                    print(len(files), 'annotation files found.')
+        data = Annotation._import_csv_files(files)
         files_timestamp = ecosound.core.tools.filename_to_datetime(
             data['Soundfile'].tolist())
         self.data['audio_file_start_date'] = files_timestamp
@@ -611,7 +612,7 @@ class Annotation():
         self.data.to_parquet(file,
                              coerce_timestamps='ms',
                              allow_truncated_timestamps=True)
-    
+
     def to_netcdf(self, file):
         if file.endswith('.nc') == False:
             file = file + '.nc'
@@ -621,19 +622,20 @@ class Annotation():
         dxr1 = meas.to_xarray()
         dxr1.attrs['datatype'] = 'Annotation'
         dxr1.to_netcdf(file, engine='netcdf4', format='NETCDF4')
-     
+
     def from_netcdf(self, file, verbose=False):
-        dxr = xr.open_dataset(file)
-        if dxr.attrs['datatype'] == 'Annotation':
-            self.data = dxr.to_dataframe()
-            self.data.reset_index(inplace=True)
-        elif dxr.attrs['datatype'] == 'Measurement':
-            self.data = dxr.to_dataframe()
-            self.data.reset_index(inplace=True)
-            warnings.warn('Importing Measurement data as Annotation >> Not all Measurement data are loaded.')
-            #Warning('Importing Measurement data as Annotation >> Not all Measurement data are loaded.')
-        else:
-            raise ValueError('Not an Annotation file.')            
+        if type(file) is str:
+            if os.path.isdir(file):
+                file = ecosound.core.tools.list_files(file,
+                                                       '.nc',
+                                                       recursive=False,
+                                                       case_sensitive=True,
+                                                       )
+                if verbose:
+                    print(len(file), 'files found.')
+            else:
+                file = [file]
+        self.data = self._import_netcdf_files(file)
         self.check_integrity(verbose=verbose)
         #self._enforce_dtypes()
         if verbose:
@@ -957,7 +959,7 @@ class Annotation():
 
     @staticmethod
     @ecosound.core.decorators.listinput
-    def _import_files(files):
+    def _import_csv_files(files):
         """Import one or several text files with header to a Panda datafrane."""
         assert type(files) in (str, list), "Input must be of type str (single \
             file) or list (multiple files)"
@@ -982,6 +984,30 @@ class Annotation():
                 data = tmp
             else:
                 data = pd.concat([data, tmp], ignore_index=True, sort=False)
+        return data
+
+    def _import_netcdf_files(self, files):
+        """Import one or several netcdf files to a Panda datafrane."""
+        assert type(files) in (str, list), "Input must be of type str (single \
+            file or directory) or list (multiple files)"
+        # Import all files to a dataframe
+        tmp =[]
+        for idx, file in enumerate(files):
+            dxr = xr.open_dataset(file)
+            if dxr.attrs['datatype'] == 'Annotation':
+                tmp2 = dxr.to_dataframe()
+                tmp2.reset_index(inplace=True)
+            elif dxr.attrs['datatype'] == 'Measurement':
+                tmp2 = dxr.to_dataframe()
+                tmp2.reset_index(inplace=True)
+                tmp2 = tmp2[self.get_fields()]
+                warnings.warn('Importing Measurement data as Annotation >> Not all Measurement data are loaded.')
+            else:
+                raise ValueError(file + 'Not an Annotation file.')
+            tmp.append(tmp2)
+            
+        data = pd.concat(tmp, ignore_index=True, sort=False)
+        data.reset_index(inplace=True, drop=True)
         return data
 
     def __add__(self, other):
