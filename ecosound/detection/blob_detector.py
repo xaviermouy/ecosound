@@ -142,10 +142,19 @@ class BlobDetector(BaseClass):
         debug : bool, optional
             Displays binarization results for debugging purpused.The default
             is False.
-        start_time : datetime.datetime, ooptional
+        start_time : datetime.datetime, optional
             Start time/date of the signal being processed. If defined, the 
             fields 'time_min_date' and 'time_max_date' of the detection 
             annotation object are populated. The default is None.
+        use_dask, bool, optional
+            If True, runs the detector in parallel using Dask. The default is
+            False.
+        dask_chunks, tuple -> (int, int), optional
+            Tuple of two int defining the size of the spectrogram chunks to use
+            for the parallel processing: dask_chunks=(number of frequency bins,
+             number of time bbins). Only used in use_dask is True. The default
+            is (1000, 1000).
+
         Returns
         -------
         detec : Annotation

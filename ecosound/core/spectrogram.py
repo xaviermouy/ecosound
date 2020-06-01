@@ -73,7 +73,7 @@ class Spectrogram:
 
     _valid_units = ('samp', 'sec')
     _valid_windows = ('hann',)
-    def __init__(self, frame, window_type, fft, step, sampling_frequency, unit = 'sec'):
+    def __init__(self, frame, window_type, fft, step, sampling_frequency, unit='sec'):
         """
         Initialize Spectrogram object.
 
@@ -183,7 +183,37 @@ class Spectrogram:
         return self._axis_frequencies, self._axis_times, self._spectrogram
 
     def compute(self, sig, dB=False, use_dask=False, dask_chunks=40):
-        
+        """
+        Compute spectrogram.
+
+        Compute spectrogram from sound signal and return values in the object
+        attribute 'spectrogram'.
+
+        Parameters
+        ----------
+        sig : Sound object
+            Sound object (core.audiotools.Sound) with the signal to anayse.
+        dB : bool, optional
+            If set to True, returns spectrogram values in dB. The default is
+            False.
+        use_dask : bool, optional
+            If set to True, parallelize the computation using Dask. The default
+            is False.
+        dask_chunks : int, optional
+            Set the number of chunks the signal is broken in to for the
+            parallelized computation using Dask. Only used if use_dask is set
+            to True. The default is 40.
+
+        Returns
+        -------
+        Populate the 'spectrogram' attribute of the Spectrogram object.
+        axis_frequencies, numpy.ndarray
+            1-D array with time axis values, in seconds.
+        axis_times, numpy.ndarray
+            1-D array with frequency axis values, in Hertz.
+        spectrogram, numpy.ndarray
+            2-D array with spectrogram values.
+        """
         # Weighting window
         if self.window_type == 'hann':
             win = np.hanning(self.frame_samp)
@@ -364,6 +394,14 @@ class Spectrogram:
         ----------
         window_duration : float
             Durations of the median filter, in seconds.
+        use_dask : bool, optional
+            If True, to parallelize the processing with Dask. The default is
+            False
+        dask_chunks : tuple-> (int, int), optional
+            Size of the sepctrogram chunks for the parallelized computing in
+            number of bins. dask_chunks=(number of frequency bins, number of
+            time bins). Only used if use_dask is True. The default is
+            (1000,1000).
         inplace : bool, optional
             If True, do operation inplace and return None. The default is False
 
@@ -380,7 +418,6 @@ class Spectrogram:
             Smed = Smed.compute()
         else:
             Smed = ndimage.median_filter(self._spectrogram, (1,round(window_duration/self.time_resolution)))
-        
         if inplace:
             self._spectrogram = self._spectrogram-Smed
             self._spectrogram[self._spectrogram < 0] = 0  # floor
@@ -391,118 +428,76 @@ class Spectrogram:
             out_object._spectrogram[out_object._spectrogram < 0] = 0  # floor            
         return out_object
 
-    # def show(self, frequency_min=0, frequency_max=[], time_min=0, time_max=[]):
-    #     """
-    #     Display spectrogram.
-
-    #     Parameters
-    #     ----------
-    #     frequency_min : float, optional
-    #         Minimum frequency limit of the plot, in Hz. The default is 0.
-    #     frequency_max : float, optional
-    #         Maximum frequency limit of the plot, in Hz. The default is [].
-    #     time_min : float, optional
-    #         Minimum time limit of the plot, in seconds. The default is 0.
-    #     time_max : float, optional
-    #         Maximum time limit of the plot, in seconds. The default is [].
-
-    #     Returns
-    #     -------
-    #     None.
-
-    #     """
-    #     if not frequency_max:
-    #         frequency_max = self.sampling_frequency/2
-    #     if not time_max:
-    #         time_max = self.axis_times[-1]
-    #     assert len(self.spectrogram)>0, "Spectrogram not computed yet. Use the .compute() method first."
-    #     assert frequency_min < frequency_max, "Incorrect frequency bounds, frequency_min must be < frequency_max "
-    #     assert frequency_min < frequency_max, "Incorrect frequency bounds, frequency_min must be < frequency_max "
-
-    #     fig, ax = plt.subplots(
-    #     figsize=(16,4),
-    #     sharex=True
-    #     )
-    #     im = ax.pcolormesh(self.axis_times, self.axis_frequencies, self.spectrogram, cmap = 'jet',vmin = np.percentile(self.spectrogram,50), vmax= np.percentile(self.spectrogram,99.9))
-    #     ax.axis([time_min,time_max,frequency_min,frequency_max])
-    #     #ax.set_clim(np.percentile(Sxx,50), np.percentile(Sxx,99.9))
-    #     ax.set_ylabel('Frequency [Hz]')
-    #     ax.set_xlabel('Time [sec]')
-    #     ax.set_title('Original spectrogram')
-    #     fig.colorbar(im, ax=ax)
-    #     fig.tight_layout()
-    #     return
-    
     @property
     def frame_samp(self):
         """Return the frame_samp attribute."""
         return self._frame_samp
-    
+
     @property
     def frame_sec(self):
         """Return the frame_sec attribute."""
         return self._frame_sec
-    
+
     @property
     def step_samp(self):
         """Return the step_samp attribute."""
         return self._step_samp
-    
+
     @property
     def step_sec(self):
         """Return the step_sec attribute."""
         return self._step_sec
-    
+
     @property
     def fft_samp(self):
         """Return the fft_samp attribute."""
         return self._fft_samp
-    
+
     @property
     def fft_sec(self):
         """Return the fft_sec attribute."""
         return self._fft_sec
-    
+
     @property
     def overlap_perc(self):
         """Return the overlap_perc attribute."""
         return self._overlap_perc
-    
+
     @property
     def overlap_samp(self):
         """Return the overlap_samp attribute."""
         return self._overlap_samp
-    
+
     @property
     def sampling_frequency(self):
         """Return the sampling_frequency attribute."""
         return self._sampling_frequency
-    
+
     @property
     def time_resolution(self):
         """Return the time_resolution attribute."""
         return self._time_resolution
-    
+
     @property
     def frequency_resolution(self):
         """Return the frequency_resolution attribute."""
         return self._frequency_resolution
-    
+
     @property
     def window_type(self):
         """Return the window_type attribute."""
         return self._window_type
-    
+
     @property
     def axis_frequencies(self):
         """Return the axis_frequencies attribute."""
         return self._axis_frequencies
-    
+
     @property
     def axis_times(self):
         """Return the axis_times attribute."""
         return self._axis_times
-    
+
     @property
     def spectrogram(self):
         """Return the spectrogram attribute."""
@@ -518,8 +513,3 @@ def adjust_FFT_size(nfft):
 def next_power_of_2(x):
     """Calculate the next power of two for x."""
     return 1 if x == 0 else 2**(x - 1).bit_length()
-
-
-
-
-

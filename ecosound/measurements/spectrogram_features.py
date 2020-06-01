@@ -355,7 +355,7 @@ class SpectrogramFeatures(BaseClass):
                                    measurements_name=features_name)
         measurements.data = meas
         return measurements
-    
+
     def compute(self, spectro, annotations, debug=False, verbose=False, use_dask=False):
         """ Compute spectrogram features.
 
@@ -368,6 +368,9 @@ class SpectrogramFeatures(BaseClass):
         annotations : ecosound Annotation object
             Annotations of the sounds to measure. Can be from manual analysis
             or from an automatic detector.
+        use_dask : bool, optional
+            If True, run the measurer in parallele using Dask. The default is
+            False.
         debug : bool, optional
             Displays figures for each annotation with the spectrogram, spectral
             and time envelopes, and tables with all associated measurements.
@@ -399,7 +402,6 @@ class SpectrogramFeatures(BaseClass):
             # tmp = self.compute_single_annot(annot, spectro, debug, verbose)
             # # stack features for each annotation
             # features = pd.concat([features, tmp], ignore_index=False)
-            
             # feature for 1 annot
             if use_dask:
                 df = delayed(self.compute_single_annot)(annot, spectro, debug)
@@ -424,7 +426,7 @@ class SpectrogramFeatures(BaseClass):
                                    measurements_name=features_name)
         measurements.data = meas
         return measurements
-    
+
     def _init_dataframe(self):
         tmp = pd.DataFrame({
                 'uuid': [],
@@ -811,7 +813,6 @@ class SpectrogramFeatures(BaseClass):
         peak_amp = []
         median_f = []
         entropy_agg = []
-        
         if spectro.shape[1] > 1: #  must be at least 1 bin of bandwidth
             #root4_magnitude = []
             for spectrum in spectro:

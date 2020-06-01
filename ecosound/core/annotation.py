@@ -613,17 +613,29 @@ class Annotation():
                              coerce_timestamps='ms',
                              allow_truncated_timestamps=True)
 
-    def to_netcdf(self, file):
-        if file.endswith('.nc') == False:
-            file = file + '.nc'
-        meas = self.data
-        meas.set_index('time_min_date', drop=False, inplace=True)
-        meas.index.name = 'date'
-        dxr1 = meas.to_xarray()
-        dxr1.attrs['datatype'] = 'Annotation'
-        dxr1.to_netcdf(file, engine='netcdf4', format='NETCDF4')
-
     def from_netcdf(self, file, verbose=False):
+        """
+        Import data from a netcdf file.
+
+        Load annotations from a .nc file. This format works well with xarray
+        and Dask.
+
+        Parameters
+        ----------
+        file : str
+            Path of the nc file to import. Can be a str if importing a single
+            file or entire folder. Needs to be a list if importing multiple 
+            files. If 'files' is a folder, all files in that folder ending with
+            '.nc' will be imported.
+        verbose : bool, optional
+            If set to True, print the summary of the annatation integrity test.
+            The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
         if type(file) is str:
             if os.path.isdir(file):
                 file = ecosound.core.tools.list_files(file,
@@ -640,6 +652,35 @@ class Annotation():
         #self._enforce_dtypes()
         if verbose:
                 print(len(self), 'annotations imported.')
+
+    def to_netcdf(self, file):
+        """
+        Write data to a netcdf file.
+
+        Write annotations as .nc file. This format works well with xarray
+        and Dask.
+
+        Parameters
+        ----------
+        file : str
+            Path of the output file (.nc) to be written.
+
+        Returns
+        -------
+        None.
+
+        """
+        if file.endswith('.nc') == False:
+            file = file + '.nc'
+        self._enforce_dtypes()
+        meas = self.data
+        meas.set_index('time_min_date', drop=False, inplace=True)
+        meas.index.name = 'date'
+        dxr1 = meas.to_xarray()
+        dxr1.attrs['datatype'] = 'Annotation'
+        dxr1.to_netcdf(file, engine='netcdf4', format='NETCDF4')
+
+
 
     def insert_values(self, **kwargs):
         """
@@ -680,7 +721,7 @@ class Annotation():
 
     def insert_metadata(self, deployment_info_file):
         """
-        Insert metadata infoation to the annotation.
+        Insert metadata infortion to the annotation.
 
         Uses the Deployment_info_file to fill in the metadata of the annotation
         . The deployment_info_file must be created using the DeploymentInfo
@@ -715,6 +756,7 @@ class Annotation():
                            location_water_depth=dep_info.data['location_water_depth'].values[0],
                            deployment_ID=dep_info.data['deployment_ID'].values[0],
                           )
+
     def filter_overlap_with(self, annot, freq_ovp=True,dur_factor_max=None,dur_factor_min=None,ovlp_ratio_min=None,remove_duplicates=False,inherit_metadata=False,filter_deploymentID=True, inplace=False):
         """
         Filter overalaping annotations.
@@ -805,9 +847,13 @@ class Annotation():
             if (len(df) > 0) & (ovlp_ratio_min is not None):
                 df_ovlp = (df['time_max_offset'].apply(lambda x: min(x,an.time_max_offset)) - df['time_min_offset'].apply(lambda x: max(x,an.time_min_offset))) / an.duration
                 df = df[df_ovlp>=ovlp_ratio_min]
+                df_ovlp = df_ovlp[df_ovlp>=ovlp_ratio_min]
 
             if (len(df) > 1) & remove_duplicates:
-                df = df.iloc[[df_ovlp.values.argmax()]] # pick teh one with max time overlap
+                try:
+                    df = df.iloc[[df_ovlp.values.argmax()]] # pick teh one with max time overlap
+                except:
+                    print('asas')
 
             if len(df) > 0:
                 if inherit_metadata:

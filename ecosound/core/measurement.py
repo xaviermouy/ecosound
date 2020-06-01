@@ -15,16 +15,19 @@ class Measurement(Annotation):
     def __init__(self, measurer_name=None, measurer_version=None, measurements_name=None):
         """ Measurement object.
 
-        Inheritate all methods from the ecosound Annotaion class.
+        Object to "store" sound measurements. Inheritate all methods from the
+        ecosound Annotaion class.
 
         Parameters
         ----------
-        measurer_name : str
+        measurer_name : str, optional
             Name of the measurer that was used to calculate the measurements.
-        measurer_version : str
-            Version of the measurer that was used to calculate the measurements
-        measurements_name : list of str
-            List with the name of each measurement.
+            The default is None. 
+        measurer_version : str, optional
+            Version of the measurer that was used to calculate the measurements.
+            The default is None.
+        measurements_name : list of str, optional
+            List with the name of each measurement. The default is None.
 
         Returns
         -------
@@ -41,12 +44,34 @@ class Measurement(Annotation):
 
     @property
     def metadata(self):
-        """Return the metadata attribute."""
+        """
+        Return the metadata attribute.
+        
+        Includes adictionary with the measurer_name, measurer_version, and
+        measurements_name.
+        """
         return self._metadata
 
     def to_netcdf(self, file):
+        """
+        Write measurement data to a netcdf file.
+
+        Write measurementss as .nc file. This format works well with xarray
+        and Dask.
+
+        Parameters
+        ----------
+        file : str
+            Path of the netcdf file (.nc) to be written.
+
+        Returns
+        -------
+        None.
+        """
+
         if file.endswith('.nc') == False:
             file = file + '.nc'
+        self._enforce_dtypes()
         meas = self.data
         meas.set_index('time_min_date', drop=False, inplace=True)
         meas.index.name = 'date'
@@ -58,6 +83,29 @@ class Measurement(Annotation):
         dxr1.to_netcdf(file, engine='netcdf4', format='NETCDF4')
 
     def from_netcdf(self, file, verbose=False):
+        """
+        Import measurement data from a netcdf file.
+
+        Load measurements from a .nc file. This format works well with xarray
+        and Dask. Only "Measurement" netcdf files created with to_netcdf can
+        be imported. all other netcdf files will return an error.
+
+        Parameters
+        ----------
+        file : str
+            Path of the nc file to import. Can be a str if importing a single
+            file or entire folder. Needs to be a list if importing multiple 
+            files. If 'files' is a folder, all files in that folder ending with
+            '.nc' will be imported.
+        verbose : bool, optional
+            If set to True, print the summary of the annatation integrity test.
+            The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
         if type(file) is str:
             if os.path.isdir(file):
                 file = ecosound.core.tools.list_files(file,
@@ -71,7 +119,7 @@ class Measurement(Annotation):
                 file = [file]
         self.data, self._metadata = self._import_netcdf_files(file)
         self.check_integrity(verbose=verbose)    
-        
+
     def _import_netcdf_files(self, files):
         """Import one or several netcdf files to a Panda datafrane."""
         assert type(files) in (str, list), "Input must be of type str (single \
@@ -94,14 +142,11 @@ class Measurement(Annotation):
             else:
                 raise ValueError(file + 'Not a Measurement file.')
             tmp.append(tmp2)
-            
         data = pd.concat(tmp, ignore_index=True, sort=False)
         data.reset_index(inplace=True, drop=True)
-        
         metadata = {'measurer_name': measurer_name,
                     'measurer_version': measurer_version,
                     'measurements_name': [measurements_name],
                     }
         metadata = pd.DataFrame(metadata)
-        
         return data, metadata
