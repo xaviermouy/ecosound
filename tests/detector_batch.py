@@ -26,9 +26,9 @@ def run_detector(infile, outdir, deployment_file=None):
     
     
     # Spectrogram parameters
-    frame = 3000
-    nfft = 4096
-    step = 500
+    frame = 0.0625 #3000
+    nfft = 0.0853 # 4096
+    step = 0.01 # 5
     fmin = 0
     fmax = 1000
     window_type = 'hann'
@@ -45,7 +45,7 @@ def run_detector(infile, outdir, deployment_file=None):
         #sound.read(channel=0, chunk=[t1, t2], unit='sec')
         sound.read(channel=0, unit='sec')
         # Calculates  spectrogram
-        spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='samp')
+        spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='sec')
         spectro.compute(sound, dB=True, use_dask=True, dask_chunks=40)
         # Crop unused frequencies
         spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
@@ -74,7 +74,7 @@ def run_detector(infile, outdir, deployment_file=None):
                                                 detections,
                                                 debug=False,
                                                 verbose=False,
-                                                use_dask=True)
+                                                use_dask=False)
         
         # Add metadata
         if deployment_file:
@@ -96,8 +96,8 @@ def run_detector(infile, outdir, deployment_file=None):
         print('Recording already processed.')
 
 
-indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data'
-outdir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\etst'
+indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\noise'
+outdir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\noise_RCA_in'
 ext='.wav'
 deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\deployment_info.csv'
 files = ecosound.core.tools.list_files(indir,

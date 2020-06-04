@@ -78,7 +78,7 @@ def resample_1D_array(x, y, resolution, kind='linear'):
     Interpolate values of coordinates x and y with a given resolution.
     Default uisn linear interpolation.
     """
-    f = interpolate.interp1d(x, y, kind=kind, fill_value='extrapolate')
+    f = interpolate.interp1d(x, y, kind=kind, fill_value='extrapolate')   
     xnew = np.arange(x[0], x[-1]+resolution, resolution)
     ynew = f(xnew)
     return xnew, ynew

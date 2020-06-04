@@ -18,12 +18,12 @@ import time
 
 ## Input paraneters ##########################################################
 
-single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
-
+#single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
+single_channel_file = r"../ecosound/resources/JASCOAMARHYDROPHONE742_20140913T084017.774Z.wav"
 # Spectrogram parameters
-frame = 3000
-nfft = 4096
-step = 500
+frame = 0.0625 #3000
+nfft = 0.0853 # 4096
+step = 0.01 # 500
 #ovlp = 2500
 fmin = 0
 fmax = 1000
@@ -31,7 +31,7 @@ window_type = 'hann'
 
 # start and stop time of wavfile to analyze
 t1 = 0#24
-t2 = 24#40
+t2 = 112#24#40
 ## ###########################################################################
 tic = time.perf_counter()
 
@@ -40,7 +40,7 @@ sound = Sound(single_channel_file)
 sound.read(channel=0, chunk=[t1, t2], unit='sec', detrend=True)
 
 # Calculates  spectrogram
-spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='samp')
+spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='sec')
 spectro.compute(sound, dB=True, use_dask=True, dask_chunks=40)
 
 # Crop unused frequencies
@@ -56,15 +56,15 @@ detections = detector.run(spectro, debug=False)
 toc = time.perf_counter()
 print(f"Executed in {toc - tic:0.4f} seconds")
 
-# # Plot
-# graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
-# graph.add_data(sound)
-# graph.add_annotation(detections, panel=0, color='red')
-# graph.add_data(spectro)
-# graph.add_annotation(detections, panel=1)
-# #graph.colormap = 'binary'
-# graph.colormap = 'jet'
-# graph.show()
+# Plot
+graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
+graph.add_data(sound)
+graph.add_annotation(detections, panel=0, color='red')
+graph.add_data(spectro)
+graph.add_annotation(detections, panel=1)
+#graph.colormap = 'binary'
+graph.colormap = 'jet'
+graph.show()
 
 
 

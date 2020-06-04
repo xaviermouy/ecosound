@@ -308,7 +308,7 @@ class Spectrogram:
             if np.size(min_row_idx) == 0:
                 min_row_idx = 0
             else:
-                min_row_idx = min_row_idx[0][-1]
+                min_row_idx = min_row_idx[0][-1] + 1
         if frequency_max is None:
             max_row_idx = self._axis_frequencies.size-1
         else:
@@ -325,26 +325,34 @@ class Spectrogram:
             if np.size(min_col_idx) == 0:
                 min_col_idx = 0
             else:
-                min_col_idx = min_col_idx[0][-1]
+                min_col_idx = min_col_idx[0][-1] + 1
         if time_max is None:
-            max_col_idx = self._axis_times.size
+            max_col_idx = self._axis_times.size-1
         else:
             max_col_idx = np.where(self._axis_times > time_max)
             if np.size(max_col_idx) == 0:
-                max_col_idx = self._axis_times.size
+                max_col_idx = self._axis_times.size-1
             else:
                 max_col_idx = max_col_idx[0][0]
         # update spectrogram and axes
         if inplace:
-            self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx]
-            self._axis_times = np.arange(0,(max_col_idx - min_col_idx)*self._time_resolution,self._time_resolution)
-            self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]   
+            # self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx]
+            # self._axis_times = np.arange(0,(max_col_idx - min_col_idx)*self._time_resolution,self._time_resolution)
+            # self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]   
+            # out_object = None
+            self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx+1]
+            self._axis_times = self._axis_times[min_col_idx:max_col_idx+1]-self._axis_times[min_col_idx]
+            self._spectrogram = self._spectrogram[min_row_idx:max_row_idx+1, min_col_idx:max_col_idx+1]   
             out_object = None
         else:
             out_object = copy.copy(self)
-            out_object._axis_frequencies = out_object._axis_frequencies[min_row_idx:max_row_idx]
-            out_object._axis_times = np.arange(0,(max_col_idx - min_col_idx)*out_object._time_resolution,out_object._time_resolution)
-            out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]   
+            out_object._axis_frequencies = out_object._axis_frequencies[min_row_idx:max_row_idx+1]
+            #out_object._axis_times = np.arange(0,(max_col_idx - min_col_idx)*out_object._time_resolution,out_object._time_resolution)
+            out_object._axis_times = out_object._axis_times[min_col_idx:max_col_idx+1]-out_object._axis_times[min_col_idx]
+            #out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]   
+            out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx+1, min_col_idx:max_col_idx+1]
+            if out_object._spectrogram.shape[1] is not len(out_object._axis_times):
+                raise ValueError("Spectrogram axes don't match spectrogram matrix.")
         return out_object
 
     def denoise(self, method, **kwargs):
@@ -507,7 +515,7 @@ def adjust_FFT_size(nfft):
         """ Adjust nfft to the next power of two if necessary."""
         nfft_adjusted = next_power_of_2(nfft)
         if nfft_adjusted != nfft:
-            print('Warning: FFT size automatically adjusted to ', nfft, 'samples (original size:', nfft,')')
+            print('Warning: FFT size automatically adjusted to', nfft_adjusted, 'samples (original size:', nfft,')')
         return nfft_adjusted
 
 def next_power_of_2(x):
