@@ -150,3 +150,16 @@ class Measurement(Annotation):
                     }
         metadata = pd.DataFrame(metadata)
         return data, metadata
+    
+    def __add__(self, other):
+        """Concatenate data from several Measurement objects."""
+        assert type(other) is ecosound.core.measurement.Measurement, "Object type not\
+            supported. Can only concatenate Measurement objects together."
+        assert other.metadata['measurer_name'].values[0] == self.metadata['measurer_name'].values[0], "Can't concatenate measurements made from different measurers."
+        assert other.metadata['measurer_version'].values[0] == self.metadata['measurer_version'].values[0], "Can't concatenate measurements made from different versions of measurers."
+        self._enforce_dtypes()
+        other._enforce_dtypes()
+        self.data = pd.concat([self.data, other.data],
+                              ignore_index=True,
+                              sort=False)
+        return self

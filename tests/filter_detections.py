@@ -21,7 +21,7 @@ import pandas as pd
 ## Input paraneters ##########################################################
 
 annotation_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\Master_annotations_dataset.nc"
-detection_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset_with_metadata"
+detection_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset_with_metadata2"
 outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset.nc'
 
 # load annotations

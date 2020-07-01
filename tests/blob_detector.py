@@ -18,8 +18,8 @@ import time
 
 ## Input paraneters ##########################################################
 
-#single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
-single_channel_file = r"../ecosound/resources/JASCOAMARHYDROPHONE742_20140913T084017.774Z.wav"
+single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
+#single_channel_file = r"../ecosound/resources/JASCOAMARHYDROPHONE742_20140913T084017.774Z.wav"
 # Spectrogram parameters
 frame = 0.0625 #3000
 nfft = 0.0853 # 4096
@@ -30,8 +30,8 @@ fmax = 1000
 window_type = 'hann'
 
 # start and stop time of wavfile to analyze
-t1 = 0#24
-t2 = 112#24#40
+t1 = 22#24
+t2 = 40#24#40
 ## ###########################################################################
 tic = time.perf_counter()
 
@@ -59,11 +59,11 @@ print(f"Executed in {toc - tic:0.4f} seconds")
 # Plot
 graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
 graph.add_data(sound)
-graph.add_annotation(detections, panel=0, color='red')
+graph.add_annotation(detections, panel=0, color='grey',label='Detections')
 graph.add_data(spectro)
-graph.add_annotation(detections, panel=1)
-#graph.colormap = 'binary'
-graph.colormap = 'jet'
+graph.add_annotation(detections, panel=1,color='black',label='Detections')
+graph.colormap = 'binary'
+#graph.colormap = 'jet'
 graph.show()
 
 

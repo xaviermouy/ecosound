@@ -17,10 +17,12 @@ from ecosound.core.measurement import Measurement
 
 
 # ## Load netcdf measurmeent folder from folder
-netcdf_files = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\test2'
+netcdf_files = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Noise_dataset'
+outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Noise_dataset\dataset_noise.nc'
 meas = Measurement()
 meas.from_netcdf(netcdf_files, verbose=True)
 print(len(meas))
+meas.to_netcdf(outfile)
 
 # # ## Load netcdf measurmeent folder from single file
 # netcdf_files = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\test2\67391492.181017121114.wav.nc'

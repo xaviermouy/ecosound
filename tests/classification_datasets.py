@@ -9,25 +9,38 @@ import sys
 sys.path.append("..")  # Adds higher directory to python modules path.
 from ecosound.core.measurement import Measurement
 from ecosound.core.annotation import Annotation
+import pandas as pd
 
-meas_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset.nc'
-annot_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\Master_annotations_dataset.nc'
+"""
+Gathers measuremenst for all annotations and noise. Merges into a single dataset,
+and re-label classes to create a 2-class dataset 'FS' vs 'NN'.
 
-annot = Annotation()
-annot.from_netcdf(annot_file)
+"""
 
-nfold = 10
-make_balanced = False
-stratification=['label_class','recorder type','deployment_ID']
-groups = hour
+# Define input and output files
+annot_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_annotations_only.nc'
+noise_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Noise_dataset'
+outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_FS-NN.nc'
 
-balanced = True
+# Load measurements
+meas_annot = Measurement()
+meas_annot.from_netcdf(annot_file)
+meas_noise = Measurement()
+meas_noise.from_netcdf(noise_file)
 
-# > Add group
-# startification
+## Label noise measurement as 'NN'
+meas_noise.insert_values(label_class='NN')
+print(meas_noise.summary())
 
-GroupKFold 
- 
+## relabel annotations that are not 'FS' as 'NN'
+print(meas_annot.summary())
+meas_annot.data['label_class'].replace(to_replace=['', 'ANT','HS','KW','UN'], value='NN', inplace=True)
+print(meas_annot.summary())
 
+## merge the 2 datasets
+meas_NN_FS = meas_noise + meas_annot
+print(meas_NN_FS.summary())
 
+## Save dataset to nc file
+meas_NN_FS.to_netcdf(outfile)
 

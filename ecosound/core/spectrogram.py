@@ -351,7 +351,7 @@ class Spectrogram:
             out_object._axis_times = out_object._axis_times[min_col_idx:max_col_idx+1]-out_object._axis_times[min_col_idx]
             #out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]   
             out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx+1, min_col_idx:max_col_idx+1]
-            if out_object._spectrogram.shape[1] is not len(out_object._axis_times):
+            if out_object._spectrogram.shape[1] != len(out_object._axis_times):
                 raise ValueError("Spectrogram axes don't match spectrogram matrix.")
         return out_object
 

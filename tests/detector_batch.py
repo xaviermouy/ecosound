@@ -53,7 +53,7 @@ def run_detector(infile, outdir, deployment_file=None):
         spectro.denoise('median_equalizer',
                         window_duration=3,
                         use_dask=True,
-                        dask_chunks=(2048,1000),
+                        dask_chunks= 'auto',#(87,10000),
                         inplace=True)
         # Detector
         file_timestamp = ecosound.core.tools.filename_to_datetime(infile)[0]
@@ -66,7 +66,7 @@ def run_detector(infile, outdir, deployment_file=None):
         detections = detector.run(spectro,
                                   start_time=file_timestamp,
                                   use_dask=True,
-                                  dask_chunks=(2048,1000),
+                                  dask_chunks='auto',
                                   debug=False)
         # Maasurements
         spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.001, resolution_freq=0.1, interp='linear')
@@ -96,10 +96,10 @@ def run_detector(infile, outdir, deployment_file=None):
         print('Recording already processed.')
 
 
-indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\noise'
-outdir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\noise_RCA_in'
+indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\ONC_delta-node_2014\audio_data'
+outdir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset_with_metadata2'
 ext='.wav'
-deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\deployment_info.csv'
+deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\ONC_delta-node_2014\deployment_info.csv'
 files = ecosound.core.tools.list_files(indir,
                                         ext,
                                         recursive=False,
