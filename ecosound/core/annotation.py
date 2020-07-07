@@ -821,14 +821,16 @@ class Annotation():
             ## restrict to the specific deploymnetID of the annotation if file names are not unique
             if filter_deploymentID:
                 df = det[det.deployment_ID == an.deployment_ID]
+            else:
+                df = det
             ## filter detections to same file and deployment ID as the current annotation
-            df = det[det.audio_file_name == an.audio_file_name]
+            df = df[df.audio_file_name == an.audio_file_name]
             ## check overlap in time first
             if len(df) > 0:
-                df = det[((det.time_min_offset <= an.time_min_offset) & (det.time_max_offset >= an.time_max_offset)) |  # 1- annot inside detec
-                         ((det.time_min_offset >= an.time_min_offset) & (det.time_max_offset <= an.time_max_offset)) |  # 2- detec inside annot
-                         ((det.time_min_offset < an.time_min_offset) & (det.time_max_offset < an.time_max_offset) & (det.time_max_offset > an.time_min_offset)) | # 3- only the end of the detec overlaps with annot
-                         ((det.time_min_offset > an.time_min_offset) & (det.time_min_offset < an.time_max_offset) & (det.time_max_offset > an.time_max_offset)) # 4- only the begining of the detec overlaps with annot
+                df = df[((df.time_min_offset <= an.time_min_offset) & (df.time_max_offset >= an.time_max_offset)) |  # 1- annot inside detec
+                         ((df.time_min_offset >= an.time_min_offset) & (df.time_max_offset <= an.time_max_offset)) |  # 2- detec inside annot
+                         ((df.time_min_offset < an.time_min_offset) & (df.time_max_offset < an.time_max_offset) & (df.time_max_offset > an.time_min_offset)) | # 3- only the end of the detec overlaps with annot
+                         ((df.time_min_offset > an.time_min_offset) & (df.time_min_offset < an.time_max_offset) & (df.time_max_offset > an.time_max_offset)) # 4- only the begining of the detec overlaps with annot
                           ]
             # then looks at frequency overlap. Can be turned off if freq bounds are not reliable
             if (len(df) > 0) & freq_ovp:

@@ -32,38 +32,122 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_recall_curve
 from sklearn.preprocessing import LabelEncoder
 from sklearn import metrics
+
+
+def add_class_ID(fulldataset):
+    labels = list(set(fulldataset['label_class']))
+    IDs = [*range(0,len(labels))]
+    fulldataset['class_ID']=-1
+    for n, label in enumerate(labels):
+        fulldataset.loc[fulldataset['label_class'] == label, 'class_ID'] = IDs[n]
+    class_encoder = pd.DataFrame({'label':labels, 'ID': IDs})
+    return fulldataset, class_encoder
+    
+def add_subclass(fulldataset):
+    # subclass for split = label_class + deployment_ID
+    fulldataset['subclass_label'] = fulldataset['label_class'] + '__' + fulldataset['deployment_ID']
+    labels = list(set(fulldataset['subclass_label']))
+    IDs = [*range(0,len(labels))]
+    fulldataset['subclass_ID']=-1
+    for n, label in enumerate(labels):
+        fulldataset.loc[fulldataset['subclass_label'] == label, 'subclass_ID'] = IDs[n]
+    class_encoder = pd.DataFrame({'label':labels, 'ID': IDs})
+    return fulldataset, class_encoder
+
+def subclass2class_converion(fulldataset):
+    subclass_labels = list(set(fulldataset['subclass_label']))
+    subclass_IDs = [*range(0,len(subclass_labels))]
+    class_labels = []
+    class_IDs = []
+    for n, subclass_label in enumerate(subclass_labels):
+        idx = fulldataset.index[fulldataset['subclass_label'] == subclass_labels[n]].tolist()
+        class_labels.append(fulldataset.iloc[idx[0]]['label_class'])
+        class_IDs.append(fulldataset.iloc[idx[0]]['class_ID'])      
+    class_encoder = pd.DataFrame({'subclass_labels': subclass_labels, 'subclass_ID': subclass_IDs, 'class_labels': class_labels, 'class_IDs': class_IDs})
+    return class_encoder
+
+def add_group(fulldataset):
+    # # groups for splits = label_class + dateHour + deployment_ID
+    fulldataset['TimeLabel'] = fulldataset['time_min_date'].dt.round("H").apply(lambda x: x.strftime('%Y%m%d%H%M%S'))
+    # subclass for split = label_class + deployment_ID
+    fulldataset['group_label'] = fulldataset['label_class'] + '_' + fulldataset['TimeLabel'] + '_' + fulldataset['deployment_ID'] 
+    labels = list(set(fulldataset['group_label']))
+    IDs = [*range(0,len(labels))]
+    fulldataset['group_ID']=-1
+    for n, label in enumerate(labels):
+        fulldataset.loc[fulldataset['group_label'] == label, 'group_ID'] = IDs[n]
+    encoder = pd.DataFrame({'label':labels, 'ID': IDs})
+    fulldataset.drop(columns = ['TimeLabel'])
+    return fulldataset, encoder
+    
+# def add_group(fulldataset):
+#      # groups for splits = label_class + dateHour + deployment_ID
+#     fulldataset['TimeLabel'] = fulldataset['time_min_date'].dt.round("H")
+#     fulldataset['TimeLabel'] = fulldataset['TimeLabel'].apply(lambda x: x.strftime('%Y%m%d%H%M%S'))
+#     fulldataset['group_label'] = fulldataset['label_class'] + '_' + fulldataset['TimeLabel'] + '_' + fulldataset['deployment_ID'] 
+#     fulldataset.drop(columns=['TimeLabel'])
+    
+    
+    
+    
+    # # get dataframe of features
+    # data = fulldataset[dataset.metadata['measurements_name'][0]]
+    # labels = fulldataset['label_class'].to_frame()
+    # groups = fulldataset['group'].to_frame()
+    # sublabels = fulldataset['class_label2'].to_frame()
+    
+    # # ## Transform labels to integers
+    # enc_labels = LabelEncoder()
+    # enc_labels.fit(list(labels['label_class'].values))
+    # labels_ID = enc_labels.transform(list(labels['label_class'].values))
+    # enc_groups = LabelEncoder()
+    # enc_groups.fit(list(groups['group'].values))
+    # groups_ID = enc_groups.transform(list(groups['group'].values))
+    # enc_sublabels = LabelEncoder()
+    # enc_sublabels.fit(list(sublabels['class_label2']))
+    # sublabels_ID = enc_sublabels.transform(list(sublabels['class_label2']))
+
 # load dataset
+
 data_file=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_FS-NN.nc'
+#data_file=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset.nc'
 dataset = Measurement()
 dataset.from_netcdf(data_file)
 print(dataset.summary())
 
-fulldataset = dataset.data
+# # add subclass + IDs
+# data = dataset.data
+# data, _ = add_class_ID(data)
+# data, _ = add_subclass(data)
+# subclass2class_table = subclass2class_converion(data)
 
-# subclass for split = label_class + deployment_ID
-fulldataset['class_label2'] = fulldataset['label_class']+ '__' + fulldataset['deployment_ID']
+# # add group ID
+# data, enco = add_group(data)
 
-# groups for splits = label_class + dateHour + deployment_ID
-fulldataset['TimeLabel'] = fulldataset['time_min_date'].dt.round("H")
-fulldataset['TimeLabel'] = fulldataset['TimeLabel'].apply(lambda x: x.strftime('%Y%m%d%H%M%S'))
-fulldataset['group'] = fulldataset['label_class'] + '_' + fulldataset['TimeLabel'] + '_' + fulldataset['deployment_ID'] 
+# d1=pd.concat([data['audio_file_name'], data['group_label'], data['time_min_date']], axis=1, keys=['audio_file_name','group_label', 'time_min_date'])
 
-# get dataframe of features
-data = fulldataset[dataset.metadata['measurements_name'][0]]
-labels = fulldataset['label_class'].to_frame()
-groups = fulldataset['group'].to_frame()
-sublabels = fulldataset['class_label2'].to_frame()
+print('ss')
 
-# ## Transform labels to integers
-enc_labels = LabelEncoder()
-enc_labels.fit(list(labels['label_class'].values))
-labels_ID = enc_labels.transform(list(labels['label_class'].values))
-enc_groups = LabelEncoder()
-enc_groups.fit(list(groups['group'].values))
-groups_ID = enc_groups.transform(list(groups['group'].values))
-enc_sublabels = LabelEncoder()
-enc_sublabels.fit(list(sublabels['class_label2']))
-sublabels_ID = enc_sublabels.transform(list(sublabels['class_label2']))
+# fulldataset = dataset.data
+
+
+
+# # get dataframe of features
+# data = fulldataset[dataset.metadata['measurements_name'][0]]
+# labels = fulldataset['label_class'].to_frame()
+# groups = fulldataset['group'].to_frame()
+# sublabels = fulldataset['class_label2'].to_frame()
+
+# # ## Transform labels to integers
+# enc_labels = LabelEncoder()
+# enc_labels.fit(list(labels['label_class'].values))
+# labels_ID = enc_labels.transform(list(labels['label_class'].values))
+# enc_groups = LabelEncoder()
+# enc_groups.fit(list(groups['group'].values))
+# groups_ID = enc_groups.transform(list(groups['group'].values))
+# enc_sublabels = LabelEncoder()
+# enc_sublabels.fit(list(sublabels['class_label2']))
+# sublabels_ID = enc_sublabels.transform(list(sublabels['class_label2']))
 
 # # Basic stats on all features
 # data_stats = data.describe()

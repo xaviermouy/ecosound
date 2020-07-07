@@ -16,19 +16,19 @@ from ecosound.core.measurement import Measurement
 # print(len(annot4))
 
 
-# ## Load netcdf measurmeent folder from folder
-netcdf_files = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Noise_dataset'
-outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Noise_dataset\dataset_noise.nc'
-meas = Measurement()
-meas.from_netcdf(netcdf_files, verbose=True)
-print(len(meas))
-meas.to_netcdf(outfile)
-
-# # ## Load netcdf measurmeent folder from single file
-# netcdf_files = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\test2\67391492.181017121114.wav.nc'
+# # ## Load netcdf measurmeent folder from folder
+# netcdf_files = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Noise_dataset'
+# outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Noise_dataset\dataset_noise.nc'
 # meas = Measurement()
 # meas.from_netcdf(netcdf_files, verbose=True)
 # print(len(meas))
+# #meas.to_netcdf(outfile)
+
+# # ## Load netcdf measurmeent folder from single file
+netcdf_files = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset_with_metadata2\JASCOAMARHYDROPHONE742_20140913T115018.797Z.wav.nc'
+meas = Measurement()
+meas.from_netcdf(netcdf_files, verbose=True)
+print(len(meas))
 
 # # ## Load netcdf measurmeent folder from list of files
 # netcdf_files = []

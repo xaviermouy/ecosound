@@ -22,7 +22,7 @@ import pandas as pd
 
 annotation_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\Master_annotations_dataset.nc"
 detection_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset_with_metadata2"
-outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset.nc'
+outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_annotations_only.nc'
 
 # load annotations
 annot = Annotation()
@@ -31,6 +31,7 @@ annot.from_netcdf(annotation_file)
 # load detections
 detec = Measurement()
 detec.from_netcdf(detection_file)
+print(detec)
 
 freq_ovp = True # default True
 dur_factor_max = None # default None
@@ -50,5 +51,5 @@ detec.filter_overlap_with(annot,
                           filter_deploymentID=filter_deploymentID,
                           inplace=True
                           )
-
+print(detec)
 detec.to_netcdf(outfile)
