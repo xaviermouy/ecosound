@@ -22,7 +22,7 @@ import pandas as pd
 
 annotation_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\Master_annotations_dataset.nc"
 detection_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset_with_metadata2"
-outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_annotations_only.nc'
+outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_annotations_only2.nc'
 
 # load annotations
 annot = Annotation()

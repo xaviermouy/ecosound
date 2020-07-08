@@ -8,6 +8,7 @@ Created on Tue Jun 30 12:24:25 2020
 import sys
 sys.path.append("..")  # Adds higher directory to python modules path.
 from ecosound.core.measurement import Measurement
+from ecosound.classification.CrossValidation import StratifiedGroupKFold
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -80,32 +81,6 @@ def add_group(fulldataset):
     fulldataset.drop(columns = ['TimeLabel'])
     return fulldataset, encoder
     
-# def add_group(fulldataset):
-#      # groups for splits = label_class + dateHour + deployment_ID
-#     fulldataset['TimeLabel'] = fulldataset['time_min_date'].dt.round("H")
-#     fulldataset['TimeLabel'] = fulldataset['TimeLabel'].apply(lambda x: x.strftime('%Y%m%d%H%M%S'))
-#     fulldataset['group_label'] = fulldataset['label_class'] + '_' + fulldataset['TimeLabel'] + '_' + fulldataset['deployment_ID'] 
-#     fulldataset.drop(columns=['TimeLabel'])
-    
-    
-    
-    
-    # # get dataframe of features
-    # data = fulldataset[dataset.metadata['measurements_name'][0]]
-    # labels = fulldataset['label_class'].to_frame()
-    # groups = fulldataset['group'].to_frame()
-    # sublabels = fulldataset['class_label2'].to_frame()
-    
-    # # ## Transform labels to integers
-    # enc_labels = LabelEncoder()
-    # enc_labels.fit(list(labels['label_class'].values))
-    # labels_ID = enc_labels.transform(list(labels['label_class'].values))
-    # enc_groups = LabelEncoder()
-    # enc_groups.fit(list(groups['group'].values))
-    # groups_ID = enc_groups.transform(list(groups['group'].values))
-    # enc_sublabels = LabelEncoder()
-    # enc_sublabels.fit(list(sublabels['class_label2']))
-    # sublabels_ID = enc_sublabels.transform(list(sublabels['class_label2']))
 
 # load dataset
 
@@ -115,90 +90,71 @@ dataset = Measurement()
 dataset.from_netcdf(data_file)
 print(dataset.summary())
 
-# # add subclass + IDs
-# data = dataset.data
-# data, _ = add_class_ID(data)
-# data, _ = add_subclass(data)
-# subclass2class_table = subclass2class_converion(data)
+## DATA PREPARATION ----------------------------------------------------------
+# features
+feats = dataset.metadata['measurements_name'][0]
+feats.append('label_class')
+feats.append('deployment_ID')
+feats.append('time_min_date')
 
-# # add group ID
-# data, enco = add_group(data)
+# add subclass + IDs
+data = dataset.data[feats]
+data, _ = add_class_ID(data)
+data, _ = add_subclass(data)
+subclass2class_table = subclass2class_converion(data)
 
-# d1=pd.concat([data['audio_file_name'], data['group_label'], data['time_min_date']], axis=1, keys=['audio_file_name','group_label', 'time_min_date'])
+# add group ID
+data, group_encoder = add_group(data)
 
-print('ss')
+# cleanup
+data.drop(['uuid'],axis=1,inplace=True)
+data.drop(['class_ID'],axis=1,inplace=True)
+data.drop(['label_class'],axis=1,inplace=True)
+data.drop(['subclass_label'],axis=1,inplace=True)
+data.drop(['deployment_ID'],axis=1,inplace=True)
+data.drop(['time_min_date'],axis=1,inplace=True)
+data.drop(['TimeLabel'],axis=1,inplace=True)
+data.drop(['group_label'],axis=1,inplace=True)
 
-# fulldataset = dataset.data
+## DATA CLEAN-UP -------------------------------------------------------------
 
+# Basic stats on all features
+data_stats = data.describe()
+#print(data_stats)
 
+# how many NaNs and Infs per column
+data = data.replace([np.inf, -np.inf], np.nan)
+Nnan = data.isna().sum()
+ax = Nnan.plot(kind='bar',title='Number of NaN/Inf',grid=True)
+ax.set_ylabel('Number of observations with NaNs/Infs')
 
-# # get dataframe of features
-# data = fulldataset[dataset.metadata['measurements_name'][0]]
-# labels = fulldataset['label_class'].to_frame()
-# groups = fulldataset['group'].to_frame()
-# sublabels = fulldataset['class_label2'].to_frame()
+# Drop some fetaures with too many NaNs
+data.drop(['freq_flatness'],axis=1,inplace=True) # nan /inf
+data.drop(['snr'],axis=1,inplace=True) # nan /inf
+# drop observations/rows with NaNs
+data.dropna(axis=0, how='any', thresh=None, subset=None, inplace=True)
 
-# # ## Transform labels to integers
-# enc_labels = LabelEncoder()
-# enc_labels.fit(list(labels['label_class'].values))
-# labels_ID = enc_labels.transform(list(labels['label_class'].values))
-# enc_groups = LabelEncoder()
-# enc_groups.fit(list(groups['group'].values))
-# groups_ID = enc_groups.transform(list(groups['group'].values))
-# enc_sublabels = LabelEncoder()
-# enc_sublabels.fit(list(sublabels['class_label2']))
-# sublabels_ID = enc_sublabels.transform(list(sublabels['class_label2']))
+data_stats2 = data.describe()
 
-# # Basic stats on all features
-# data_stats = data.describe()
-# #print(data_stats)
+# ## VISUALIZATION -------------------------------------------------------------
+# # box and whisker plots
+# data.plot(kind='box', subplots=True, layout=(7,7), sharex=False, sharey=False)
+# # histograms
+# data.hist()
+# # scatter plot matrix
+# pd.plotting.scatter_matrix(data)
 
-# # how many NaNs and Infs per column
-# data = data.replace([np.inf, -np.inf], np.nan)
-# Nnan = data.isna().sum()
-# # ax = Nnan.plot(kind='bar',title='Number of NaN/Inf',grid=True)
-# # ax.set_ylabel('Number of observations with NaNs/Infs')
+## SPLIT DATA INTO TRAIN & TEST SETS ------------------------------------------
 
+train_ratio = 0.75
+n_splits = round(1/(1-train_ratio))
+skf = StratifiedGroupKFold(n_splits=n_splits)
+for train_index, test_index in skf.split(data, data['subclass_ID'],groups=data['group_ID']):
+    #print("TRAIN:", train_index, "TEST:", test_index)   
+    data_train, data_test = data.iloc[train_index], data.iloc[test_index]
+    break
 
-# ## clean up ----------------
-# # Drop entire columns/features
-# data.drop(['uuid'],axis=1, inplace=True) # take out the UUID
-# data.drop(['freq_flatness'],axis=1,inplace=True) # nan /inf
-# data.drop(['snr'],axis=1,inplace=True) # nan /inf
-# # drop observations/rows with NaNs
-# data.dropna(axis=0, how='any', thresh=None, subset=None, inplace=True)
-
-# # adjust labels accordingly
-# labels=labels.iloc[data.index]
-
-
-
-
-
-
-# ## display basic stats
-# data_stats = data.describe()
-
-# # ## Visualization ----------
-# # # box and whisker plots
-# # data.plot(kind='box', subplots=True, layout=(7,7), sharex=False, sharey=False)
-# # # histograms
-# # data.hist()
-# # # scatter plot matrix
-# # pd.plotting.scatter_matrix(data)
-
-# # # ## Transform labels to integers
-# # enc = LabelEncoder()
-# # enc.fit(labels)
-# # labels = enc.transform(labels)
-
-# ## create group
-
-skf = GroupKFold(n_splits=2)
-for train_index, test_index in skf.split(data,labels_ID,groups=groups_ID):
-    print("TRAIN:", train_index, "TEST:", test_index)
-    X_train, X_test = data.iloc[train_index], data.iloc[test_index]
-    y_train, y_test = labels_ID.iloc[train_index], labels_ID.iloc[test_index]
+print('yoo')
 
 # ## Split-out validation dataset
 # X_train, X_validation, Y_train, Y_validation = train_test_split(

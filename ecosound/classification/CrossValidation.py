@@ -1,3 +1,9 @@
+from sklearn.model_selection._split import _BaseKFold
+from sklearn.model_selection._split import _RepeatedSplits
+import numpy as np
+from collections import defaultdict, Counter
+from sklearn.utils import check_random_state
+
 class StratifiedGroupKFold(_BaseKFold):
     """Stratified K-Folds iterator variant with non-overlapping groups.
 

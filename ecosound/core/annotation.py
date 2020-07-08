@@ -876,10 +876,12 @@ class Annotation():
         ovlp = pd.concat(stack, ignore_index=True)
         if inplace:
             self.data = ovlp
+            self.check_integrity()
             out_object = None
         else:
-            out_object = copy.copy(self)
+            out_object = copy.copy(self)            
             out_object.data = ovlp
+            out_object.check_integrity()
         return out_object
 
     def get_labels_class(self):

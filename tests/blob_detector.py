@@ -20,6 +20,8 @@ import time
 
 single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
 #single_channel_file = r"../ecosound/resources/JASCOAMARHYDROPHONE742_20140913T084017.774Z.wav"
+single_channel_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\67674121.181018040806.wav"
+
 # Spectrogram parameters
 frame = 0.0625 #3000
 nfft = 0.0853 # 4096
@@ -30,8 +32,8 @@ fmax = 1000
 window_type = 'hann'
 
 # start and stop time of wavfile to analyze
-t1 = 22#24
-t2 = 40#24#40
+t1 = 197 #22#24
+t2 = 217 #40#24#40
 ## ###########################################################################
 tic = time.perf_counter()
 
