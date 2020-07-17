@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import copy
+import pickle
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.model_selection import cross_val_score
@@ -301,12 +302,22 @@ def plot_F_curves(cv_performance):
     ax.grid()
     ax.legend()
 
+def classification_train(X_train, Y_train, model):
+    model_trained = model.fit(X_train, Y_train)
+    return model_trained
+
+def classification_predict(X_test, model_trained):
+    pred_class = model_trained.predict(X_test)
+    pred_prob = model_trained.predict_proba(X_test)
+    return pred_class, pred_prob[:,1]    
+    
 def main():
     ## define positive class
     positive_class_label ='FS'
+    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\LDA_model.sav'
     train_ratio = 0.75
     cv_splits = 5#10
-    cv_repeats = 5
+    cv_repeats = 1
     
     ## LOAD DATSET ---------------------------------------------------------------
     data_file=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_FS-NN.nc'
@@ -319,7 +330,7 @@ def main():
     features = dataset.metadata['measurements_name'][0] # list of features used for the classification
     # add subclass + IDs
     data = dataset.data
-    data, _ = add_class_ID(data, positive_class_label)
+    data, class_encoder = add_class_ID(data, positive_class_label)
     data, _ = add_subclass(data)
     subclass2class_table = subclass2class_conversion(data)
     # add group ID
@@ -373,10 +384,11 @@ def main():
     models.append(('LR', LogisticRegression(solver='liblinear', multi_class='ovr')))
     models.append(('LDA', LinearDiscriminantAnalysis()))
     models.append(('KNN', KNeighborsClassifier()))
-    models.append(('CART', DecisionTreeClassifier()))
-    models.append(('NB', GaussianNB()))
+    #models.append(('CART', DecisionTreeClassifier()))
+    #models.append(('NB', GaussianNB()))
     models.append(('RF10', RandomForestClassifier(n_estimators=10,max_depth=2, random_state=0)))
     models.append(('RF50', RandomForestClassifier(n_estimators=50,max_depth=2, random_state=0)))
+    
     ## CROSS VALIDATION ON TRAIN SET ----------------------------------------------
     # run train/test experiments
     cv_predictions, cv_performance = cross_validation(data_train, models, features, cv_splits=cv_splits,cv_repeats=cv_repeats)                  
@@ -387,31 +399,32 @@ def main():
     plot_PR_curves(cv_performance)
     plot_F_curves(cv_performance)
 
-    # # evaluate predictions
-    #print('stop')
-    # # plot PR curves 
-    # classifiers = list(set(cv_predictions['classifier']))
-    # cv_iterations = list(set(cv_predictions['CV_iter']))
-    # for classifier in classifiers:
-    #     temp_classif = cv_predictions[cv_predictions['classifier']==classifier]
-    #     fig, ax = plt.subplots(1, 1,
-    #                        sharey=False,
-    #                        constrained_layout=True,)
-    #     for cv_iteration in cv_iterations:
-    #         temp_iter = temp_classif[temp_classif['CV_iter']==cv_iteration]
-    #         precision, recall, thresholds = precision_recall_curve(temp_iter['Y_true'], temp_iter['Y_pred'])
-    #         ax.plot(recall,precision, label='CV '+str(cv_iteration))
-    #     ax.set_ylabel('Precision')
-    #     ax.set_xlabel('Recall')
-    #     ax.set_title(classifier)
-    #     ax.set_xlim([0, 1])
-    #     ax.set_ylim([0, 1])
-    #     ax.grid()
-    #     print('d')
-        
-        
-        
-      
+    ## FINAL EVALUATION ON TEST SET -----------------------------------------------
+    print(' ')
+    print('Final evaluation on test set:')
+    print(' ')
+    model_name =  models[2][0]
+    model = models[2][1]
+    
+    X_train = data_train[features] # features
+    Y_train = data_train['class_ID'] #labels
+    X_test = data_test[features] # features
+    Y_test = data_test['class_ID'] #labels
+    # Train on entire train set
+    final_model = classification_train(X_train, Y_train, model)
+    # Evaluate on full test set
+    pred_class, pred_prob = classification_predict(X_test, final_model)
+    # Print evaluation report
+    CR = classification_report(Y_test, pred_class)
+    print(CR)
+    # save the model to disk
+    model= {'name': model_name,
+            'model':final_model,
+            'features': features,
+            'classes': class_encoder,
+            }
+    pickle.dump(model, open(model_filename, 'wb'))
+
     # precision, recall, thresholds = precision_recall_curve(Y_val, pred_prob[:,0])
     # pr_auc = metrics.auc(recall, precision)
     # f1 = f1_score(Y_val, pred_class, average='binary')    
