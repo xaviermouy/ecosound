@@ -193,7 +193,7 @@ class SoundPlotter(BaseClass):
         # Check  type of each input arguments
         self._stack_data(args)
 
-    def add_annotation(self, annotation, panel=None, label=False, color='red'):
+    def add_annotation(self, annotation, panel=None, label=False, color='red', tag=False):
         """
         Define annotations to display.
 
@@ -218,6 +218,9 @@ class SoundPlotter(BaseClass):
         color : str, optional
             Color of the annotation boxes. Uses the color name as matplotlib
             (e.g. 'black', 'white','red', 'yellow', etc). The default is 'red'.
+        tag : bool, optional
+            If set to True, displays the classification confidence over each
+            annotation box. The default is False.
 
         Raises
         ------
@@ -234,6 +237,7 @@ class SoundPlotter(BaseClass):
                                      'panel': panel,
                                      'label': label,
                                      'color': color,
+                                     'tag': tag,
                                      })
         else:
             raise ValueError('Type of input argument not recognized.'
@@ -340,8 +344,30 @@ class SoundPlotter(BaseClass):
                     new_handles=[]
                     for l in unique_labels:
                         new_handles.append(handles[labels.index(l)])                        
-                    
                     current_ax.legend(new_handles,unique_labels,loc='upper right')
+
+                if annot['tag'] is True:
+                    bbox_props = dict(boxstyle="square", fc="w", ec="w", alpha=0.8)
+                    panel_type = self.data[annot['panel'][0]]['type']
+                    for index, row in annot['data'].data.iterrows():
+                        if self.unit == 'sec':
+                            #height = row['frequency_max']-row['frequency_min']
+                            x = row['time_min_offset']
+                            if panel_type == 'spectrogram':
+                                y = row['frequency_max']
+                            elif panel_type == 'waveform':
+                                y = max(current_ax.get_ylim())
+                            conf = str(round(row['confidence'],2))
+                        elif self.unit == 'samp':
+                            x = row['time_min_offset']
+                            if panel_type == 'spectrogram':
+                                y = row['frequency_max']
+                            elif panel_type == 'waveform':
+                                y = max(current_ax.get_ylim())
+                            conf = str(round(row['confidence'],2))
+                        current_ax.text(x, y, conf, size=8, bbox=bbox_props)
+                    
+                
         return fig, ax
 
     def to_file(self, filename):

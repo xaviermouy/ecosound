@@ -23,15 +23,8 @@ single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
 #single_channel_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_hornby-island_2019\audio_data\AMAR173.4.20190916T004248Z.wav"
 #single_channel_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\67674121.181017060806.wav'
 #single_channel_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\noise\67674121.181121150813.wav'
-# Spectrogram parameters
-# frame = 3000
-# nfft = 4096
-# step = 500
-# #ovlp = 2500
-# fmin = 0
-# fmax = 1000
-# window_type = 'hann'
 
+# Spectrogram parameters
 frame = 0.0625 #3000
 nfft = 0.0853 # 4096
 step = 0.01 # 5
@@ -40,8 +33,8 @@ fmax = 1000
 window_type = 'hann'
 
 # start and stop time of wavfile to analyze
-t1 = 141#24
-t2 = 167#40
+t1 = 0#141#24
+t2 = 60#167#40
 ## ###########################################################################
 tic = time.perf_counter()
 
@@ -75,7 +68,7 @@ measurements = spectro_features.compute(spectro,
 
 
 # Classification
-model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\LDA_model.sav'
+model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF50_model.sav'
 loaded_model = pickle.load(open(model_filename, 'rb'))
 features = loaded_model['features']
 model = loaded_model['model']
@@ -83,7 +76,8 @@ data = measurements.data
 X = data[features]
 pred_class = model.predict(X)
 pred_prob = model.predict_proba(X)
-pred_prob = pred_prob[:,1]
+#pred_prob = pred_prob[:,1]
+pred_prob = pred_prob[range(0,len(pred_class)),pred_class]
 
 #relabel
 #pred_class2 = l = [None] * len(pred_class)
@@ -103,26 +97,18 @@ classif_noise = copy.deepcopy(measurements)
 classif_noise.data = data_noise
 
 
-# # Plot
-# graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
-# graph.add_data(sound)
-# graph.add_annotation(detections, panel=0, color='red')
-# graph.add_data(spectro)
-# graph.add_annotation(detections, panel=1)
-# #graph.colormap = 'binary'
-# graph.colormap = 'jet'
-# graph.show()
 
 # Plot
 graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
 graph.add_data(sound)
+#graph.add_annotation(classif_fish, panel=0,color='red', label='Fish', tag=True)
 graph.add_data(spectro1)
 graph.add_data(spectro2)
 graph.add_data(spectro2)
 graph.add_data(spectro2)
 graph.add_annotation(detections, panel=3,color='black', label='Detections')
-graph.add_annotation(classif_fish, panel=4,color='red', label='Fish')
-graph.add_annotation(classif_noise, panel=4,color='blue', label='Noise')
+graph.add_annotation(classif_fish, panel=4,color='red', label='Fish', tag=True)
+graph.add_annotation(classif_noise, panel=4,color='blue', label='Noise',tag=True)
 graph.colormap = 'binary'
 #graph.colormap = 'jet'
 graph.show()

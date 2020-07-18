@@ -314,7 +314,7 @@ def classification_predict(X_test, model_trained):
 def main():
     ## define positive class
     positive_class_label ='FS'
-    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\LDA_model.sav'
+    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF50_model.sav'
     train_ratio = 0.75
     cv_splits = 5#10
     cv_repeats = 1
@@ -404,7 +404,8 @@ def main():
     print('Final evaluation on test set:')
     print(' ')
     model_name =  models[2][0]
-    model = models[2][1]
+    #model = models[2][1] # LDA
+    model = models[5][1] # LDA
     
     X_train = data_train[features] # features
     Y_train = data_train['class_ID'] #labels
@@ -434,109 +435,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-    
-    
-    
-# print(accuracy_score(Y_validation, predictions_class))
-# print(confusion_matrix(Y_validation, predictions_class))
-# print(classification_report(Y_validation, predictions_class))
-    
-# summary = data_train.pivot_table(index='',
-#                                  columns=columns,
-#                                  aggfunc='size',
-#                                  fill_value=0)
-#         # Add a "Total" row and column
-#         summary.loc['Total']= summary.sum()
-#         summary['Total']= summary.sum(axis=1)
-        
-
-
-# ## Split-out validation dataset
-# X_train, X_validation, Y_train, Y_validation = train_test_split(
-#     data, labels,
-#     train_size=0.8,
-#     test_size=0.2,
-#     shuffle=True,
-#     stratify=labels,
-#     random_state=1)
-
-# ## plot class repartition
-# Full_dataset = labels.groupby('label_class')['label_class'].count().to_frame()
-# Full_dataset.rename(columns={'label_class':'Full dataset'},inplace=True)
-# #Full_dataset.plot.bar(stacked=True, title='Full dataset')
-# Train_dataset = Y_train.groupby('label_class')['label_class'].count().to_frame()
-# Train_dataset.rename(columns={'label_class':'Training dataset'},inplace=True)
-# #Train_dataset.to_frame().plot.bar(stacked=True, title='Train dataset')
-# Test_dataset = Y_validation.groupby('label_class')['label_class'].count().to_frame()
-# Test_dataset.rename(columns={'label_class':'Evaluation dataset'},inplace=True)
-# #Test_dataset.to_frame().plot.bar(stacked=True, title='Validation dataset')
-# D=pd.concat([Full_dataset,Train_dataset,Test_dataset],axis=1)
-# D.transpose().plot.barh(stacked=True,grid=True)
-# plt.tight_layout()
-# print(D)
-
-# labels=labels.iloc[data.index]
-
-# ## Build models on train set
-# models = []
-# models.append(('Dummy', DummyClassifier(strategy="most_frequent")))
-# models.append(('Logistic Regression', LogisticRegression(solver='liblinear', multi_class='ovr')))
-# models.append(('Linear Discriminant Analysis', LinearDiscriminantAnalysis()))
-# models.append(('1 Nearest Neighbor', KNeighborsClassifier(n_neighbors=1)))
-# models.append(('5 Nearest Neighbor', KNeighborsClassifier(n_neighbors=5)))
-# models.append(('10 Nearest Neighbor', KNeighborsClassifier(n_neighbors=10)))
-# models.append(('20 Nearest Neighbor', KNeighborsClassifier(n_neighbors=20)))
-# models.append(('CART', DecisionTreeClassifier()))
-# models.append(('Naive Bayes', GaussianNB()))
-# models.append(('Random Forest', RandomForestClassifier(n_estimators=10)))
-# models.append(('Random Forest', RandomForestClassifier(n_estimators=50)))
-# models.append(('Random Forest', RandomForestClassifier(n_estimators=100)))
-# models.append(('Random Forest', RandomForestClassifier(n_estimators=500)))
-# models.append(('Random Forest', RandomForestClassifier(n_estimators=800)))
-# #models.append(('Support Vector Machine', SVC(gamma='auto')))
-# #models.append(('Linear Support Vector Machine', LinearSVC(tol=1e-3)))
-
-
-# # # evaluate each model in turn
-# # results = []
-# # names = []
-# # for name, model in models:
-# #  	kfold = StratifiedKFold(n_splits=10, random_state=1, shuffle=True)
-# #  	cv_results = cross_val_score(model, X_train, Y_train, cv=kfold, scoring='f1')
-# #  	results.append(cv_results)
-# #  	names.append(name)
-# #  	print('%s: %f (%f)' % (name, cv_results.mean(), cv_results.std()))
-
-
-# # Make predictions on validation dataset
-# model = LinearDiscriminantAnalysis()
-# model.fit(X_train, Y_train)
-# predictions_class = model.predict(X_validation)
-# predictions_proba = model.predict_proba(X_validation)
-# predictions_class_str = enc.inverse_transform(predictions_class)
-
-# # Evaluate predictions
-# print(accuracy_score(Y_validation, predictions_class))
-# print(confusion_matrix(Y_validation, predictions_class))
-# print(classification_report(Y_validation, predictions_class))
-
-# Y_validation2 = np.zeros(len(Y_validation))
-# Y_validation2[Y_validation==0]=1
-# precision, recall, thresholds = precision_recall_curve(Y_validation2, predictions_proba[:,0])
-# pr_auc = metrics.auc(recall, precision)
-# #roc_auc = roc_auc_score(Y_validation2, predictions_proba[:,0])
-# #print(roc_auc)
-# # plot model roc curve
-# plt.plot(recall, precision, marker='.', label='Logistic')
-# # axis labels
-# plt.ylabel('Precision')
-# plt.xlabel('Recall')
-# plt.title('AUC: '+ "%.2f" % pr_auc)
-# # show the legend
-# plt.legend()
-# # show the plot
-# plt.show()
-
 
 
