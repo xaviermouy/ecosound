@@ -68,27 +68,35 @@ measurements = spectro_features.compute(spectro,
 
 
 # Classification
-model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF50_model.sav'
+model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF300_model.sav'
 loaded_model = pickle.load(open(model_filename, 'rb'))
 features = loaded_model['features']
 model = loaded_model['model']
+Norm_mean = loaded_model['normalization_mean']
+Norm_std = loaded_model['normalization_std']
+classes_encoder = loaded_model['classes']
+
 data = measurements.data
 X = data[features]
-pred_class = model.predict(X)
+X = data[features]
+X = (X-Norm_mean)/Norm_std          
+            
+            
+pred_class =list(model.predict(X))
 pred_prob = model.predict_proba(X)
 #pred_prob = pred_prob[:,1]
 pred_prob = pred_prob[range(0,len(pred_class)),pred_class]
 
 #relabel
-#pred_class2 = l = [None] * len(pred_class)
-pred_class2 = pred_class
-pred_class2 = ['Noise' if i==0 else 'Fish' for i in pred_class2]
+for index, row in classes_encoder.iterrows():
+    pred_class = [row['label'] if i==row['ID'] else i for i in pred_class]
+
 # update measuremnets
-data['label_class'] = pred_class2
+data['label_class'] = pred_class
 data['confidence'] = pred_prob
 
-data_fish = data[data['label_class']=='Fish']
-data_noise = data[data['label_class']=='Noise']
+data_fish = data[data['label_class']=='FS']
+data_noise = data[data['label_class']=='NN']
 
 classif_fish = copy.deepcopy(measurements)
 classif_fish.data = data_fish

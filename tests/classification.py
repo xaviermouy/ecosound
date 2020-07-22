@@ -221,6 +221,10 @@ def cross_validation(data_train, models, features, cv_splits=10,cv_repeats=10):
         Y_uuid = cv_data_val['uuid']
         
         # feature normalization
+        Norm_mean = X_train.mean()
+        Norn_std = X_train.std()
+        X_train = (X_train-Norm_mean)/Norn_std
+        X_val = (X_val-Norm_mean)/Norn_std
         
         # Train and predict
         print('Classifiers:')
@@ -314,7 +318,7 @@ def classification_predict(X_test, model_trained):
 def main():
     ## define positive class
     positive_class_label ='FS'
-    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF50_model.sav'
+    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF300_model.sav'
     train_ratio = 0.75
     cv_splits = 5#10
     cv_repeats = 1
@@ -380,14 +384,16 @@ def main():
 
     ## DEFINITION OF CLASSIFIERS -------------------------------------------------
     models = []
-    models.append(('Dummy', DummyClassifier(strategy="constant",constant=1)))
-    models.append(('LR', LogisticRegression(solver='liblinear', multi_class='ovr')))
-    models.append(('LDA', LinearDiscriminantAnalysis()))
-    models.append(('KNN', KNeighborsClassifier()))
-    #models.append(('CART', DecisionTreeClassifier()))
-    #models.append(('NB', GaussianNB()))
-    models.append(('RF10', RandomForestClassifier(n_estimators=10,max_depth=2, random_state=0)))
-    models.append(('RF50', RandomForestClassifier(n_estimators=50,max_depth=2, random_state=0)))
+    #models.append(('Dummy', DummyClassifier(strategy="constant",constant=1)))
+    #models.append(('LR', LogisticRegression(solver='liblinear', multi_class='ovr')))
+    #models.append(('LDA', LinearDiscriminantAnalysis()))
+    #models.append(('KNN', KNeighborsClassifier()))
+    #models.append(('KNN', KNeighborsClassifier(n_neighbors=1, metric='euclidean')))
+    ##models.append(('CART', DecisionTreeClassifier()))
+    ##models.append(('NB', GaussianNB()))
+    #models.append(('RF10', RandomForestClassifier(n_estimators=10,max_depth=2, random_state=0)))
+    #models.append(('RF50', RandomForestClassifier(n_estimators=50,max_depth=2, random_state=0)))
+    models.append(('RF300', RandomForestClassifier(n_estimators=300,max_depth=2, random_state=0)))
     
     ## CROSS VALIDATION ON TRAIN SET ----------------------------------------------
     # run train/test experiments
@@ -403,14 +409,27 @@ def main():
     print(' ')
     print('Final evaluation on test set:')
     print(' ')
-    model_name =  models[2][0]
+    
+    model_name =  models[0][0]
     #model = models[2][1] # LDA
-    model = models[5][1] # LDA
+    model = models[0][1] # RF50
+    print(model)
     
     X_train = data_train[features] # features
     Y_train = data_train['class_ID'] #labels
     X_test = data_test[features] # features
     Y_test = data_test['class_ID'] #labels
+    
+    #print('WARNING !!!! TESTING ON TRAINING DATA')
+    #X_test = X_train
+    #Y_test = Y_train
+    
+    # feature normalization
+    Norm_mean = X_train.mean()
+    Norm_std = X_train.std()
+    X_train = (X_train-Norm_mean)/Norm_std
+    X_test = (X_test-Norm_mean)/Norm_std
+        
     # Train on entire train set
     final_model = classification_train(X_train, Y_train, model)
     # Evaluate on full test set
@@ -422,6 +441,8 @@ def main():
     model= {'name': model_name,
             'model':final_model,
             'features': features,
+            'normalization_mean': Norm_mean,
+            'normalization_std': Norm_std,
             'classes': class_encoder,
             }
     pickle.dump(model, open(model_filename, 'wb'))
