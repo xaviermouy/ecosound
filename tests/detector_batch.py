@@ -17,6 +17,7 @@ import time
 import os
 import pickle
 import platform
+import numpy as np
 # from dask.distributed import Client, LocalCluster
 # cluster = LocalCluster()
 # client = Client(cluster,processes=False)
@@ -98,17 +99,24 @@ def run_detector(infile, outdir, classif_model=None, deployment_file=None):
         if classif_model:
             features = classif_model['features']
             model = classif_model['model']
-            data = measurements.data
             Norm_mean = classif_model['normalization_mean']
             Norm_std = classif_model['normalization_std']
             classes_encoder = classif_model['classes']
-            
+            # data dataframe
+            data = measurements.data
+            n1=len(data)
+            # drop observations/rows with NaNs
+            data = data.replace([np.inf, -np.inf], np.nan)
+            data.dropna(subset=features, axis=0, how='any', thresh=None, inplace=True)
+            n2=len(data)
+            print('Deleted observations (due to NaNs): ' + str(n1-n2))
+            # Classification - predictions
             X = data[features]
             X = (X-Norm_mean)/Norm_std
             pred_class = model.predict(X)
             pred_prob = model.predict_proba(X)
             pred_prob = pred_prob[range(0,len(pred_class)),pred_class]
-            #relabel
+            # Relabel
             for index, row in classes_encoder.iterrows():
                 pred_class = [row['label'] if i==row['ID'] else i for i in pred_class]
             # update measurements
