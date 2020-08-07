@@ -197,8 +197,8 @@ class Sound:
                         raise ValueError('Invalid chunk values. chunk[1] must'
                                          + ' be greater than chunk[0]')
                     # read data
-                    sig, fs = sf.read(self.file_full_path, start=chunk[0],
-                                      stop=chunk[1], always_2d=True)
+                    sig, fs = sf.read(self.file_full_path, start=int(chunk[0]),
+                                      stop=int(chunk[1]), always_2d=True)
                     self._waveform = sig[:, channel]
                     self._waveform_start_sample = chunk[0]
                     self._waveform_stop_sample = chunk[1]
