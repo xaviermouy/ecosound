@@ -254,5 +254,7 @@ dependencies:
   - zipp=3.1.0=py_0
   - zlib=1.2.11=h62dcd97_4
   - zstd=1.3.7=h508b16e_0
+  - pip:
+    - soundfile==0.10.3.post1
 prefix: C:\Users\xavier.mouy\Anaconda3\envs\ecosound
 

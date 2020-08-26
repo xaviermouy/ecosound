@@ -134,7 +134,7 @@ def main():
     indir = r'D:\RCA_IN\April_July2019\1342218252'
     outdir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\April_July2019_1342218252'    
     deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\April_July2019_1342218252\deployment_info.csv'
-    classif_model_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF300_model.sav'
+    classif_model_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\bkp\RF300_model.sav'
     ext='.wav' 
     
     # load classif model

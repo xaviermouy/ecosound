@@ -68,7 +68,7 @@ measurements = spectro_features.compute(spectro,
 
 
 # Classification
-model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF300_model.sav'
+model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\bkp\RF300_model.sav'
 loaded_model = pickle.load(open(model_filename, 'rb'))
 features = loaded_model['features']
 model = loaded_model['model']
