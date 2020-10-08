@@ -122,17 +122,20 @@ def run_detector(infile, outdir, classif_model=None, deployment_file=None):
             # update measurements
             data['label_class'] = pred_class
             data['confidence'] = pred_prob
-            measurements.data = data
 
+        
+        # sort detections by ascending start date/time
+        data.sort_values('time_min_offset',axis=0,ascending=True,inplace=True)
         # save result as NetCDF file
+        measurements.data = data
         measurements.to_netcdf(outfile)
     else:
         print('Recording already processed.')
 
 
 def main():
-    indir = r'D:\RCA_IN\April_July2019\1342218252'
-    outdir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\April_July2019_1342218252'    
+    indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data'
+    outdir=r'C:\Users\xavier.mouy\Desktop\test'    
     deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\April_July2019_1342218252\deployment_info.csv'
     classif_model_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\bkp\RF300_model.sav'
     ext='.wav' 
