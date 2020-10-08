@@ -30,8 +30,8 @@ fmax = 1000
 window_type = 'hann'
 
 # start and stop time of wavfile to analyze
-t1 = 0#24
-t2 = 1799#40
+t1 = 1
+t2 = 50
 ## ###########################################################################
 tic = time.perf_counter()
 
@@ -67,10 +67,10 @@ detections = detector.run(spectro, use_dask=True, dask_chunks=(2048,1000), debug
 spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.01, resolution_freq=1, interp='linear')
 measurements = spectro_features.compute(spectro,
                                         detections,
-                                        debug=False,
+                                        debug=True,
                                         verbose=False,
-                                        use_dask=False)
-measurements.to_netcdf('test.nc')
+                                        use_dask=True)
+#measurements.to_netcdf('test.nc')
 
 toc = time.perf_counter()
 print(f"Executed in {toc - tic:0.4f} seconds")
