@@ -137,9 +137,9 @@ def run_detector(infile, outdir, classif_model=None, deployment_file=None):
 
 
 def main():
-    indir = r'/media/xavier/SPERA_Rockfish_2/RCA_In/Jan_April_2019/67674121'
-    outdir=r'/home/xavier/Documents/Projects/DFO_RCA/RCA_In_Jan_April_2019_67674121'    
-    deployment_file = r'/home/xavier/Documents/Projects/DFO_RCA/RCA_In_Jan_April_2019_67674121/deployment_info.csv'
+    indir = r'/media/xavier/SPERA_Rockfish_2/RCA_Out/Jan_April2019/67391492/67391492'
+    outdir=r'/home/xavier/Documents/Projects/DFO_RCA/RCA_Out_Jan_April2019_67391492'    
+    deployment_file = r'/home/xavier/Documents/Projects/DFO_RCA/RCA_Out_Jan_April2019_67391492/deployment_info.csv'
     classif_model_file = r'/home/xavier/Documents/Projects/DFO_RCA/RF300_model.sav'
     ext='.wav' 
     
