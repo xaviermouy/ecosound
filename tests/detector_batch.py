@@ -127,20 +127,33 @@ def run_detector(infile, outdir, classif_model=None, deployment_file=None):
             # update measurements
             data['label_class'] = pred_class
             data['confidence'] = pred_prob
-            measurements.data = data
 
+        
+        # sort detections by ascending start date/time
+        data.sort_values('time_min_offset',axis=0,ascending=True,inplace=True)
         # save result as NetCDF file
+<<<<<<< HEAD
         print('Saving')
+=======
+        measurements.data = data
+>>>>>>> refs/remotes/origin/master
         measurements.to_netcdf(outfile)
     else:
         print('Recording already processed.')
 
 
 def main():
+<<<<<<< HEAD
     indir = r'/media/xavier/SPERA_Rockfish_2/RCA_In/Jan_April_2019/67674121'
     outdir=r'/home/xavier/Documents/Projects/DFO_RCA/RCA_In_Jan_April_2019_67674121'    
     deployment_file = r'/home/xavier/Documents/Projects/DFO_RCA/RCA_In_Jan_April_2019_67674121/deployment_info.csv'
     classif_model_file = r'/home/xavier/Documents/Projects/DFO_RCA/RF300_model.sav'
+=======
+    indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data'
+    outdir=r'C:\Users\xavier.mouy\Desktop\test'    
+    deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\April_July2019_1342218252\deployment_info.csv'
+    classif_model_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\bkp\RF300_model.sav'
+>>>>>>> refs/remotes/origin/master
     ext='.wav' 
     
     # load classif model
