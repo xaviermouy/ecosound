@@ -193,7 +193,7 @@ class SoundPlotter(BaseClass):
         # Check  type of each input arguments
         self._stack_data(args)
 
-    def add_annotation(self, annotation, panel=None, label=False, color='red', tag=False):
+    def add_annotation(self, annotation, panel=None, label=False, color='red', tag=False, line_width=1):
         """
         Define annotations to display.
 
@@ -221,6 +221,8 @@ class SoundPlotter(BaseClass):
         tag : bool, optional
             If set to True, displays the classification confidence over each
             annotation box. The default is False.
+		line_width : int, optional
+            Width of the annotation line. The default is 1.
 
         Raises
         ------
@@ -238,6 +240,7 @@ class SoundPlotter(BaseClass):
                                      'label': label,
                                      'color': color,
                                      'tag': tag,
+									 'line_width': line_width,
                                      })
         else:
             raise ValueError('Type of input argument not recognized.'
@@ -337,6 +340,7 @@ class SoundPlotter(BaseClass):
                                        panel_idx=idx_panel,
                                        label=annot['label'],
                                        color=annot['color'],
+									   line_width = annot['line_width'],
                                        )
                 if annot['label'] is not False:
                     handles, labels = current_ax.get_legend_handles_labels()
@@ -387,7 +391,7 @@ class SoundPlotter(BaseClass):
         fig, _ = self.show(display=False)
         fig.savefig(filename, transparent=False, bbox_inches='tight',)
 
-    def _plot_annotations(self, annot, ax, label, panel_idx, color):
+    def _plot_annotations(self, annot, ax, label, panel_idx, color, line_width):
         """Plot annotations on top of the waveform or spectrogram axes."""
         panel_type = self.data[panel_idx]['type']
         for index, row in annot.data.iterrows():
@@ -421,7 +425,7 @@ class SoundPlotter(BaseClass):
                     width = round(row['duration']*time_resolution)
                     height = max(ax.get_ylim()) - min(ax.get_ylim())
             rect = plt.Rectangle((x, y), width, height,
-                                 linewidth=1,
+                                 linewidth=line_width,
                                  edgecolor=color,
                                  facecolor=facecolor,
                                  alpha=alpha,
@@ -453,7 +457,8 @@ class SoundPlotter(BaseClass):
                                   spectro.spectrogram,
                                   cmap=self.colormap,
                                   vmin=np.percentile(spectro.spectrogram, 50),
-                                  vmax=np.percentile(spectro.spectrogram, 99.9)
+                                  vmax=np.percentile(spectro.spectrogram, 99.9),
+								  shading='nearest',
                                   )
             xlabel = 'Time (sec)'
         elif self.unit == 'samp':
