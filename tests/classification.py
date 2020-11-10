@@ -318,13 +318,13 @@ def classification_predict(X_test, model_trained):
 def main():
     ## define positive class
     positive_class_label ='FS'
-    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF300_model.sav'
+    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF300_model_20201105.sav'
     train_ratio = 0.75
     cv_splits = 5#10
     cv_repeats = 1
     
     ## LOAD DATSET ---------------------------------------------------------------
-    data_file=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_FS-NN.nc'
+    data_file=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_FS-NN_modified_20201105145300.nc'
     dataset = Measurement()
     dataset.from_netcdf(data_file)
     print(dataset.summary())
@@ -395,9 +395,10 @@ def main():
     #models.append(('KNN', KNeighborsClassifier(n_neighbors=1, metric='euclidean')))
     ##models.append(('CART', DecisionTreeClassifier()))
     ##models.append(('NB', GaussianNB()))
-    models.append(('RF10', RandomForestClassifier(n_estimators=10,max_depth=2, random_state=0)))
-    models.append(('RF50', RandomForestClassifier(n_estimators=50,max_depth=2, random_state=0)))
-    #models.append(('RF300', RandomForestClassifier(n_estimators=300,max_depth=2, random_state=0)))
+    models.append(('RF10', RandomForestClassifier(n_estimators=10,random_state=0)))
+    models.append(('RF30', RandomForestClassifier(n_estimators=50, random_state=0)))
+    models.append(('RF50', RandomForestClassifier(n_estimators=50, random_state=0)))
+    models.append(('RF300', RandomForestClassifier(n_estimators=300,random_state=0)))
     
     ## CROSS VALIDATION ON TRAIN SET ----------------------------------------------
     # run train/test experiments
@@ -414,7 +415,7 @@ def main():
     print('Final evaluation on test set:')
     print(' ')
 
-    model_idx = 2
+    model_idx = 7
     model_name =  models[model_idx][0]
     model = models[model_idx][1] # RF50
     print(model)
@@ -449,7 +450,7 @@ def main():
             'normalization_std': Norm_std,
             'classes': class_encoder,
             }
-    #pickle.dump(model, open(model_filename, 'wb'))
+    pickle.dump(model, open(model_filename, 'wb'))
 
     # precision, recall, thresholds = precision_recall_curve(Y_val, pred_prob[:,0])
     # pr_auc = metrics.auc(recall, precision)

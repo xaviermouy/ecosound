@@ -20,7 +20,7 @@ and re-label classes to create a 2-class dataset 'FS' vs 'NN'.
 # Define input and output files
 annot_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_annotations_only.nc'
 noise_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Noise_dataset'
-outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_FS-NN.nc'
+outfile=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_FS-NN_modified_20201105145300.nc'
 
 # Load measurements
 meas_annot = Measurement()

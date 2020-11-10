@@ -48,11 +48,11 @@ def preprocess_func(ds):
 
 #_, index = np.unique(f['time'], return_index=True)
 
-indir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run\RCA_Out_Jan_April2019_67391492'
+indir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run2\RCA_in_April_July2019_1342218252'
 #indir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run\test_dataset'
 outfile ='hourly_summary.nc'
-#confidence_step = 0.02
-confidence_step = 0.24
+confidence_step = 0.01
+#confidence_step = 0.24
 
 # Start timer
 tic = time.perf_counter()

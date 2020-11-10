@@ -132,11 +132,8 @@ def run_detector(infile, outdir, classif_model=None, deployment_file=None):
         # sort detections by ascending start date/time
         data.sort_values('time_min_offset',axis=0,ascending=True,inplace=True)
         # save result as NetCDF file
-<<<<<<< HEAD
         print('Saving')
-=======
         measurements.data = data
->>>>>>> refs/remotes/origin/master
         measurements.to_netcdf(outfile)
     else:
         print('Recording already processed.')
