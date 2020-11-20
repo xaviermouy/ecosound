@@ -1,10 +1,11 @@
-include pyproject.toml
+include AUTHORS.rst
+include CONTRIBUTING.rst
+include HISTORY.rst
+include LICENSE
+include README.rst
 
-# Include the README
-include *.md
+recursive-include tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
 
-# Include the license file
-include LICENSE.txt
-
-# Include the data files
-recursive-include data *
+recursive-include docs *.rst conf.py Makefile make.bat *.jpg *.png *.gif

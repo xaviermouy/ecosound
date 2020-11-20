@@ -1,20 +1,17 @@
-import setuptools
+#!/usr/bin/env python
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+"""The setup script."""
 
-setuptools.setup(
-    name="ecosound", # Replace with your own username
-    version="0.0.1", # PEP440
-    author="Xavier Mouy",
-    author_email="xaviermouy@uvic.ca",
-    description="Python toolkit for analysing passive acoustic data",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/xaviermouy/ecosound",
-    packages=setuptools.find_packages(exclude=['docs', 'tests','resources']),
-    install_requires=[
-        'dask==2.30.0',
+from setuptools import setup, find_packages
+
+with open('README.rst') as readme_file:
+    readme = readme_file.read()
+
+with open('HISTORY.rst') as history_file:
+    history = history_file.read()
+
+requirements = [
+		'dask==2.30.0',
         'xarray==0.16.1',
         'pandas==1.1.3',
         'numba==0.51.2',
@@ -24,9 +21,30 @@ setuptools.setup(
         'scipy==1.5.2',
         'numpy==1.19.1',
         'scikit_learn==0.23.2',
-        'soundfile==0.10.3.post1',
-        ],
-    classifiers=[
+        'soundfile==0.10.3.post1',]
+
+setup_requirements = [ ]
+
+test_requirements = [ ]
+
+setuptools.setup(
+    name="ecosound", # Replace with your own username
+    version="0.0.1", # PEP440
+    author="Xavier Mouy",
+    author_email="xaviermouy@uvic.ca",
+    description="Python toolkit for analysing passive acoustic data",
+    long_description=readme + '\n\n' + history,
+    long_description_content_type="text/markdown",
+    include_package_data=True,
+	keywords='ecosound',
+	url="https://github.com/xaviermouy/ecosound",
+    packages=setuptools.find_packages(include=['ecosound', 'ecosound.*'],exclude=['docs', 'tests','resources']),
+    install_requires=requirements,
+	setup_requires=setup_requirements,
+	test_suite='tests',
+	tests_require=test_requirements,
+    license="BSD license",
+	classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3",
@@ -38,4 +56,5 @@ setuptools.setup(
         "Natural Language :: English",
     ],
     python_requires='>=3.6.0,<3.8.0',
+	zip_safe=False,
 )
