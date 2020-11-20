@@ -27,7 +27,7 @@ setup_requirements = [ ]
 
 test_requirements = [ ]
 
-setuptools.setup(
+setup(
     name="ecosound", # Replace with your own username
     version="0.0.1", # PEP440
     author="Xavier Mouy",
@@ -38,7 +38,7 @@ setuptools.setup(
     include_package_data=True,
 	keywords='ecosound',
 	url="https://github.com/xaviermouy/ecosound",
-    packages=setuptools.find_packages(include=['ecosound', 'ecosound.*'],exclude=['docs', 'tests','resources']),
+    packages=find_packages(include=['ecosound', 'ecosound.*'],exclude=['docs', 'tests','resources']),
     install_requires=requirements,
 	setup_requires=setup_requirements,
 	test_suite='tests',
