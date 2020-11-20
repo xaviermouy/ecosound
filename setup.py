@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/xaviermouy/ecosound",
-    packages=setuptools.find_packages(exclude(['docs', 'tests','resources'])),
+    packages=setuptools.find_packages(exclude=['docs', 'tests','resources']),
     install_requires=[
         'dask==2.30.0',
         'xarray==0.16.1',
@@ -25,11 +25,14 @@ setuptools.setup(
         'numpy==1.19.1',
         'scikit_learn==0.23.2',
         'soundfile==0.10.3.post1',
-        ]
+        ],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: BSD License", 
         "Operating System :: OS Independent",
         "Natural Language :: English",
