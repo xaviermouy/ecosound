@@ -18,10 +18,29 @@ import os
 import pickle
 import platform
 import numpy as np
-# from dask.distributed import Client, LocalCluster
-# cluster = LocalCluster()
-# client = Client(cluster,processes=False)
+import configparser
+import argparse
 
+def load_config_file(configfile):    
+    # Loads config  files
+    cfg = configparser.ConfigParser()
+    cfg.read(configfile)    
+    channel = int(cfg['AUDIO']['Channel'])
+    LowPassFilter_Hz = float(cfg['AUDIO']['LowPassFilter_Hz'])
+    KurtosisFrame_Sec = float(cfg['DETECTOR']['KurtosisFrame_Sec'])
+    KurtosisThreshold = float(cfg['DETECTOR']['KurtosisThreshold'])
+    KurtosisDelta_Sec = float(cfg['DETECTOR']['KurtosisDelta_Sec'])
+    MaxDtwDist = float(cfg['CLASSIFICATION']['MaxDtwDist'])
+    if type(LowPassFilter_Hz) != list:
+        LowPassFilter_Hz = [LowPassFilter_Hz]
+    config = ({'channel': channel,
+               'LowPassFilter_Hz': LowPassFilter_Hz,
+               'KurtosisFrame_Sec': KurtosisFrame_Sec,
+               'KurtosisThreshold': KurtosisThreshold,
+               'KurtosisDelta_Sec': KurtosisDelta_Sec,
+               'MaxDtwDist': MaxDtwDist
+               })
+    return config
     
 def run_detector(infile, outdir, classif_model=None, deployment_file=None):
     ## Input paraneters ##########################################################   
@@ -140,17 +159,10 @@ def run_detector(infile, outdir, classif_model=None, deployment_file=None):
 
 
 def main():
-<<<<<<< HEAD
-    indir = r'/media/xavier/SPERA_Rockfish_2/RCA_In/Jan_April_2019/67674121'
-    outdir=r'/home/xavier/Documents/Projects/DFO_RCA/RCA_In_Jan_April_2019_67674121'    
-    deployment_file = r'/home/xavier/Documents/Projects/DFO_RCA/RCA_In_Jan_April_2019_67674121/deployment_info.csv'
-    classif_model_file = r'/home/xavier/Documents/Projects/DFO_RCA/RF300_model.sav'
-=======
     indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data'
     outdir=r'C:\Users\xavier.mouy\Desktop\test'    
     deployment_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\April_July2019_1342218252\deployment_info.csv'
     classif_model_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\bkp\RF300_model.sav'
->>>>>>> refs/remotes/origin/master
     ext='.wav' 
     
     # load classif model

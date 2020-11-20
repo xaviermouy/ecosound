@@ -318,7 +318,7 @@ def classification_predict(X_test, model_trained):
 def main():
     ## define positive class
     positive_class_label ='FS'
-    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF300_model_20201105.sav'
+    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF50_model_20201112.sav'
     train_ratio = 0.75
     cv_splits = 5#10
     cv_repeats = 1
@@ -395,10 +395,10 @@ def main():
     #models.append(('KNN', KNeighborsClassifier(n_neighbors=1, metric='euclidean')))
     ##models.append(('CART', DecisionTreeClassifier()))
     ##models.append(('NB', GaussianNB()))
-    models.append(('RF10', RandomForestClassifier(n_estimators=10,random_state=0)))
-    models.append(('RF30', RandomForestClassifier(n_estimators=50, random_state=0)))
-    models.append(('RF50', RandomForestClassifier(n_estimators=50, random_state=0)))
-    models.append(('RF300', RandomForestClassifier(n_estimators=300,random_state=0)))
+    models.append(('RF10', RandomForestClassifier(n_estimators=10,min_samples_split= 100, min_samples_leaf=50,random_state=0)))
+    models.append(('RF30', RandomForestClassifier(n_estimators=50,min_samples_split= 100, min_samples_leaf=50, random_state=0)))
+    models.append(('RF50', RandomForestClassifier(n_estimators=50,min_samples_split= 100, min_samples_leaf=50, random_state=0)))
+    models.append(('RF300', RandomForestClassifier(n_estimators=300,min_samples_split= 100, min_samples_leaf=50,random_state=0)))
     
     ## CROSS VALIDATION ON TRAIN SET ----------------------------------------------
     # run train/test experiments
@@ -415,7 +415,7 @@ def main():
     print('Final evaluation on test set:')
     print(' ')
 
-    model_idx = 7
+    model_idx = 6
     model_name =  models[model_idx][0]
     model = models[model_idx][1] # RF50
     print(model)

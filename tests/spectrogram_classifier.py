@@ -12,6 +12,8 @@ from ecosound.core.spectrogram import Spectrogram
 from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
 from ecosound.measurements.measurer_builder import MeasurerFactory
+from ecosound.classification.classification import Classifier
+
 import ecosound.core.tools
 import time
 import pickle
@@ -23,6 +25,7 @@ single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
 #single_channel_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_hornby-island_2019\audio_data\AMAR173.4.20190916T004248Z.wav"
 #single_channel_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\67674121.181017060806.wav'
 #single_channel_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\noise\67674121.181121150813.wav'
+single_channel_file = r"D:\RCA_In\April_July2019\1342218252\1342218252.190415230156.wav"
 
 # Spectrogram parameters
 frame = 0.0625 #3000
@@ -32,9 +35,10 @@ fmin = 0
 fmax = 1000
 window_type = 'hann'
 
+
 # start and stop time of wavfile to analyze
-t1 = 0#141#24
-t2 = 60#167#40
+t1 = 22#141#24
+t2 = 40#167#40
 ## ###########################################################################
 tic = time.perf_counter()
 
@@ -44,7 +48,7 @@ sound.read(channel=0, chunk=[t1, t2], unit='sec', detrend=True)
 
 # Calculates  spectrogram
 spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='sec')
-spectro.compute(sound, dB=True, use_dask=True, dask_chunks=40)
+spectro.compute(sound, dB=True, use_dask=True, dask_chunks=40) #40
 
 # Crop unused frequencies
 spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
@@ -57,18 +61,21 @@ spectro2 = copy.deepcopy(spectro)
 # Detector
 detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=10, duration_min=0.05, bandwidth_min=40)
 detections = detector.run(spectro, use_dask=True, dask_chunks=(2048,1000), debug=False)
+#detections = detector.run(spectro, use_dask=True, dask_chunks=(4096,50000), debug=False)
 
 # Measurements
-spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.001, resolution_freq=1, interp='linear')
+spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.001, resolution_freq=0.1, interp='linear')
 measurements = spectro_features.compute(spectro,
                                         detections,
                                         debug=False,
                                         verbose=False,
-                                        use_dask=False)
+                                        use_dask=True)
 
 
 # Classification
-model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\bkp\RF300_model.sav'
+#model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\bkp\RF300_model.sav'
+#model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF300_model_20201105.sav'
+model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF50_model_20201112.sav'
 loaded_model = pickle.load(open(model_filename, 'rb'))
 features = loaded_model['features']
 model = loaded_model['model']
@@ -122,8 +129,25 @@ graph.colormap = 'binary'
 graph.show()
 
 
-#measurements.to_netcdf('test.nc')
 
+classifier = Classifier()
+classifier.load_model(model_filename)
+classif2 = classifier.classify(measurements)
+
+# Plot
+graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
+graph.add_data(sound)
+#graph.add_annotation(classif_fish, panel=0,color='red', label='Fish', tag=True)
+graph.add_data(spectro1)
+graph.add_data(spectro2)
+graph.add_data(spectro2)
+graph.add_data(spectro2)
+graph.add_annotation(detections, panel=3,color='black', label='Detections')
+graph.add_annotation(classif2, panel=4,color='red', tag=True)
+#graph.add_annotation(classif2, panel=4,color='blue', label='Noise',tag=True)
+graph.colormap = 'binary'
+#graph.colormap = 'jet'
+graph.show()
 
 
 toc = time.perf_counter()
