@@ -4,6 +4,8 @@
 
 from setuptools import setup, find_packages
 
+exec(open("ecosound/_version.py").read())
+
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
@@ -29,8 +31,8 @@ test_requirements = [ ]
 
 setup(
     name="ecosound", # Replace with your own username
-    version="0.0.1", # PEP440
-    author="Xavier Mouy",
+    version=__version__,
+	author="Xavier Mouy",
     author_email="xaviermouy@uvic.ca",
     description="Python toolkit for analysing passive acoustic data",
     long_description=readme + '\n\n' + history,
