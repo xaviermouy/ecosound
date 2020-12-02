@@ -12,18 +12,9 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [
-		'dask==2.30.0',
-        'xarray==0.16.1',
-        'pandas==1.1.3',
-        'numba==0.51.2',
-        'PySoundFile==0.9.0.post1',
-        'dask_image==0.4.0',
-        'matplotlib==3.3.1',
-        'scipy==1.5.2',
-        'numpy==1.19.1',
-        'scikit_learn==0.23.2',
-        'soundfile==0.10.3.post1',]
+# automatically captured required modules for install_requires in requirements.txt
+with open('requirements.txt', encoding='utf-8') as f:
+    requirements = f.read().split('\n')
 
 setup_requirements = [ ]
 
@@ -57,6 +48,6 @@ setup(
         "Operating System :: OS Independent",
         "Natural Language :: English",
     ],
-    python_requires='>=3.6.0,<3.8.0',
+    python_requires='>=3.7.0,<3.8.0',
 	zip_safe=False,
 )

@@ -2,4 +2,5 @@
 Modules
 ==========
 
-Modules description here...
+.. automodule:: ecosound.core.annotation
+	:members:
