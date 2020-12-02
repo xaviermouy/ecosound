@@ -143,8 +143,8 @@ class BlobDetector(BaseClass):
             Displays binarization results for debugging purpused.The default
             is False.
         start_time : datetime.datetime, optional
-            Start time/date of the signal being processed. If defined, the 
-            fields 'time_min_date' and 'time_max_date' of the detection 
+            Start time/date of the signal being processed. If defined, the
+            fields 'time_min_date' and 'time_max_date' of the detection
             annotation object are populated. The default is None.
         use_dask, bool, optional
             If True, runs the detector in parallel using Dask. The default is
@@ -201,7 +201,7 @@ class BlobDetector(BaseClass):
                                   beta=255,
                                   norm_type=cv2.NORM_MINMAX,
                                   dtype=cv2.CV_8UC1)
-        (_,cnts, hierarchy) = cv2.findContours(Svar_gray.copy(),
+        (cnts, hierarchy) = cv2.findContours(Svar_gray.copy(),
                                                   cv2.RETR_EXTERNAL,
                                                   cv2.CHAIN_APPROX_SIMPLE)
         # loop over the contours

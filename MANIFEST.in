@@ -3,7 +3,7 @@ include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
 include README.rst
-include core/timestamp_formats.json
+recursive-include ecosound/core *.json
 
 recursive-include tests *
 recursive-exclude * __pycache__
