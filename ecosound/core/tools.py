@@ -12,6 +12,7 @@ import numpy as np
 from scipy import interpolate
 import os, sys
 from numba import njit
+import pkg_resources
 
 def read_json(file):
     """Load JSON file as dict."""
@@ -25,6 +26,10 @@ def filename_to_datetime(files):
     """Extract date from a list of str of filenames."""
     current_dir = os.path.dirname(os.path.realpath(__file__))
     patterns = read_json(os.path.join(current_dir, r'timestamp_formats.json'))
+    
+    #stream = pkg_resources.resource_stream(__name__, 'core/timestamp_formats.json')
+    #patterns = read_json(os.path.join(stream)
+    
     regex_string = '|'.join([pattern['string_pattern'] for pattern in patterns])
     time_formats = [pattern['time_format'] for pattern in patterns]
     timestamps = [None] * len(files)
