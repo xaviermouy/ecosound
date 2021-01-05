@@ -14,12 +14,6 @@ Ecosound
         :alt: Documentation Status
 
 
-.. image:: https://pyup.io/repos/github/xaviermouy/ecosound/shield.svg
-     :target: https://pyup.io/repos/github/xaviermouy/ecosound/
-     :alt: Updates
-
-
-
 Python library to analyse passive acoustic data
 
 
