@@ -21,11 +21,10 @@ import copy
 
 ## Input paraneters ##########################################################
 
-single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
-#single_channel_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_hornby-island_2019\audio_data\AMAR173.4.20190916T004248Z.wav"
-#single_channel_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\67674121.181017060806.wav'
-#single_channel_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\noise\67674121.181121150813.wav'
-single_channel_file = r"D:\RCA_In\April_July2019\1342218252\1342218252.190415230156.wav"
+single_channel_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\problematic_files\1342218252.190415230156.wav"
+#model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\problematic_files\RF50_model_20201208T223420.sav'
+#model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\problematic_files\XGBoost_model_20201209T132812.sav'
+model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\problematic_files\RF50_model_20201209T134646.sav'
 
 # Spectrogram parameters
 frame = 0.0625 #3000
@@ -37,8 +36,8 @@ window_type = 'hann'
 
 
 # start and stop time of wavfile to analyze
-t1 = 22#141#24
-t2 = 40#167#40
+t1 = 100#141#24
+t2 = 200#167#40
 ## ###########################################################################
 tic = time.perf_counter()
 
@@ -55,13 +54,14 @@ spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
 spectro1 = copy.deepcopy(spectro)
 
 # Denoise
-spectro.denoise('median_equalizer', window_duration=3, use_dask=True, dask_chunks=(2048,1000), inplace=True)
+#spectro.denoise('median_equalizer', window_duration=3, use_dask=True, dask_chunks=(2048,1000), inplace=True)
+spectro.denoise('median_equalizer', window_duration=3, use_dask=True, dask_chunks=(50,50000), inplace=True)
 spectro2 = copy.deepcopy(spectro)
 
 # Detector
 detector = DetectorFactory('BlobDetector', kernel_duration=0.1, kernel_bandwidth=300, threshold=10, duration_min=0.05, bandwidth_min=40)
-detections = detector.run(spectro, use_dask=True, dask_chunks=(2048,1000), debug=False)
-#detections = detector.run(spectro, use_dask=True, dask_chunks=(4096,50000), debug=False)
+#detections = detector.run(spectro, use_dask=True, dask_chunks=(2048,1000), debug=False)
+detections = detector.run(spectro, use_dask=True, dask_chunks=(4096,50000), debug=False)
 
 # Measurements
 spectro_features = MeasurerFactory('SpectrogramFeatures', resolution_time=0.001, resolution_freq=0.1, interp='linear')
@@ -73,9 +73,6 @@ measurements = spectro_features.compute(spectro,
 
 
 # Classification
-#model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\bkp\RF300_model.sav'
-#model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF300_model_20201105.sav'
-model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF50_model_20201112.sav'
 loaded_model = pickle.load(open(model_filename, 'rb'))
 features = loaded_model['features']
 model = loaded_model['model']
@@ -86,28 +83,21 @@ classes_encoder = loaded_model['classes']
 data = measurements.data
 X = data[features]
 X = data[features]
-X = (X-Norm_mean)/Norm_std          
-            
-            
+X = (X-Norm_mean)/Norm_std
 pred_class =list(model.predict(X))
 pred_prob = model.predict_proba(X)
 #pred_prob = pred_prob[:,1]
 pred_prob = pred_prob[range(0,len(pred_class)),pred_class]
-
 #relabel
 for index, row in classes_encoder.iterrows():
     pred_class = [row['label'] if i==row['ID'] else i for i in pred_class]
-
 # update measuremnets
 data['label_class'] = pred_class
 data['confidence'] = pred_prob
-
 data_fish = data[data['label_class']=='FS']
 data_noise = data[data['label_class']=='NN']
-
 classif_fish = copy.deepcopy(measurements)
 classif_fish.data = data_fish
-
 classif_noise = copy.deepcopy(measurements)
 classif_noise.data = data_noise
 

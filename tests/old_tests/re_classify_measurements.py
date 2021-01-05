@@ -14,11 +14,15 @@ import numpy as np
 
 #indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run\RCA_in_April_July2019_1342218252'
 #outdir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run2\RCA_in_April_July2019_1342218252'
-indir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run\RCA_Out_April_July2019_1409343536'
-outdir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run2\RCA_Out_April_July2019_1409343536'
+
+indir = r'E:\xavier.mouy_20201125\Documents\PhD\Projects\Dectector\DFO_RCA_run\RCA_Out_Oct17_Dec3_2018_67391492'
+outdir = r'F:\results\Run_3_large_dataset_balanced\RCA_Out_Oct17_Dec3_2018_67391492'
+
+#indir = r'E:\xavier.mouy_20201125\Documents\PhD\Projects\Dectector\DFO_RCA_run\RCA_In_Jan_April_2019_67674121'
+#outdir = r'F:\results\Run_3_large_dataset_balanced\RCA_In_Jan_April_2019_67674121'
 
 
-classif_model_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\CV_20201105\RF300_model_20201105.sav'
+classif_model_file = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\results\Classification\20201208T223420_RF_large-noise-dataset\RF50_model_20201208T223420.sav'
 file_ext = '.nc'
 
 
@@ -29,7 +33,7 @@ model = classif_model['model']
 Norm_mean = classif_model['normalization_mean']
 Norm_std = classif_model['normalization_std']
 classes_encoder = classif_model['classes']
-            
+
 # loops thrugh each file
 files_list = os.listdir(indir) # list of files
 for file in files_list:

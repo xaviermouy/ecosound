@@ -13,11 +13,11 @@ import datetime as dt
 def xr_sort(ds):
     #return ds.sortby(ds.time_min_date,ascending=True)
     ds = ds.sortby(ds.date,ascending=True)
-    
+
     return ds.sortby(ds.date,ascending=True)
 
 def to_drop_vars(ds):
-    return [x for x in list(ds.variables) if x not in ['date','audio_file_start_date','time_min_date','label_class','label_subclass','confidence']] 
+    return [x for x in list(ds.variables) if x not in ['date','audio_file_start_date','time_min_date','label_class','label_subclass','confidence']]
 
 def fix_duplicates(ds):
     index=range(0,len(ds['date']))
@@ -34,24 +34,23 @@ def fix_duplicates(ds):
     return ds
 
 def shift_max_dates(ds,files_dur_sec):
-    time_ax = ds['date'].data    
+    time_ax = ds['date'].data
     max_date = ds['audio_file_start_date'][0].data + np.timedelta64(files_dur_sec,'s')
     index = time_ax >= max_date
-    time_ax[np.array(index)] = max_date - np.timedelta64(1,'ns')    
-    ds['date'] = time_ax    
+    time_ax[np.array(index)] = max_date - np.timedelta64(1,'ns')
+    ds['date'] = time_ax
     return ds
 
 def preprocess_func(ds):
     files_dur_sec = 1799
-    return shift_max_dates(xr_sort(fix_duplicates(ds.drop(to_drop_vars(ds)))),files_dur_sec) 
+    return shift_max_dates(xr_sort(fix_duplicates(ds.drop(to_drop_vars(ds)))),files_dur_sec)
 
 
 #_, index = np.unique(f['time'], return_index=True)
 
-indir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run2\RCA_in_April_July2019_1342218252'
-#indir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run\test_dataset'
-outfile ='hourly_summary.nc'
-confidence_step = 0.01
+indir=r'F:\results\Run_3_large_dataset_balanced\RCA_In_Dec3_2018_Jan30_2019_67391491'
+outfile ='hourly_summary2.nc'
+confidence_step = 0.05
 #confidence_step = 0.24
 
 # Start timer
@@ -88,7 +87,7 @@ for name, group in class_groups:
     class_names.append(name)
     max_threshold_reached = False
     for conf_idx, threshold in enumerate(confidence_thresholds):
-        if max_threshold_reached == False: # 
+        if max_threshold_reached == False: #
             detec_thresholded=group.where((group.confidence>=threshold),drop=False)
             if len(detec_thresholded['date'])>0: # if there are detection for that threshold
                 detec = detec_thresholded.resample(date='H').count(dim='date')
@@ -98,7 +97,7 @@ for name, group in class_groups:
                     date_array = detec['date']
                     # initialize detec array with nan
                     detec_array = np.empty([len(confidence_thresholds),detec.dims['date']])
-                    detec_array[:] = np.NaN            
+                    detec_array[:] = np.NaN
                 # fill in appropriate row of detec array with detection counts
                 detec_array[conf_idx,:] = detec['label_class'].values
             else: # if there are no detections anymore

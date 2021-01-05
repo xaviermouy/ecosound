@@ -16,6 +16,7 @@ import pandas as pd
 import numpy as np
 import copy
 import pickle
+import os
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.model_selection import cross_val_score
@@ -25,11 +26,13 @@ from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
@@ -38,6 +41,12 @@ from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn import metrics
+from sklearn.decomposition import PCA
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.combine import SMOTETomek
+from imblearn.under_sampling import TomekLinks
+from datetime import datetime
 
 def add_class_ID(fulldataset, positive_class_label):
     labels = list(set(fulldataset['label_class']))
@@ -52,13 +61,13 @@ def add_class_ID(fulldataset, positive_class_label):
         fulldataset.loc[mask,'class_ID'] = IDs[n]
         class_encoder = pd.DataFrame({'label':labels, 'ID': IDs})
     return fulldataset, class_encoder
-    
+
 def add_subclass(fulldataset):
     # subclass for split = label_class + deployment_ID
     fulldataset.insert(0, 'subclass_label', fulldataset['label_class'] + '__' + fulldataset['deployment_ID'])
     labels = list(set(fulldataset['subclass_label']))
     IDs = [*range(0,len(labels))]
-    fulldataset.insert(0,'subclass_ID', -1) 
+    fulldataset.insert(0,'subclass_ID', -1)
     for n, label in enumerate(labels):
         fulldataset.loc[fulldataset['subclass_label'] == label, 'subclass_ID'] = IDs[n]
     class_encoder = pd.DataFrame({'label':labels, 'ID': IDs})
@@ -131,16 +140,16 @@ def plot_datasets_distrib(data_train, data_test):
     ntest = len(data_test)
     ntotal = ntrain + ntest
     ntrain = (ntrain/ntotal)*100
-    ntest = (ntest/ntotal)*100    
+    ntest = (ntest/ntotal)*100
     plt.figure()
     #plt.bar(['Train set','Test set'],[ntrain,ntest], color='bkrgymc')
     plt.bar(['Train set','Test set'],[ntrain,ntest])
     plt.ylabel('% of data points')
     plt.title('Train/test sets data repartition')
-    plt.grid()  
+    plt.grid()
 
 def calc_tp_fp_fn_tn(Y_true,Y_prob,threshold):
-    
+
     # init
     tp = np.zeros(len(Y_prob))
     fp = np.zeros(len(Y_prob))
@@ -162,7 +171,7 @@ def calc_tp_fp_fn_tn(Y_true,Y_prob,threshold):
             tn[idx]=1
     return tp, fp, fn, tn
 
-def calc_performance_metrics(Y_true,Y_prob,thresholds=np.arange(0,1.1,0.1)):
+def calc_performance_metrics(Y_true,Y_prob,thresholds=np.arange(0,1.01,0.01)):
     n = len(thresholds)
     precision = np.zeros(n)
     recall = np.zeros(n)
@@ -180,7 +189,7 @@ def calc_performance_metrics(Y_true,Y_prob,thresholds=np.arange(0,1.1,0.1)):
             precision[idx] = tp_tot /(tp_tot + fp_tot)
         recall[idx] = tp_tot /(tp_tot + fn_tot)
         f1_score[idx] = (2*precision[idx]*recall[idx]) / (precision[idx]+recall[idx])
-    
+
     AUC_PR = metrics.auc(recall, precision)
     AUC_f1 = metrics.auc(thresholds, f1_score)
     out = pd.DataFrame({'thresholds': thresholds,'precision':precision,'recall':recall,'f1-score':f1_score})
@@ -188,16 +197,16 @@ def calc_performance_metrics(Y_true,Y_prob,thresholds=np.arange(0,1.1,0.1)):
     #out['AUC-f1'] = AUC_f1
     return out
 
-def cross_validation(data_train, models, features, cv_splits=10,cv_repeats=10):
+def cross_validation(data_train, models, features, cv_splits=10,cv_repeats=10, rebalance=True):
     cv_predictions = pd.DataFrame({'CV_iter':[],'classifier':[],'uuid':[],'Y_true':[],'Y_pred':[],'Y_prob':[]})
     cv_performance = pd.DataFrame({'CV_iter':[],'classifier':[],'precision':[],'recall':[],'f1-score':[],'thresholds':[]})
-    skf = RepeatedStratifiedGroupKFold(n_splits=cv_splits, n_repeats=cv_repeats, random_state=1)
+    skf = RepeatedStratifiedGroupKFold(n_splits=cv_splits, n_repeats=cv_repeats, random_state=None)
     it=-1
     for cv_train_index, cv_val_index in skf.split(data_train, data_train['subclass_ID'],groups=data_train['group_ID']):
         it+=1
         # Split data train vs validation
         cv_data_train, cv_data_val = data_train.iloc[cv_train_index], data_train.iloc[cv_val_index]
-        groups_intersection = plot_datasets_groups(cv_data_train, cv_data_val, show=False)        
+        groups_intersection = plot_datasets_groups(cv_data_train, cv_data_val, show=False)
         # CV summary counts
         distrib_train = cv_data_train.groupby('label_class')['label_class'].count().to_frame()
         distrib_train.rename(columns={'label_class':'train'}, inplace=True)
@@ -219,13 +228,28 @@ def cross_validation(data_train, models, features, cv_splits=10,cv_repeats=10):
         X_val = cv_data_val[features] # features
         Y_val = cv_data_val['class_ID'] #labels
         Y_uuid = cv_data_val['uuid']
-        
+
         # feature normalization
         Norm_mean = X_train.mean()
         Norn_std = X_train.std()
         X_train = (X_train-Norm_mean)/Norn_std
         X_val = (X_val-Norm_mean)/Norn_std
-        
+
+        print('  Positive training samples:', sum(Y_train == 1))
+        print('  Negative training samples:', sum(Y_train == 0))
+
+        if rebalance:
+            # Making balanced dataset by oversampling
+            print('Resampling training set with SMOTE + TomekLinks')
+            #oversample = SMOTE(sampling_strategy='minority')
+            #X_train, Y_train = oversample.fit_resample(X_train, Y_train)
+            #undersample = RandomUnderSampler(sampling_strategy=0.5)
+            #X_train, Y_train = undersample.fit_resample(X_train, Y_train)
+            resample = SMOTETomek(tomek=TomekLinks(sampling_strategy='majority'))
+            X_train, Y_train = resample.fit_resample(X_train, Y_train)
+            print('  Positive samples:', sum(Y_train == 1))
+            print('  Negatice samples:', sum(Y_train == 0))
+
         # Train and predict
         print('Classifiers:')
         for model_name, model in models:
@@ -244,7 +268,7 @@ def cross_validation(data_train, models, features, cv_splits=10,cv_repeats=10):
             tmp['Y_pred'] = pred_class
             tmp['Y_prob'] = pred_prob[:,1]
             cv_predictions = pd.concat([cv_predictions,tmp],ignore_index=True)
-            # calculate performance metrics            
+            # calculate performance metrics
             performance = calc_performance_metrics(Y_val.values,pred_prob[:,1])
             performance['classifier'] = model_name
             performance['CV_iter'] = it
@@ -254,7 +278,7 @@ def cross_validation(data_train, models, features, cv_splits=10,cv_repeats=10):
 def summarize_performance(cv_performance, threshold=0.5):
     # evaluate predictions
     summary = pd.DataFrame({'Classifier':[],'Precision (mean)':[],'Precision (std)':[],'Recall (mean)':[],'Recall (std)':[],'f1-score (mean)':[],'f1-score (std)':[]})
-    # plot PR curves 
+    # plot PR curves
     classifiers = list(set(cv_performance['classifier']))
     cv_iterations = list(set(cv_performance['CV_iter']))
     for classifier in classifiers:
@@ -271,7 +295,7 @@ def summarize_performance(cv_performance, threshold=0.5):
     return summary.T
 
 def plot_PR_curves(cv_performance):
-    # plot PR curves 
+    # plot PR curves
     classifiers = list(set(cv_performance['classifier']))
     fig, ax = plt.subplots(1, 1,
                                sharey=False,
@@ -289,7 +313,7 @@ def plot_PR_curves(cv_performance):
     ax.legend()
 
 def plot_F_curves(cv_performance):
-    # plot PR curves 
+    # plot PR curves
     classifiers = list(set(cv_performance['classifier']))
     fig, ax = plt.subplots(1, 1,
                                sharey=False,
@@ -306,27 +330,86 @@ def plot_F_curves(cv_performance):
     ax.grid()
     ax.legend()
 
-def classification_train(X_train, Y_train, model):
+def classification_train(X_train, Y_train, model, rebalance=True):
+    if rebalance:
+        # Making balanced dataset by oversampling
+        print('Resampling training set with SMOTE + TomekLinks')
+        resample = SMOTETomek(tomek=TomekLinks(sampling_strategy='majority'))
+        X_train, Y_train = resample.fit_resample(X_train, Y_train)
+        print('  Positive training samples:', sum(Y_train == 1))
+        print('  Negative training samples:', sum(Y_train == 0))
     model_trained = model.fit(X_train, Y_train)
     return model_trained
 
 def classification_predict(X_test, model_trained):
     pred_class = model_trained.predict(X_test)
     pred_prob = model_trained.predict_proba(X_test)
-    return pred_class, pred_prob[:,1]    
-    
+    return pred_class, pred_prob[:,1]
+
+def plot_2d_space(X, y, label='Classes'):
+    plt.figure()
+    colors = ['#1F77B4', '#FF7F0E']
+    markers = ['o', '.']
+    for l, c, m in zip(np.unique(y), colors, markers):
+        plt.scatter(
+            X[y==l, 0],
+            X[y==l, 1],
+            c=c, label=l, alpha = 0.5, marker=m
+        )
+    plt.title(label)
+    plt.legend(loc='upper right')
+    plt.show()
+
 def main():
-    ## define positive class
-    positive_class_label ='FS'
-    model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Classification\RF50_model_20201112.sav'
-    train_ratio = 0.75
-    cv_splits = 5#10
-    cv_repeats = 1
-    
+    # input arguments
+    input_args = dict()
+    input_args['positive_class_label'] ='FS'
+    input_args['train_ratio'] = 0.75
+    input_args['cv_splits'] = 10 #5
+    input_args['cv_repeats'] = 1
+    input_args['rebalance_classes'] = True
+    #input_args['data_file']= r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\results\dataset_FS-NN_modified_20201105145300.nc'
+    input_args['data_file']= r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\results\dataset_FS-NN_modified_20200902194334.nc'
+    input_args['out_dir'] = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\results\Classification'
+    input_args['run_CV'] = False
+    input_args['train_final_model'] = True
+    input_args['final_model_name'] = 'RF50'
+
+    ## DEFINITION OF CLASSIFIERS -------------------------------------------------
+    models = []
+    models.append(('Dummy', DummyClassifier(strategy="constant",constant=1)))
+    models.append(('LR', LogisticRegression(solver='liblinear', multi_class='ovr')))
+    models.append(('LDA', LinearDiscriminantAnalysis()))
+    #models.append(('KNN', KNeighborsClassifier()))
+    #models.append(('KNN', KNeighborsClassifier(n_neighbors=4, metric='euclidean')))
+    models.append(('CART', DecisionTreeClassifier()))
+    #models.append(('NB', GaussianNB()))
+    models.append(('XGBoost', XGBClassifier()))
+    #models.append(('MLP', MLPClassifier(solver='sgd', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=0)))
+    models.append(('RF5', RandomForestClassifier(n_estimators=5,min_samples_split= 100, min_samples_leaf=50,random_state=0)))
+    models.append(('RF10', RandomForestClassifier(n_estimators=10,min_samples_split= 100, min_samples_leaf=50,random_state=0)))
+    models.append(('RF30', RandomForestClassifier(n_estimators=30,min_samples_split= 100, min_samples_leaf=50, random_state=0)))
+    models.append(('RF50', RandomForestClassifier(n_estimators=50,min_samples_split= 100, min_samples_leaf=50, random_state=0)))
+    #models.append(('RF100', RandomForestClassifier(n_estimators=100,min_samples_split= 100, min_samples_leaf=50,random_state=0)))
+
+    ## setup output folder
+    now = datetime.now()
+    now_str = now.strftime("%Y%m%dT%H%M%S")
+    out_dir = os.path.join(input_args['out_dir'],now_str)
+    os.mkdir(out_dir)
+
+    ## Save input args to txt file
+    text_file = open(os.path.join(out_dir, 'input_args_' + now_str + '.txt'), "w")
+    n = text_file.write(str(input_args))
+    text_file.close()
+
+    ## Checks that model name exists before running all the processing
+    if input_args['train_final_model']:
+        model_idx = [model[0] for model in models].index(input_args['final_model_name'] )
+
     ## LOAD DATSET ---------------------------------------------------------------
-    data_file=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\dataset_FS-NN_modified_20201105145300.nc'
     dataset = Measurement()
-    dataset.from_netcdf(data_file)
+    dataset.from_netcdf(input_args['data_file'])
     print(dataset.summary())
 
     ## DATA PREPARATION ----------------------------------------------------------
@@ -334,11 +417,11 @@ def main():
     features = dataset.metadata['measurements_name'][0] # list of features used for the classification
     # data
     data = dataset.data
-    # drop FS observations at Mill Bay 
+    # drop FS observations at Mill Bay
     indexNames = data[(data['label_class'] == 'FS') & (data['location_name'] == 'Mill bay') ].index
-    data.drop(indexNames , inplace=True)
+    data.drop(indexNames, inplace=True)
     # add subclass + IDs
-    data, class_encoder = add_class_ID(data, positive_class_label)
+    data, class_encoder = add_class_ID(data, input_args['positive_class_label'])
     data, _ = add_subclass(data)
     #subclass2class_table = subclass2class_conversion(data)
     # add group ID
@@ -371,10 +454,15 @@ def main():
     # data[features].hist()
     # # scatter plot matrix
     # pd.plotting.scatter_matrix(data[features])
+    # scatter plot PCA
+    # pca = PCA(n_components=2)
+    # X  = pca.fit_transform(data[features])
+    # y = data['class_ID']
+    # plot_2d_space(X, y, 'Imbalanced dataset (2 PCA components)')
 
     ## SPLIT DATA INTO TRAIN & TEST SETS ------------------------------------------
-    n_splits = round(1/(1-train_ratio))
-    skf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=1)
+    n_splits = round(1/(1-input_args['train_ratio']))
+    skf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=None)
     for train_index, test_index in skf.split(data, data['subclass_ID'],groups=data['group_ID']):
         data_train, data_test = data.iloc[train_index], data.iloc[test_index]
         break
@@ -386,78 +474,66 @@ def main():
     # verify groups are not used in both datasets
     groups_intersection = plot_datasets_groups(data_train, data_test, show=True)
 
-    ## DEFINITION OF CLASSIFIERS -------------------------------------------------
-    models = []
-    models.append(('Dummy', DummyClassifier(strategy="constant",constant=1)))
-    models.append(('LR', LogisticRegression(solver='liblinear', multi_class='ovr')))
-    models.append(('LDA', LinearDiscriminantAnalysis()))
-    models.append(('KNN', KNeighborsClassifier()))
-    #models.append(('KNN', KNeighborsClassifier(n_neighbors=1, metric='euclidean')))
-    ##models.append(('CART', DecisionTreeClassifier()))
-    ##models.append(('NB', GaussianNB()))
-    models.append(('RF10', RandomForestClassifier(n_estimators=10,min_samples_split= 100, min_samples_leaf=50,random_state=0)))
-    models.append(('RF30', RandomForestClassifier(n_estimators=50,min_samples_split= 100, min_samples_leaf=50, random_state=0)))
-    models.append(('RF50', RandomForestClassifier(n_estimators=50,min_samples_split= 100, min_samples_leaf=50, random_state=0)))
-    models.append(('RF300', RandomForestClassifier(n_estimators=300,min_samples_split= 100, min_samples_leaf=50,random_state=0)))
-    
     ## CROSS VALIDATION ON TRAIN SET ----------------------------------------------
-    # run train/test experiments
-    cv_predictions, cv_performance = cross_validation(data_train, models, features, cv_splits=cv_splits,cv_repeats=cv_repeats)                  
-    # display summary results
-    performance_report = summarize_performance(cv_performance, threshold=0.5)
-    print(performance_report)
-    # plot mean Precision and Recall curves
-    plot_PR_curves(cv_performance)
-    plot_F_curves(cv_performance)
+    if input_args['run_CV']:
+        # run train/test experiments
+        cv_predictions, cv_performance = cross_validation(data_train, models, features, cv_splits=input_args['cv_splits'],cv_repeats=input_args['cv_repeats'], rebalance=input_args['rebalance_classes'])
+        # display summary results
+        performance_report = summarize_performance(cv_performance, threshold=0.5)
+        print(performance_report)
+        # plot mean Precision and Recall curves
+        plot_PR_curves(cv_performance)
+        plot_F_curves(cv_performance)
+        # save results
+        CV_results ={'cv_predictions': cv_predictions,
+                     'cv_performance': cv_performance,
+                     'models': models,
+                     'input_args': input_args,
+                     }
+        pickle.dump(CV_results, open(os.path.join(out_dir, 'CV_' + now_str + '.sav'), 'wb'))
 
     ## FINAL EVALUATION ON TEST SET -----------------------------------------------
-    print(' ')
-    print('Final evaluation on test set:')
-    print(' ')
+    if input_args['train_final_model']:
 
-    model_idx = 6
-    model_name =  models[model_idx][0]
-    model = models[model_idx][1] # RF50
-    print(model)
-    
-    X_train = data_train[features] # features
-    Y_train = data_train['class_ID'] #labels
-    X_test = data_test[features] # features
-    Y_test = data_test['class_ID'] #labels
-    
-    #print('WARNING !!!! TESTING ON TRAINING DATA')
-    #X_test = X_train
-    #Y_test = Y_train
-    
-    # feature normalization
-    Norm_mean = X_train.mean()
-    Norm_std = X_train.std()
-    X_train = (X_train-Norm_mean)/Norm_std
-    X_test = (X_test-Norm_mean)/Norm_std
-        
-    # Train on entire train set
-    final_model = classification_train(X_train, Y_train, model)
-    # Evaluate on full test set
-    pred_class, pred_prob = classification_predict(X_test, final_model)
-    # Print evaluation report
-    CR = classification_report(Y_test, pred_class)
-    print(CR)
-    # save the model to disk
-    model= {'name': model_name,
-            'model':final_model,
-            'features': features,
-            'normalization_mean': Norm_mean,
-            'normalization_std': Norm_std,
-            'classes': class_encoder,
-            }
-    pickle.dump(model, open(model_filename, 'wb'))
+        print(' ')
+        print('Final evaluation on test set:')
+        print(' ')
 
-    # precision, recall, thresholds = precision_recall_curve(Y_val, pred_prob[:,0])
-    # pr_auc = metrics.auc(recall, precision)
-    # f1 = f1_score(Y_val, pred_class, average='binary')    
-    # CR = classification_report(Y_val, pred_class)
-    # CM = confusion_matrix(Y_val, pred_class)
-    
+        model_name = models[model_idx][0]
+        model = models[model_idx][1] # RF50
+        print(model)
+        X_train = data_train[features] # features
+        Y_train = data_train['class_ID'] #labels
+        X_test = data_test[features] # features
+        Y_test = data_test['class_ID'] #labels
+        # feature normalization
+        Norm_mean = X_train.mean()
+        Norm_std = X_train.std()
+        X_train = (X_train-Norm_mean)/Norm_std
+        X_test = (X_test-Norm_mean)/Norm_std
+        # Train on entire train set
+        final_model = classification_train(X_train, Y_train, model, rebalance=input_args['rebalance_classes'])
+        # Evaluate on full test set
+        pred_class, pred_prob = classification_predict(X_test, final_model)
+        # Print evaluation report
+        CR = classification_report(Y_test, pred_class)
+        print(CR)
+        # save the model to disk
+        model= {'name': model_name,
+                'model':final_model,
+                'features': features,
+                'normalization_mean': Norm_mean,
+                'normalization_std': Norm_std,
+                'classes': class_encoder,
+                'input_args': input_args,
+                }
+        pickle.dump(model, open(os.path.join(out_dir, model_name + '_model_' + now_str + '.sav'), 'wb'))
+        # precision, recall, thresholds = precision_recall_curve(Y_val, pred_prob[:,0])
+        # pr_auc = metrics.auc(recall, precision)
+        # f1 = f1_score(Y_val, pred_class, average='binary')
+        # CR = classification_report(Y_val, pred_class)
+        # CM = confusion_matrix(Y_val, pred_class)
+
 
 if __name__ == "__main__":
     main()
