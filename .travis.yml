@@ -1,11 +1,8 @@
 # Config file for automatic testing at travis-ci.com
-
+dist: xenial   # required for Python >= 3.7
 language: python
 python:
-  - 3.8
   - 3.7
-  - 3.6
-  - 3.5
 
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install: pip install -U tox-travis
@@ -17,13 +14,13 @@ script: tox
 # create the Github repo and add it to Travis, run the
 # following command to finish PyPI deployment setup:
 # $ travis encrypt --add deploy.password
-deploy:
-  provider: pypi
-  distributions: sdist bdist_wheel
-  user: xaviermouy
-  password:
-    secure: PLEASE_REPLACE_ME
-  on:
-    tags: true
-    repo: xaviermouy/ecosound
-    python: 3.8
+#deploy:
+#  provider: pypi
+#  distributions: sdist bdist_wheel
+#  user: xaviermouy
+#  password:
+#    secure: PLEASE_REPLACE_ME
+#  on:
+#    tags: true
+#    repo: xaviermouy/ecosound
+#    python: 3.8
