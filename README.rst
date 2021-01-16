@@ -1,5 +1,5 @@
 
-.. image:: docs\_static\ecosound_logo_small.png
+.. image:: docs\source\_static\ecosound_logo_small.png
 
 
 Welcome to ecosound!
@@ -37,7 +37,8 @@ ecosound for your projects.
 
 Documentation
 -------------
-No documentation yet. We're working on it...
+No documentation yet, but we're working on it...
+https://ecosound.readthedocs.io
 
 
 Contributors
