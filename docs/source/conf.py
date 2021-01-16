@@ -49,7 +49,7 @@ exclude_patterns = []
 html_theme = 'sphinx_rtd_theme'
 
 # Add logo
-html_logo = '_static/ecosound_logo_small.png'
+html_logo = '_static/ecosound_logo.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
