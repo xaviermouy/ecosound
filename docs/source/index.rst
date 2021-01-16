@@ -1,9 +1,10 @@
+.. ecosound documentation master file, created by
+   sphinx-quickstart on Fri Jan 15 17:59:15 2021.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
-.. image:: docs\_static\ecosound_logo_small.png
-
-
-Welcome to ecosound!
-====================
+Welcome to ecosound's documentation!
+====================================
 
 .. image:: https://img.shields.io/pypi/v/ecosound.svg
         :target: https://pypi.python.org/pypi/ecosound
@@ -18,7 +19,7 @@ Welcome to ecosound!
 .. image:: https://coveralls.io/repos/github/xaviermouy/ecosound/badge.svg?branch=master
 	:target: https://coveralls.io/github/xaviermouy/ecosound?branch=master
 
-	
+
 
 **Ecosound** is an open source python package to facilitate the analysis of passive acoustic data. It includes modules for manual annotation
 processing and visualization, automatic detection, signal classification, and localization. It heavily relies on libraries such as xarray,
@@ -28,6 +29,11 @@ with popular bioacoustics software such as `Raven <https://ravensoundsoftware.co
 `PAMlab <https://static1.squarespace.com/static/52aa2773e4b0f29916f46675/t/5be5b07088251b9f59268184/1541779574284/PAMlab+Brochure.pdf>`_.
 
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+
 Status
 ------
 Ecosound is very much a work in progress and is still under heavy development. 
@@ -35,9 +41,9 @@ At this stage, it is recommended to contact the main contributor before using
 ecosound for your projects.
 
 
-Documentation
--------------
-No documentation yet. We're working on it...
+GitHub repository
+-----------------
+https://github.com/xaviermouy/ecosound
 
 
 Contributors
