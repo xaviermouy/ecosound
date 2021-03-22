@@ -169,9 +169,11 @@ class BlobDetector(BaseClass):
         kernel_bandwidth = max(
             round(self.kernel_bandwidth/spectro.frequency_resolution), 1)
         duration_min = max(
-            round(self.duration_min/spectro.time_resolution), 1)
+            round(self.duration_min/spectro.time_resolution), 2)
         bandwidth_min = max(
-            round(self.bandwidth_min/spectro.frequency_resolution), 1)
+            round(self.bandwidth_min/spectro.frequency_resolution), 2)
+        if debug:
+            self._plot_matrix(spectro.spectrogram, 'Spectrogram matrix')
         # # Apply filter
         if use_dask:
             dask_spectro = dask.array.from_array(spectro.spectrogram, chunks=dask_chunks)
@@ -186,6 +188,8 @@ class BlobDetector(BaseClass):
                                           (kernel_bandwidth, kernel_duration),
                                           mode='mirror')
 
+        if debug:
+            self._plot_matrix(np.log(Svar), 'Local variance matrix')
         # binarization
         Svar[Svar < self.threshold] = 0
         Svar[Svar > 0] = 1
@@ -220,15 +224,19 @@ class BlobDetector(BaseClass):
                 isdetec = True
                 # box coord
                 t1.append(x)
-                t2.append(x+w)
+                t2.append(x+w-1)
                 fmin.append(y)
-                fmax.append(y+h)
+                fmax.append(y+h-1)
         # Insert results in an Annotation object
         detec = Annotation()
         detec.data['time_min_offset'] = [t*spectro.time_resolution for t in t1]
         detec.data['time_max_offset'] = [t*spectro.time_resolution for t in t2]
-        detec.data['frequency_min'] = [f*spectro.frequency_resolution for f in fmin]
-        detec.data['frequency_max'] = [f*spectro.frequency_resolution for f in fmax]
+        #detec.data['frequency_min'] = [f*spectro.frequency_resolution for f in fmin]
+        #detec.data['frequency_max'] = [f*spectro.frequency_resolution for f in fmax]
+        #detec.data['frequency_min'] = [(f*spectro.frequency_resolution)+spectro.axis_frequencies[0] for f in fmin]
+        #detec.data['frequency_max'] = [(f*spectro.frequency_resolution)+spectro.axis_frequencies[0] for f in fmax]
+        detec.data['frequency_min'] = [spectro.axis_frequencies[f] for f in fmin]
+        detec.data['frequency_max'] = [spectro.axis_frequencies[f] for f in fmax]
         detec.data['duration'] = detec.data['time_max_offset'] - detec.data['time_min_offset']
         detec.data['from_detector'] = True
         detec.data['software_name'] = self.name

@@ -18,9 +18,13 @@ import time
 
 ## Input paraneters ##########################################################
 
-audio_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_hornby-island_2019\audio_data\AMAR173.4.20190916T011248Z.wav"
-annotation_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_hornby-island_2019\manual_annotations\AMAR173.4.20190916T011248Z.Table.1.selections.txt"
-detection_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset\AMAR173.4.20190916T011248Z.wav.nc"
+audio_file = r"C:\Users\xavier.mouy\Desktop\Tutorial\data\67674121.181017060806.wav"
+detection_file = r"C:\Users\xavier.mouy\Desktop\Tutorial\results\67674121.181017060806.wav.nc"
+
+#audio_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_hornby-island_2019\audio_data\AMAR173.4.20190916T011248Z.wav"
+#annotation_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\UVIC_hornby-island_2019\manual_annotations\AMAR173.4.20190916T011248Z.Table.1.selections.txt"
+#detection_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\results\Full_dataset\AMAR173.4.20190916T011248Z.wav.nc"
+
 
 # Spectrogram parameters
 frame = 3000

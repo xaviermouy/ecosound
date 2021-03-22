@@ -389,7 +389,7 @@ class SpectrogramFeatures(BaseClass):
 
         """
         self._prerun_check(spectro, annotations)
-        
+
         #init
         features = self._init_dataframe()
         features_name = list(features.columns)
@@ -398,6 +398,8 @@ class SpectrogramFeatures(BaseClass):
         for index, annot in annotations.data.iterrows():
             if verbose:
                 print('processing annotation ', index, annot['time_min_offset'], '-' ,annot['time_max_offset'])
+            #if index == 555:
+            #    print('debug')
             # feature for 1 annot
             # tmp = self.compute_single_annot(annot, spectro, debug, verbose)
             # # stack features for each annotation
@@ -505,10 +507,10 @@ class SpectrogramFeatures(BaseClass):
                     envelop_freq,
                     resolution=self.resolution_freq,
                     kind=self.interp)
-                if sum(envelop_freq2)==0:
-                    print('here')
-                if sum(envelop_time2)==0:
-                    print('here')
+                # if sum(envelop_freq2)==0:
+                #     print('here')
+                # if sum(envelop_time2)==0:
+                #     print('here')
                 # Frequency envelop features
                 features_envelop_freq = self.envelop_features(axis_f, envelop_freq2)
                 if debug:
@@ -711,13 +713,13 @@ class SpectrogramFeatures(BaseClass):
         percentiles_value = [5, 25, 50, 75, 95]
         percentiles_position = SpectrogramFeatures.percentiles_position(values, percentiles_value, axis=axis)
         # Inter quartile range
-        inter_quart_range = percentiles_position['75'] - percentiles_position['25'] 
+        inter_quart_range = percentiles_position['75'] - percentiles_position['25']
         # Asymetry
         asymmetry = SpectrogramFeatures.asymmetry(percentiles_position['25'], percentiles_position['50'], percentiles_position['75'])
         # duration/width
-        length = SpectrogramFeatures.length(values, axis[1]-axis[0])  
+        length = SpectrogramFeatures.length(values, axis[1]-axis[0])
         # duration/width containing 90% of magnitude
-        length_90 = percentiles_position['95'] - percentiles_position['5']  
+        length_90 = percentiles_position['95'] - percentiles_position['5']
         # concentration
         concentration_unit = SpectrogramFeatures.concentration(values, axis)
         # standard deviation
@@ -784,9 +786,9 @@ class SpectrogramFeatures(BaseClass):
         minigram1 : ecosound Spectrogram object
             Spectrogram of the sound to analyse.
         adjusted_bounds : list, optional
-            List with defining the 90% energy time-frequency window for the 
+            List with defining the 90% energy time-frequency window for the
             measurmenets.
-            adjusted_bounds = [Time min., Time max., Freq. min., Freq. max.]. 
+            adjusted_bounds = [Time min., Time max., Freq. min., Freq. max.].
             Times is seconds, frequencies in Hz. The default is None.
 
         Returns
@@ -852,7 +854,7 @@ class SpectrogramFeatures(BaseClass):
                 freq_entropy_mean = np.nan
                 freq_entropy_std = np.nan
                 upsweep_mean = np.nan
-                upsweep_fraction = np.nan     
+                upsweep_fraction = np.nan
         elif spectro.shape[1] == 1: # only 1 bin of bandwidth
             freq_peak = minigram.axis_frequencies[0]
             freq_median_mean = minigram.axis_frequencies[0]
@@ -967,7 +969,7 @@ class SpectrogramFeatures(BaseClass):
 
     @staticmethod
     def peak(array, axis):
-        """Return peak value, poistion and relative position of a 
+        """Return peak value, poistion and relative position of a
         time/frequency envelop."""
         peak_value = np.amax(array)
         idxmax = np.where(array == peak_value)[0][0]
@@ -991,7 +993,7 @@ class SpectrogramFeatures(BaseClass):
         Returns
         -------
         pct_position : dict
-            Dictionary with position of the percentile. Dict keys are the 
+            Dictionary with position of the percentile. Dict keys are the
             values of the percentiles requested (e.g. pct_position['50']).
         """
         if axis is None:
@@ -1022,7 +1024,7 @@ class SpectrogramFeatures(BaseClass):
         Returns
         -------
         pct_position : dict
-            Dictionary with position of the percentile. Dict keys are the 
+            Dictionary with position of the percentile. Dict keys are the
             values of the percentiles requested (e.g. pct_position['50']).
         """
         if axis is None:
