@@ -409,10 +409,10 @@ class Annotation():
                 outfilename = os.path.join(outdir, outfile)
             else:
                 outfilename = os.path.join(
-                    outdir, str(annot['audio_file_name'].iloc[0]))
-                + str(annot['audio_file_extension'].iloc[0])
-                + '.chan' + str(annot['audio_channel'].iloc[0])
-                + '.Table.1.selections.txt'
+                    outdir, str(annot['audio_file_name'].iloc[0])
+                    + str(annot['audio_file_extension'].iloc[0])
+                    + '.chan' + str(annot['audio_channel'].iloc[0])
+                    + '.Table.1.selections.txt')
             outdf.to_csv(outfilename,
                          sep='\t',
                          encoding='utf-8',
