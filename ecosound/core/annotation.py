@@ -577,9 +577,9 @@ class Annotation():
             else:
                 outfilename = os.path.join(
                     outdir,
-                    str(annot['audio_file_name'].iloc[0]))
-                + str(annot['audio_file_extension'].iloc[0])
-                + ' annotations.log'
+                    str(annot['audio_file_name'].iloc[0])
+                    + str(annot['audio_file_extension'].iloc[0])
+                    + ' annotations.log')
             outdf.to_csv(outfilename,
                          sep='\t',
                          encoding='utf-8',

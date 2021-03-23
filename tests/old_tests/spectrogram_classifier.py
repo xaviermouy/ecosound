@@ -28,6 +28,8 @@ single_channel_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Herring_DFO\
 #model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\problematic_files\XGBoost_model_20201209T132812.sav'
 model_filename = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\problematic_files\RF50_model_20201209T134646.sav'
 
+outdir = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Herring_DFO\New folder'
+
 # Spectrogram parameters
 frame = 0.02 #0.0625
 nfft = 0.02 # 4096
@@ -39,7 +41,7 @@ window_type = 'hann'
 
 # start and stop time of wavfile to analyze
 t1 = 0#141#24
-t2 = 300#167#40
+t2 = 30#167#40
 ## ###########################################################################
 tic = time.perf_counter()
 
@@ -73,6 +75,39 @@ measurements = spectro_features.compute(spectro,
                                         verbose=False,
                                         use_dask=True)
 
+
+
+# features = classif_model['features']
+#             model = classif_model['model']
+#             Norm_mean = classif_model['normalization_mean']
+#             Norm_std = classif_model['normalization_std']
+#             classes_encoder = classif_model['classes']
+#             # data dataframe
+#             data = measurements.data
+#             n1 = len(data)
+#             # drop observations/rows with NaNs
+#             data = data.replace([np.inf, -np.inf], np.nan)
+#             data.dropna(subset=features,
+#                         axis=0,
+#                         how='any',
+#                         thresh=None,
+#                         inplace=True)
+#             n2 = len(data)
+#             print('Deleted observations (due to NaNs): ' + str(n1-n2))
+#             # Classification - predictions
+#             X = data[features]
+#             X = (X-Norm_mean)/Norm_std
+#             pred_class = model.predict(X)
+#             pred_prob = model.predict_proba(X)
+#             pred_prob = pred_prob[range(0, len(pred_class)), pred_class]
+#             # Relabel
+#             for index, row in classes_encoder.iterrows():
+#                 pred_class = [row['label'] if i == row['ID'] else i for i in pred_class]
+#             # update measurements
+#             data['label_class'] = pred_class
+#             data['confidence'] = pred_prob
+
+measurements.to_pamlab(outdir)
 
 # detections.insert_values(audio_file_name='1342218252.190430230159')
 # detections.insert_values(audio_file_dir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\datasets\DFO_snake-island_rca-in_20190410\noise')
