@@ -155,7 +155,7 @@ class Sound:
         ------
         ValueError
             If the chunk list has only 1 value.
-            If the first value in the chunk list is greater or equal to the 
+            If the first value in the chunk list is greater or equal to the
                second one.
             If values in the chunk list exceed the audio file limits.
             If the channel selected does not exist.
@@ -221,13 +221,13 @@ class Sound:
         Filter the audio signal.
 
         Applies low-pass, high-pass, or band-pass scientific filter to the
-        audio signal. The attribute waveform is updated with the filtered 
+        audio signal. The attribute waveform is updated with the filtered
         signal. The same data can only be filtered once.
 
         Parameters
         ----------
         filter_type : str
-            Type of filter. Can be set to 'bandpass', 'lowpass' or 'highpass'.            
+            Type of filter. Can be set to 'bandpass', 'lowpass' or 'highpass'.
         cutoff_frequencies : list
             Cutoff frequencies of the filter, in Hz (float). Must be a list with a
             single float if the filter_type is set to 'lowpass' or 'highpass'.
@@ -266,7 +266,7 @@ class Sound:
         Plot waveform of the audio signal.
 
         PLots the waveform of the audio signal. Both the plot title and time
-        units can be asjusted. The plot can be displayed on a new or an 
+        units can be asjusted. The plot can be displayed on a new or an
         existing figure.
 
         Parameters
@@ -313,7 +313,7 @@ class Sound:
         plt.grid()
         plt.show()
 
-    def select_snippet(self, chunk):
+    def select_snippet(self, chunk, unit='samp'):
         """
         Select section of the loaded waveform.
 
@@ -323,8 +323,11 @@ class Sound:
         ----------
         chunk : list
             List of two int values representing the [start time, stop time] of
-            the sound data to select, in samples. Start time must be smaller 
-            than stop time.
+            the sound data to select. Start time must be smaller than stop
+            time.
+        unit : str, optional
+            Time unit of the 'chunk' parameter. Can be set to 'sec' for seconds
+            or 'samp', for samples. The default is 'samp'.
 
         Raises
         ------
@@ -342,14 +345,23 @@ class Sound:
         if len(chunk) != 2:
             raise ValueError('Chunk should be a list of with 2 values: '
                              + 'chunk=[t1, t2].')
+        elif unit not in ('samp','sec'):
+           raise ValueError('Invalid unit. Should be set to "sec" or "samp".')
         elif chunk[0] >= chunk[1]:
             raise ValueError('Chunk[0] should be greater than chunk[1].')
-        elif (chunk[0] < 0) | (chunk[0] > self.file_duration_sample):
-            raise ValueError('Invalid chunk start value. The sample value '
+
+        if unit == 'sec':
+            chunk[0] = int(np.floor(chunk[0] * self.waveform_sampling_frequency))
+            chunk[1] = int(np.ceil(chunk[1] * self.waveform_sampling_frequency))
+
+        if (chunk[0] < 0) | (chunk[0] > self.file_duration_sample):
+            raise ValueError('Invalid chunk start value. The start value '
                              + 'chunk[0] is outside of file limit.')
         elif (chunk[1] < 0) | (chunk[1] > self.file_duration_sample):
-            raise ValueError('Invalid chunk stop value. The sample value '
+            raise ValueError('Invalid chunk stop value. The stop value '
                              + 'chunk[1] is outside of file limit.')
+
+
         snippet = copy.deepcopy(self)
         snippet._waveform = self._waveform[chunk[0]:chunk[1]]
         snippet._waveform_stop_sample = snippet._waveform_start_sample + chunk[1]
@@ -374,7 +386,7 @@ class Sound:
 
         Returns
         -------
-        None. Updates the 'waveform' attribute alomg with all the waveform 
+        None. Updates the 'waveform' attribute alomg with all the waveform
         -related attributes.
 
         """
@@ -502,16 +514,16 @@ class Filter:
     def __init__(self, type, cutoff_frequencies, order=4):
         """
         Initialize the filter.
-        
+
         Parameters
         ----------
         type : {'bandpass', 'lowpass', 'highpass'}
             Type of filter
         cutoff_frequencies : list of float
             Cut-off frequencies of the filter sorted in increasing order (i.e.
-            [lowcut, highcut]). If the filter type is 'bandpass' then 
-            cutoff_frequencies must be a list of 2 floats 
-            cutoff_frequencies=[lowcut, highcut], where lowcut < highcut. 
+            [lowcut, highcut]). If the filter type is 'bandpass' then
+            cutoff_frequencies must be a list of 2 floats
+            cutoff_frequencies=[lowcut, highcut], where lowcut < highcut.
             If the filter type is 'lowpass' or 'highpass' then cutoff_frequencies
             is a list with a single float.
         order : int, optional
@@ -528,10 +540,10 @@ class Filter:
         -------
         None. Filter object.
 
-        """ 
+        """
         # chech filter type
         if (type == 'bandpass') | (type == 'lowpass') | (type == 'highpass') == 0:
-            raise ValueError('Wrong filter type. Must be "bandpass", "lowpass"' 
+            raise ValueError('Wrong filter type. Must be "bandpass", "lowpass"'
                              +', or "highpass".')
         # chech freq values
         if (type == 'bandpass'):

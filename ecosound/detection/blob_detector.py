@@ -246,6 +246,12 @@ class BlobDetector(BaseClass):
         if start_time:
             detec.data['time_min_date']= pd.to_datetime(start_time + pd.to_timedelta(detec.data['time_min_offset'], unit='s'))
             detec.data['time_max_date']= pd.to_datetime(start_time + pd.to_timedelta(detec.data['time_max_offset'], unit='s'))
+        # sort by ascending order
+        detec.data.sort_values('time_min_offset',
+                               ascending=True,
+                               inplace=True,
+                               ignore_index=True,
+                               )
         return detec
 
 @njit()
