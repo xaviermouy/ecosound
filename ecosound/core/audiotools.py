@@ -252,6 +252,17 @@ class Sound:
         None. Filtered signal in the 'waveform' attribute of the Sound object.
         """
         if self._filter_applied is False:
+
+            # check bandpass cuttoff freq and switch to lowpass.highpass if necessary
+            if (filter_type == 'bandpass') and (min(cutoff_frequencies) <=0):
+                cutoff_frequencies = [max(cutoff_frequencies)]
+                filter_type = 'lowpass'
+                print('Warning: filter type was changed from "bandpass" to "lowpass".')
+            if (filter_type == 'bandpass') and (max(cutoff_frequencies) >=self._waveform_sampling_frequency/2):
+                cutoff_frequencies = [min(cutoff_frequencies)]
+                filter_type = 'highpass'
+                print('Warning: filter type was changed from "bandpass" to "highpass".')
+            # Instantiate filter object
             my_filter = Filter(filter_type, cutoff_frequencies, order)
             self._waveform = my_filter.apply(self._waveform,
                                              self._waveform_sampling_frequency)
@@ -261,7 +272,36 @@ class Sound:
             raise ValueError('This signal has been filtered already. Cannot'
                              + ' filter twice.')
 
-    def plot_waveform(self, unit='sec', newfig=False, title=''):
+    def upsample(self, resolution_sec):
+        """
+        Upsample  waveform
+
+        Increase the number of samples in the waveform and interpolate.
+
+        Parameters
+        ----------
+        resolution_sec : float
+            Sample resolution of the upsampled waveform, in second. The new
+            sampling frequency will be 1/resolution_sec.
+
+        Returns
+        -------
+        None. Updates the waveform of the Sound object.
+
+        """
+        axis_t = np.arange(0, len(self._waveform)
+                               / self._waveform_sampling_frequency, 1
+                               / self._waveform_sampling_frequency)
+        new_fs = round(1/resolution_sec)
+        nb_samp = round(axis_t[-1]*new_fs)
+        self._waveform, new_axis_t = spsig.resample(self.waveform, nb_samp, t=axis_t, window='hann')
+        self._waveform_sampling_frequency = new_fs
+
+    def normalize(self, method='amplitude'):
+        if method == 'amplitude':
+            self._waveform = self._waveform / np.max(self._waveform)
+
+    def plot(self, unit='sec', newfig=False, label=[],linestyle='-', marker='',color='black', title=''):
         """
         Plot waveform of the audio signal.
 
@@ -278,6 +318,10 @@ class Sound:
             PLots on a new figure if set to True. The default is False.
         title : str, optional
             Title of the plot. The default is ''.
+        linestyle : str, optional
+            Linestyle of the plot. The default is '-'.
+        marker : str, optional
+            Marker of the plot. The default is '-'.
 
         Raises
         ------
@@ -303,7 +347,12 @@ class Sound:
         if newfig:
             plt.figure()
         axis_t = axis_t[0:len(self._waveform)]
-        plt.plot(axis_t, self._waveform, color='black')
+        plt.plot(axis_t, self._waveform,
+                           color=color,
+                           marker = marker,
+                           linestyle = linestyle,
+                           label=label,
+                           )
         plt.xlabel(xlabel)
         plt.ylabel('Amplitude')
         plt.title(title)
@@ -558,7 +607,7 @@ class Filter:
         elif (type == 'lowpass') | (type == 'highpass'):
             if len(cutoff_frequencies) != 1:
                 raise ValueError('The type "lowpass" and "highpass" require '
-                                 + 'one frepuency values cutoff_frequencies='
+                                 + 'one frequency value cutoff_frequencies='
                                  + '[cutfreq].')
         self.type = type
         self.cutoff_frequencies = cutoff_frequencies
@@ -581,8 +630,10 @@ class Filter:
             Filtered time series.
 
         """
-        b, a = self.coefficients(sampling_frequency)
-        return spsig.lfilter(b, a, waveform)
+        #b, a = self.coefficients(sampling_frequency)
+        #return spsig.sosfiltfilt (b, a, waveform)
+        sos = self.coefficients(sampling_frequency)
+        return spsig.sosfiltfilt (sos, waveform)
 
     def coefficients(self, sampling_frequency):
         """
@@ -605,11 +656,16 @@ class Filter:
         if self.type == 'bandpass':
             low = self.cutoff_frequencies[0] / nyquist
             high = self.cutoff_frequencies[1] / nyquist
-            b, a = spsig.butter(self.order, [low, high], btype='band')
+            #b, a = spsig.butter(self.order, [low, high], btype='band')
+            sos = spsig.butter(self.order, [low, high], btype='band', output='sos')
         elif self.type == 'lowpass':
-            b, a = spsig.butter(self.order,
-                                self.cutoff_frequencies[0]/nyquist, 'low')
+            # b, a = spsig.butter(self.order,
+            #                     self.cutoff_frequencies[0]/nyquist, 'low')
+            sos = spsig.butter(self.order,
+                                self.cutoff_frequencies[0]/nyquist, 'low',output='sos')
         elif self.type == 'highpass':
-            b, a = spsig.butter(self.order,
-                                self.cutoff_frequencies[0]/nyquist, 'high')
-        return b, a
+            # b, a = spsig.butter(self.order,
+            #                     self.cutoff_frequencies[0]/nyquist, 'high')
+            sos = spsig.butter(self.order,
+                                self.cutoff_frequencies[0]/nyquist, 'high',output='sos')
+        return sos

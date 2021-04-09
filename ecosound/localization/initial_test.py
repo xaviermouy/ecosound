@@ -12,7 +12,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d
 import matplotlib.cm
-
+#import scipy.spatial
+import numpy as np
 
 from ecosound.core.audiotools import Sound
 from ecosound.core.spectrogram import Spectrogram
@@ -22,9 +23,8 @@ from ecosound.visualization.grapher_builder import GrapherFactory
 ## ############################################################################
 #TDOA
 ref_channel=3
-XcorrSearchFrame= 4/1484 #% +/- search time frame for TDOA xcorr (s)
 #Linearized inversion
-InversionParams_V = 1484
+sound_speed_mps = 1484
 InversionParams_m0=[0,0,0]
 InversionParams_damping=0.1
 InversionParams_Tdelta_m=0.0001 # threshold for stoping iterations (change in norm of models)
@@ -118,14 +118,64 @@ graph.show()
 ##                                   TDOA
 ## ###########################################################################
 
+def euclidean_dist(df1, df2, cols=['x','y','z']):
+    """
+    Calculates euclidean distance between two Pandas dataframes
+
+    Parameters
+    ----------
+    df1 : TYPE
+        DESCRIPTION.
+    df2 : TYPE
+        DESCRIPTION.
+    cols : TYPE, optional
+        DESCRIPTION. The default is ['x','y','z'].
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
+    return np.linalg.norm(df1[cols].values - df2[cols].values,axis=0)
+
+
+def calc_hydrophones_distances(hydrophones_coords):
+    """
+    Calculates Euclidiean distance between each hydrophone of the array
+
+    Parameters
+    ----------
+    hydrophones_coords : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    hydrophones_dist_matrix : TYPE
+        DESCRIPTION.
+
+    """
+    hydrophones_dist_matrix = np.empty((len(hydrophones_coords),len(hydrophones_coords)))
+    for index1, row1 in hydrophones_coords.iterrows():
+        for index2, row2 in hydrophones_coords.iterrows():
+            dist = euclidean_dist(row1, row2)
+            hydrophones_dist_matrix[index1, index2] = dist
+    return hydrophones_dist_matrix
+
+
+# define search window based on hydrophone separation and sound speed
+hydrophones_dist_matrix = calc_hydrophones_distances(hydrophones_coords)
+TDOA_limit_sec = np.max(hydrophones_dist_matrix)/sound_speed_mps
+TDOA_limit_samp = int(np.round(TDOA_limit_sec*sound.waveform_sampling_frequency))
+
 # pick single detection (will use loop after)
 detec = detections.data.iloc[0]
 
 # Adjust start/stop times of detection on reference channel
 detec_wav = sound.select_snippet([detec['time_min_offset'],detec['time_max_offset']], unit='sec')
-detec_wav.tighten_waveform_window(96)
-t1_detec = detec_wav.waveform_start_sample
-t2_detec = detec_wav.waveform_stop_sample
+detec_wav.tighten_waveform_window(95)
+t1_detec = detec_wav.waveform_start_sample - TDOA_limit_samp
+t2_detec = detec_wav.waveform_stop_sample + TDOA_limit_samp
 graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
 graph.add_data(detec_wav)
 graph.show()
@@ -133,14 +183,32 @@ graph.show()
 # load data from all channels for that detection
 graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
 waveforms_stack=[]
-for audio_file in audio_files:
+plt.figure()
+for idx, audio_file in enumerate(audio_files): # for each channel
+    # load waveform
     chan_wav = Sound(audio_file)
     chan_wav.read(channel=0, chunk=[t1_detec, t2_detec], unit='samp', detrend=True)
-    waveforms_stack.append(chan_wav)
-    graph.add_data(chan_wav)
 
-graph.show()
+    # bandpass filter
+    chan_wav.filter('bandpass',[detec['frequency_min'],detec['frequency_max']])
+
+    # resample
+    #chan_wav.plot(newfig=True)
+    chan_wav.upsample(0.000001)
+
+    # normalize amplitude
+    chan_wav.normalize()
+
+    # plot
+    chan_wav.plot(color=colors[idx],label='Hydrophone ' + str(idx))
+
+    # graph
+    waveforms_stack.append(chan_wav)
+
+plt.grid()
+plt.legend()
 
 ## TO DO
-# 1- calculate XcorrSearchFrame automatically
-# 2- compare waveforms delays with Matlab code
+# 1 - Calc cross correlation and TDOA
+# 2 - Calc envelop
+# 3 - parabolic interpolation
