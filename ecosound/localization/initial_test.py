@@ -14,11 +14,14 @@ import mpl_toolkits.mplot3d
 import matplotlib.cm
 #import scipy.spatial
 import numpy as np
+import scipy.signal
 
 from ecosound.core.audiotools import Sound
 from ecosound.core.spectrogram import Spectrogram
 from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
+from ecosound.core.tools import derivative_1d
+import localizationlib
 
 ## ############################################################################
 #TDOA
@@ -104,15 +107,45 @@ spectro.denoise('median_equalizer', window_duration=3, use_dask=True, dask_chunk
 detector = DetectorFactory('BlobDetector', use_dask=True, dask_chunks=(2048,2000), kernel_duration=0.05, kernel_bandwidth=300, threshold=20, duration_min=0.05, bandwidth_min=40)
 detections = detector.run(spectro, debug=False)
 
-# Plot
-graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
-graph.add_data(sound)
-graph.add_annotation(detections, panel=0, color='grey',label='Detections')
-graph.add_data(spectro)
-graph.add_annotation(detections, panel=1,color='black',label='Detections')
-graph.colormap = 'binary'
-#graph.colormap = 'jet'
-graph.show()
+# # Plot
+# graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
+# graph.add_data(sound)
+# graph.add_annotation(detections, panel=0, color='grey',label='Detections')
+# graph.add_data(spectro)
+# graph.add_annotation(detections, panel=1,color='black',label='Detections')
+# graph.colormap = 'binary'
+# #graph.colormap = 'jet'
+# graph.show()
+
+
+## ###########################################################################
+##                             Plot all channels
+## ###########################################################################
+
+graph_spectros = GrapherFactory('SoundPlotter', title='Spectrograms', frequency_max=1000)
+graph_waveforms = GrapherFactory('SoundPlotter', title='Waveforms', frequency_max=1000)
+
+for idx, audio_file in enumerate(audio_files): # for each channel
+    # load waveform
+    sound = Sound(audio_file)
+    sound.read(channel=0, chunk=[t1, t2], unit='sec', detrend=True)
+    # Calculates  spectrogram
+    spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='sec')
+    spectro.compute(sound, dB=True, use_dask=True, dask_chunks=40)
+    # Crop unused frequencies
+    spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
+    # Plot
+    graph_spectros.add_data(spectro)
+    graph_waveforms.add_data(sound)
+
+graph_spectros.colormap = 'binary'
+graph_spectros.add_annotation(detections, panel=ref_channel, color='green',label='Detections')
+graph_spectros.show()
+
+graph_waveforms.add_annotation(detections, panel=ref_channel, color='green',label='Detections')
+graph_waveforms.show()
+
+
 
 ## ###########################################################################
 ##                                   TDOA
@@ -168,47 +201,104 @@ hydrophones_dist_matrix = calc_hydrophones_distances(hydrophones_coords)
 TDOA_limit_sec = np.max(hydrophones_dist_matrix)/sound_speed_mps
 TDOA_limit_samp = int(np.round(TDOA_limit_sec*sound.waveform_sampling_frequency))
 
+# define hydrophone pairs
+hydrophone_pairs = localizationlib.defineReceiverPairs(len(hydrophones_coords), ref_receiver=ref_channel)
+
 # pick single detection (will use loop after)
 detec = detections.data.iloc[0]
+#detec = detections.data.iloc[36]
 
 # Adjust start/stop times of detection on reference channel
 detec_wav = sound.select_snippet([detec['time_min_offset'],detec['time_max_offset']], unit='sec')
 detec_wav.tighten_waveform_window(95)
 t1_detec = detec_wav.waveform_start_sample - TDOA_limit_samp
 t2_detec = detec_wav.waveform_stop_sample + TDOA_limit_samp
-graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
-graph.add_data(detec_wav)
-graph.show()
 
 # load data from all channels for that detection
 graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
-waveforms_stack=[]
-plt.figure()
+waveform_stack=[]
+envelope_stack=[]
+leading_edge_stack=[]
+
 for idx, audio_file in enumerate(audio_files): # for each channel
     # load waveform
     chan_wav = Sound(audio_file)
     chan_wav.read(channel=0, chunk=[t1_detec, t2_detec], unit='samp', detrend=True)
-
     # bandpass filter
     chan_wav.filter('bandpass',[detec['frequency_min'],detec['frequency_max']])
-
     # resample
-    #chan_wav.plot(newfig=True)
     chan_wav.upsample(0.000001)
-
     # normalize amplitude
     chan_wav.normalize()
+    # # envelope
+    # import scipy.signal as spsig
+    # import copy
+    # #analytic_signal = spsig.hilbert(chan_wav.waveform-np.mean(chan_wav.waveform))
+    # #amplitude_envelope = np.abs(analytic_signal)
+    # chan_wav2 = copy.copy(chan_wav)
+    # chan_wav2._filter_applied = False
+    # #chan_wav2._waveform = np.abs(chan_wav2.waveform)
+    # #temp = chan_wav2._waveform[chan_wav2._waveform<0]=0
+    # #temp = chan_wav2._waveform.clip(min=0)
+    # chan_wav2._waveform = chan_wav2._waveform.clip(min=0)
+    # chan_wav2.filter('lowpass',[30])
+    # amplitude_envelope = chan_wav2.waveform
 
-    # plot
-    chan_wav.plot(color=colors[idx],label='Hydrophone ' + str(idx))
+    # #amplitude_envelope = amplitude_envelope - np.min(amplitude_envelope)
+    # #amplitude_envelope = amplitude_envelope / np.max(amplitude_envelope)
+    # # leading edge
+    # leading_edge = derivative_1d(amplitude_envelope, order=1)
+    # #leading_edge = leading_edge - np.min(leading_edge)
+    # #leading_edge = leading_edge / np.max(leading_edge)
 
-    # graph
-    waveforms_stack.append(chan_wav)
 
-plt.grid()
-plt.legend()
+    # stack
+    waveform_stack.append(chan_wav)
+    #envelope_stack.append(amplitude_envelope)
+    #leading_edge_stack.append(leading_edge)
+
+    # plt.figure()
+    # plt.plot(chan_wav.waveform, color='black')
+    # plt.plot(amplitude_envelope, color='red')
+    # plt.plot(leading_edge, color='blue')
+    # # plot
+    # ax[0].plot(chan_wav.waveform,color=colors[idx],label='Hydrophone ' + str(idx))
+    # ax[1].plot(amplitude_envelope,color=colors[idx],label='Hydrophone ' + str(idx))
+    # ax[2].plot(leading_edge,color=colors[idx],label='Hydrophone ' + str(idx))
+
+
+# cross correlation
+s1 = waveform_stack[0].waveform
+s2 = waveform_stack[3].waveform
+corr = scipy.signal.correlate(s1,s2, mode='same', method='auto')
+corr = corr/(np.linalg.norm(s1)*np.linalg.norm(s2))
+# find max peak
+min_xcorr_value = 0.8
+peaks = scipy.signal.find_peaks(corr, height=min_xcorr_value)
+max_peak_value = np.max(peaks[1]['peak_heights'])
+max_peak_idx = peaks[0][peaks[1]['peak_heights'].tolist().index(max_peak_value)]
+
+
+fig, ax = plt.subplots(nrows=2, sharex=True)
+ax[0].plot(s1, color='black')
+ax[0].plot(s2, color='red')
+ax[0].set_xlabel('Time (sample)')
+ax[0].set_ylabel('Amplitude')
+ax[0].grid()
+ax[0].set_title('TDOA: ' + str(max_peak_idx) + ' samples')
+ax[1].plot(corr)
+ax[1].plot(max_peak_idx, max_peak_value,marker = '.', color='r')
+ax[1].set_xlabel('Lag (sample)')
+ax[1].set_ylabel('Correlation')
+ax[1].grid()
+
+
+
+
 
 ## TO DO
-# 1 - Calc cross correlation and TDOA
-# 2 - Calc envelop
-# 3 - parabolic interpolation
+# 1 - Calc envelop
+# 2 - Calc leading edge
+# 3 - Calc cross correlation and TDOA
+# 4 - calc TDOA on sliding window
+# 5 - parabolic interpolation
