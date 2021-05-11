@@ -162,3 +162,70 @@ def list_files(indir, suffix, case_sensitive=True, recursive=False):
                     files_list.append(os.path.join(indir, file))
                     #print(os.path.join(indir, file))
     return files_list
+
+
+@njit
+def find_peaks(array, troughs=False):
+    """
+    Find peaks or troughs in an 1-D array.
+
+    Parameters
+    ----------
+    array : numpy array or list
+        1-dimensional array.
+    troughs : bool, optional
+        If set to True, finds troughs instead of peaks in the input array.
+        The default is False.
+
+    Returns
+    -------
+    x : list
+        Indices of peaks or troughs
+    y : list
+        Values of peaks or troughs
+
+    """
+
+    x = [0,]
+    y = [array[0],]
+    for k in range(1,len(array)-1):
+        if troughs:
+            if (np.sign(array[k]-array[k-1])==-1) and ((np.sign(array[k]-array[k+1]))==-1):
+                x.append(k)
+                y.append(array[k])
+        else:
+            if (np.sign(array[k]-array[k-1])==1) and (np.sign(array[k]-array[k+1])==1):
+                            x.append(k)
+                            y.append(array[k])
+    return x, y
+
+
+def envelope(array, interp='cubic'):
+    #initialize output arrays
+    env_high = np.zeros(array.shape)
+    env_low = np.zeros(array.shape)
+    #Prepend the first value of (s) to the interpolating values. This forces
+    #the model to use the same starting point for both the upper and lower
+    #envelope models.
+    u_x = [0,]
+    u_y = [array[0],]
+    l_x = [0,]
+    l_y = [array[0],]
+    #Detect peaks and troughs
+    l_x, l_y = find_peaks(array,troughs=True)
+    u_x, u_y = find_peaks(array,troughs=False)
+    #Append the last value of (s) to the interpolating values. This forces the
+    #model to use the same ending point for both the upper and lower envelope
+    #models.
+    u_x.append(len(array)-1)
+    u_y.append(array[-1])
+    l_x.append(len(array)-1)
+    l_y.append(array[-1])
+
+    #Interpolate between peaks/troughs
+    u_p = interpolate.interp1d(u_x,u_y, kind = interp,bounds_error = False, fill_value=0.0)
+    l_p = interpolate.interp1d(l_x,l_y,kind = interp,bounds_error = False, fill_value=0.0)
+    for k in range(0,len(array)):
+        env_high[k] = u_p(k)
+        env_low[k] = l_p(k)
+    return env_high, env_low

@@ -669,3 +669,29 @@ class Filter:
             sos = spsig.butter(self.order,
                                 self.cutoff_frequencies[0]/nyquist, 'high',output='sos')
         return sos
+
+
+def upsample(waveform, waveform_res_sec, new_res_sec):
+        """
+        Upsample  waveform
+
+        Increase the number of samples in the waveform and interpolate.
+
+        Parameters
+        ----------
+        resolution_sec : float
+            Sample resolution of the upsampled waveform, in second. The new
+            sampling frequency will be 1/resolution_sec.
+
+        Returns
+        -------
+        None. Updates the waveform of the Sound object.
+
+        """
+        axis_t = np.arange(0, len(waveform)
+                               / sampling_frequency, 1
+                               / sampling_frequency)
+        new_fs = round(1/resolution_sec)
+        nb_samp = round(axis_t[-1]*new_fs)
+        self._waveform, new_axis_t = spsig.resample(self.waveform, nb_samp, t=axis_t, window='hann')
+        self._waveform_sampling_frequency = new_fs
