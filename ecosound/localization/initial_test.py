@@ -16,7 +16,7 @@ import matplotlib.cm
 import numpy as np
 import scipy.signal
 
-from ecosound.core.audiotools import Sound
+from ecosound.core.audiotools import Sound, upsample
 from ecosound.core.spectrogram import Spectrogram
 from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
@@ -107,16 +107,6 @@ spectro.denoise('median_equalizer', window_duration=3, use_dask=True, dask_chunk
 detector = DetectorFactory('BlobDetector', use_dask=True, dask_chunks=(2048,2000), kernel_duration=0.05, kernel_bandwidth=300, threshold=20, duration_min=0.05, bandwidth_min=40)
 detections = detector.run(spectro, debug=False)
 
-# # Plot
-# graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
-# graph.add_data(sound)
-# graph.add_annotation(detections, panel=0, color='grey',label='Detections')
-# graph.add_data(spectro)
-# graph.add_annotation(detections, panel=1,color='black',label='Detections')
-# graph.colormap = 'binary'
-# #graph.colormap = 'jet'
-# graph.show()
-
 
 ## ###########################################################################
 ##                             Plot all channels
@@ -144,7 +134,6 @@ graph_spectros.show()
 
 graph_waveforms.add_annotation(detections, panel=ref_channel, color='green',label='Detections')
 graph_waveforms.show()
-
 
 
 ## ###########################################################################
@@ -195,9 +184,23 @@ def calc_hydrophones_distances(hydrophones_coords):
             hydrophones_dist_matrix[index1, index2] = dist
     return hydrophones_dist_matrix
 
-def calc_tdoa(waveform_stack, hydrophones_pairs, TDOA_max_sec, sampling_frequency, doplot=False):
+def calc_tdoa(waveform_stack, hydrophones_pairs, sampling_frequency, TDOA_max_sec=None, upsample_res_sec=None, normalize=False, doplot=False):
     tdoa_sec = []
     tdoa_corr = []
+    # Upsampling
+    if upsample_res_sec:
+        for chan_id, waveform in enumerate(waveform_stack):
+            waveform_stack[chan_id], new_sampling_frequency = upsample(
+                waveform, 1/sampling_frequency, upsample_res_sec)
+        sampling_frequency = new_sampling_frequency
+    # Normalize max amplitude to 1
+    if normalize:
+        for chan_id, waveform in enumerate(waveform_stack):
+                    waveform_stack[chan_id] = waveform / np.max(waveform)
+    # Constrains to a max TDOA (based on array geometry)
+    if TDOA_max_sec:
+        TDOA_max_samp = int(np.round(TDOA_max_sec*sampling_frequency))
+
     # cross correlation
     for hydrophone_pair in hydrophone_pairs:
         # signal from each hydrophone
@@ -208,8 +211,12 @@ def calc_tdoa(waveform_stack, hydrophones_pairs, TDOA_max_sec, sampling_frequenc
         corr = corr/(np.linalg.norm(s1)*np.linalg.norm(s2))
         lag_array = scipy.signal.correlation_lags(s1.size, s2.size, mode="full")
         # Identify correlation peak within the TDOA search window (SW)
-        SW_start_idx = np.where(lag_array == -TDOA_max_upsamp)[0][0] # search window start idx
-        SW_stop_idx = np.where(lag_array == TDOA_max_upsamp)[0][0] # search window stop idx
+        if TDOA_max_sec:
+            SW_start_idx = np.where(lag_array == -TDOA_max_samp)[0][0] # search window start idx
+            SW_stop_idx = np.where(lag_array == TDOA_max_samp)[0][0] # search window stop idx
+        else:
+            SW_start_idx=0
+            SW_stop_idx=len(corr)-1
         corr_max_idx = np.argmax(corr[SW_start_idx:SW_stop_idx]) + SW_start_idx # idx of max corr value
         delay = lag_array[corr_max_idx]
         corr_value = corr[corr_max_idx]
@@ -227,15 +234,16 @@ def calc_tdoa(waveform_stack, hydrophones_pairs, TDOA_max_sec, sampling_frequenc
             ax[0].set_title('TDOA: ' + str(delay) + ' samples')
             ax[1].plot(lag_array, corr)
             ax[1].plot(delay, corr_value ,marker = '.', color='r', label='TDOA')
-            width = 2*TDOA_max_upsamp
-            height = 2
-            rect = plt.Rectangle((-TDOA_max_upsamp, -1), width, height,
-                                         linewidth=1,
-                                         edgecolor='green',
-                                         facecolor='green',
-                                         alpha=0.3,
-                                         label='Search window')
-            ax[1].add_patch(rect)
+            if TDOA_max_sec:
+                width = 2*TDOA_max_samp
+                height = 2
+                rect = plt.Rectangle((-TDOA_max_samp, -1), width, height,
+                                             linewidth=1,
+                                             edgecolor='green',
+                                             facecolor='green',
+                                             alpha=0.3,
+                                             label='Search window')
+                ax[1].add_patch(rect)
             ax[1].set_xlabel('Lag (sample)')
             ax[1].set_ylabel('Correlation')
             ax[1].set_title('Correlation: ' + str(corr_value))
@@ -243,13 +251,12 @@ def calc_tdoa(waveform_stack, hydrophones_pairs, TDOA_max_sec, sampling_frequenc
             ax[1].grid()
             ax[1].legend()
             plt.tight_layout()
-        return tdoa_sec, tdoa_corr
+    return tdoa_sec, tdoa_corr
 
 
 # define search window based on hydrophone separation and sound speed
 hydrophones_dist_matrix = calc_hydrophones_distances(hydrophones_coords)
 TDOA_max_sec = np.max(hydrophones_dist_matrix)/sound_speed_mps
-TDOA_max_samp = int(np.round(TDOA_max_sec*sound.waveform_sampling_frequency))
 
 # define hydrophone pairs
 hydrophone_pairs = localizationlib.defineReceiverPairs(len(hydrophones_coords), ref_receiver=ref_channel)
@@ -261,57 +268,41 @@ detec = detections.data.iloc[33]
 # Adjust start/stop times of detection on reference channel
 detec_wav = sound.select_snippet([detec['time_min_offset'],detec['time_max_offset']], unit='sec')
 detec_wav.tighten_waveform_window(95)
+TDOA_max_samp = int(np.round(TDOA_max_sec*sound.waveform_sampling_frequency))
 t1_detec = detec_wav.waveform_start_sample - TDOA_max_samp
 t2_detec = detec_wav.waveform_stop_sample + TDOA_max_samp
 
 # load data from all channels for that detection
-#graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=1000)
 waveform_stack=[]
 envelope_stack=[]
 leading_edge_stack=[]
-
 for idx, audio_file in enumerate(audio_files): # for each channel
     # load waveform
     chan_wav = Sound(audio_file)
     chan_wav.read(channel=0, chunk=[t1_detec, t2_detec], unit='samp', detrend=True)
+    sampling_frequency = chan_wav.waveform_sampling_frequency
     # bandpass filter
     chan_wav.filter('bandpass',[detec['frequency_min'],detec['frequency_max']])
-    # resample
-    chan_wav.upsample(0.000001)
-    TDOA_max_upsamp = int(np.round(TDOA_max_sec*chan_wav.waveform_sampling_frequency))
     # normalize amplitude
     chan_wav.normalize()
     # envelope
-    #envelop_high, _ = envelope(chan_wav.waveform-np.mean(chan_wav.waveform),
-    #                           interp='linear')
+    #envelop_high, _ = envelope(chan_wav.waveform-np.mean(chan_wav.waveform),interp='linear')
     # leading edge
     #leading_edge = derivative_1d(envelop_high, order=1)
-    #leading_edge = leading_edge / max(leading_edge)
-
     # stack
     waveform_stack.append(chan_wav.waveform)
     #envelope_stack.append(envelop_high)
     #leading_edge_stack.append(leading_edge)
 
-    # plt.figure()
-    # plt.plot(chan_wav.waveform, color='black')
-    # plt.plot(envelop_high, color='red')
-    # plt.plot(leading_edge, color='blue')
-    # # plot
-    # ax.plot(chan_wav.waveform,color=colors[idx],label='Hydrophone ' + str(idx))
-    # ax.plot(envelop_high,color=colors[idx],label='Hydrophone ' + str(idx))
-    # ax.plot(leading_edge,color=colors[idx],label='Hydrophone ' + str(idx))
-
-tdoa_sec, tdoa_corr = calc_tdoa(waveform_stack,
-                                hydrophones_pairs,
-                                TDOA_max_sec,
-                                sampling_frequency,
-                                doplot=True,
-                                )
-
-
-
-
+# calculate TDOAs
+tdoa_sec, corr_val = calc_tdoa(waveform_stack,
+                               hydrophone_pairs,
+                               sampling_frequency,
+                               TDOA_max_sec=TDOA_max_sec,
+                               upsample_res_sec=0.000001,
+                               normalize=True,
+                               doplot=True,
+                               )
 
 ## TO DO
 # 1 - calc TDOA on sliding window

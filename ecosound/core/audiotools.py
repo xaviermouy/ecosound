@@ -289,13 +289,10 @@ class Sound:
         None. Updates the waveform of the Sound object.
 
         """
-        axis_t = np.arange(0, len(self._waveform)
-                               / self._waveform_sampling_frequency, 1
-                               / self._waveform_sampling_frequency)
-        new_fs = round(1/resolution_sec)
-        nb_samp = round(axis_t[-1]*new_fs)
-        self._waveform, new_axis_t = spsig.resample(self.waveform, nb_samp, t=axis_t, window='hann')
-        self._waveform_sampling_frequency = new_fs
+        self._waveform, self._waveform_sampling_frequency = upsample(
+            self._waveform,
+            1/ self._waveform_sampling_frequency,
+            resolution_sec)
 
     def normalize(self, method='amplitude'):
         if method == 'amplitude':
@@ -671,7 +668,7 @@ class Filter:
         return sos
 
 
-def upsample(waveform, waveform_res_sec, new_res_sec):
+def upsample(waveform, current_res_sec, new_res_sec):
         """
         Upsample  waveform
 
@@ -679,19 +676,26 @@ def upsample(waveform, waveform_res_sec, new_res_sec):
 
         Parameters
         ----------
-        resolution_sec : float
-            Sample resolution of the upsampled waveform, in second. The new
-            sampling frequency will be 1/resolution_sec.
+        waveform: 1D array
+            Waveform to upsample
+        current_res_sec : float
+            Time resolution of waveform in seconds. It is the inverse of the
+            sampling frequency.
+        new_res_sec : float
+            New time resolution of waveform after interpolation (in seconds).
 
         Returns
         -------
-        None. Updates the waveform of the Sound object.
+        waveform: 1D array
+            waveform upsampled to have a time resolution of "new_res_sec".
 
         """
-        axis_t = np.arange(0, len(waveform)
-                               / sampling_frequency, 1
-                               / sampling_frequency)
-        new_fs = round(1/resolution_sec)
+        axis_t = np.arange(0, len(waveform)*current_res_sec, current_res_sec)
+        new_fs = round(1/new_res_sec)
         nb_samp = round(axis_t[-1]*new_fs)
-        self._waveform, new_axis_t = spsig.resample(self.waveform, nb_samp, t=axis_t, window='hann')
-        self._waveform_sampling_frequency = new_fs
+        new_waveform, new_axis_t = spsig.resample(waveform,
+                                                  nb_samp,
+                                                  t=axis_t,
+                                                  window='hann',
+                                                  )
+        return new_waveform, new_fs
