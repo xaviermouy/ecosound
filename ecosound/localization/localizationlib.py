@@ -11,6 +11,9 @@ import mpl_toolkits.mplot3d
 import matplotlib.pyplot as plt
 import time
 import os
+from ecosound.core.audiotools import upsample
+import scipy.signal
+
 
 def defineSphereSurfaceGrid(npoints, radius, origin=[0, 0, 0]):
     # Using the golden spiral method
@@ -352,3 +355,165 @@ def plotOptimizationResults(outdir, nReceivers, Rchanges, Cost, acceptRateChange
     ax1.set_zlabel('Z (m)', labelpad=10)
     plt.show()
     f4.savefig(os.path.join(outdir, 'FinalReceiversPosition' + '_iteration-' + str(iteridx+1) + '.png'), bbox_inches='tight')
+
+
+def euclidean_dist(df1, df2, cols=['x', 'y', 'z']):
+    """
+    Calculate euclidean distance between two Pandas dataframes.
+
+    Parameters
+    ----------
+    df1 : TYPE
+        DESCRIPTION.
+    df2 : TYPE
+        DESCRIPTION.
+    cols : TYPE, optional
+        DESCRIPTION. The default is ['x','y','z'].
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
+    return np.linalg.norm(df1[cols].values - df2[cols].values, axis=0)
+
+
+def calc_hydrophones_distances(hydrophones_coords):
+    """
+    Calculate Euclidiean distance between each hydrophone of an array.
+
+    Parameters
+    ----------
+    hydrophones_coords : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    hydrophones_dist_matrix : TYPE
+        DESCRIPTION.
+
+    """
+    hydrophones_dist_matrix = np.empty((len(hydrophones_coords),len(hydrophones_coords)))
+    for index1, row1 in hydrophones_coords.iterrows():
+        for index2, row2 in hydrophones_coords.iterrows():
+            dist = euclidean_dist(row1, row2)
+            hydrophones_dist_matrix[index1, index2] = dist
+    return hydrophones_dist_matrix
+
+
+def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec=None, upsample_res_sec=None, normalize=False, doplot=False):
+    """
+    TDOA measurements
+
+    Calculates the time-difference of orrival (TDOA) between signals from
+    different hydrophones by cross-correlation.
+
+    Parameters
+    ----------
+    waveform_stack : list of numpy arrays
+        Wavforms with amplitude values of the signal for each hydrophone.
+        Each wavform is a numpy array which are stored in a list
+        e.g. waveform_stack[0] contains a numpy array with the wavform from
+         the first hydrophone.
+    hydrophone_pairs : list
+        Defines the pair of hydrophones for the TDOA measurements. Each element
+        of hydrophones_pairs is a list with index values of the hydrophone in
+        waveform_stack.
+        e.g. hydrophones_pairs = [[3, 0], [3, 1], [3, 2], [3, 4], [3, 5]].
+    sampling_frequency : float
+        Sampling frequency of the waveform signals in  waveform_stack in Hz.
+    TDOA_max_sec : float, optional
+        Restricts the TDOA search to TDOA_max_sec seconds. The default is None.
+    upsample_res_sec : float, optional
+        If set, upsamples the wavforms in waveform_stack before the cross-
+        correlation to have a time resolution of upsample_res_sec seconds.
+        The default is None.
+    normalize : bool, optional
+        If set to True, normalizes the wavforms in waveform_stack to have a
+        maximum amplitude of 1. The default is False.
+    doplot : bool, optional
+        If set to True, displays cross correlation plots for each hydrophone
+        pair. The default is False.
+
+    Returns
+    -------
+    tdoa_sec : list
+        Time-difference of arrival in seconds, for each hydrophone pair.
+    tdoa_corr : list
+        Maximum cross-correlation value for each hydrophone pair (between 0
+        and 1).
+
+    """
+    tdoa_sec = []
+    tdoa_corr = []
+    # Upsampling
+    if upsample_res_sec:
+        if upsample_res_sec < (1/sampling_frequency):
+            for chan_id, waveform in enumerate(waveform_stack):
+                waveform_stack[chan_id], new_sampling_frequency = upsample(
+                    waveform, 1/sampling_frequency, upsample_res_sec)
+            sampling_frequency = new_sampling_frequency
+        else:
+            print('Warning: upsampling not applied because the requested time'
+                  ' resolution (upsample_res_sec) is larger than the current'
+                  ' time resolution of the signal.')
+    # Normalize max amplitude to 1
+    if normalize:
+        for chan_id, waveform in enumerate(waveform_stack):
+                    waveform_stack[chan_id] = waveform / np.max(waveform)
+    # Constrains to a max TDOA (based on array geometry)
+    if TDOA_max_sec:
+        TDOA_max_samp = int(np.round(TDOA_max_sec*sampling_frequency))
+
+    # cross correlation
+    for hydrophone_pair in hydrophone_pairs:
+        # signal from each hydrophone
+        s1 = waveform_stack[hydrophone_pair[0]]
+        s2 = waveform_stack[hydrophone_pair[1]]
+        # cross correlation
+        corr = scipy.signal.correlate(s1,s2, mode='full', method='auto')
+        corr = corr/(np.linalg.norm(s1)*np.linalg.norm(s2))
+        lag_array = scipy.signal.correlation_lags(s1.size, s2.size, mode="full")
+        # Identify correlation peak within the TDOA search window (SW)
+        if TDOA_max_sec:
+            SW_start_idx = np.where(lag_array == -TDOA_max_samp)[0][0] # search window start idx
+            SW_stop_idx = np.where(lag_array == TDOA_max_samp)[0][0] # search window stop idx
+        else:
+            SW_start_idx=0
+            SW_stop_idx=len(corr)-1
+        corr_max_idx = np.argmax(corr[SW_start_idx:SW_stop_idx]) + SW_start_idx # idx of max corr value
+        delay = lag_array[corr_max_idx]
+        corr_value = corr[corr_max_idx]
+        tdoa_sec.append(delay/sampling_frequency)
+        tdoa_corr.append(corr_value)
+
+        if doplot:
+            fig, ax = plt.subplots(nrows=2, sharex=False)
+            ax[0].plot(s1, color='black', label= 'Hydrophone ' + str(hydrophone_pair[0]))
+            ax[0].plot(s2, color='red',label= 'Hydrophone ' + str(hydrophone_pair[1]))
+            ax[0].set_xlabel('Time (sample)')
+            ax[0].set_ylabel('Amplitude')
+            ax[0].legend()
+            ax[0].grid()
+            ax[0].set_title('TDOA: ' + str(delay) + ' samples')
+            ax[1].plot(lag_array, corr)
+            ax[1].plot(delay, corr_value ,marker = '.', color='r', label='TDOA')
+            if TDOA_max_sec:
+                width = 2*TDOA_max_samp
+                height = 2
+                rect = plt.Rectangle((-TDOA_max_samp, -1), width, height,
+                                             linewidth=1,
+                                             edgecolor='green',
+                                             facecolor='green',
+                                             alpha=0.3,
+                                             label='Search window')
+                ax[1].add_patch(rect)
+            ax[1].set_xlabel('Lag (sample)')
+            ax[1].set_ylabel('Correlation')
+            ax[1].set_title('Correlation: ' + str(corr_value))
+            ax[1].set_ylim(-1,1)
+            ax[1].grid()
+            ax[1].legend()
+            plt.tight_layout()
+    return tdoa_sec, tdoa_corr
