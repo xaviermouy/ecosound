@@ -20,18 +20,19 @@ from ecosound.core.spectrogram import Spectrogram
 from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
 from ecosound.core.tools import derivative_1d, envelope
-from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs
+from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, set_data
 
 ## ############################################################################
 #TDOA
 ref_channel=3
 #Linearized inversion
 sound_speed_mps = 1484
-InversionParams_m0=[0,0,0]
-InversionParams_damping=0.1
-InversionParams_Tdelta_m=0.0001 # threshold for stoping iterations (change in norm of models)
-#InversionParams.Tdelta_X2=0.0001 # threshold for stoping iterations (change in data misfit)
-InversionParams_maxIterations=2000 # 400 threshold for stoping iterations (change in data misfit)
+inversion_params = {
+    'm0': [0,0,0],
+    'damping_factor': 0.1,
+    'stop_delta_m': 0.0001, # threshold for stoping iterations (change in norm of models)
+    'max_iteration': 2000,
+    }
 # hydrophone coordinates (meters)
 x=[-0.858, -0.858,  0.858, 0.028, -0.858, 0.858]
 y=[-0.860, -0.860, -0.860, 0.000,  0.860, 0.860]
@@ -180,7 +181,7 @@ tdoa_sec, corr_val = calc_tdoa(waveform_stack,
                                TDOA_max_sec=TDOA_max_sec,
                                upsample_res_sec=0.0000001,
                                normalize=False,
-                               doplot=True,
+                               doplot=False,
                                )
 ## TO DO
 # If correlation coef too small =>
@@ -189,3 +190,87 @@ tdoa_sec, corr_val = calc_tdoa(waveform_stack,
 # 3 - Use less Hp to localize
 
 # Lineralized inversion
+
+
+
+def solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m, V, damping_factor):
+    # Define the Jacobian matrix
+    A = defineJacobian(hydrophones_coords, m, V, hydrophone_pairs)
+    # Reformulation of the problem
+    d0 = predict_tdoa(m, V, hydrophones_coords, hydrophone_pairs)
+
+
+    ## STOPPED HERE
+
+
+# creeping approach
+    # Delta d: original data - predicted data
+    deltad= d-d0;
+    # ML inverse for delta m:
+    Ag= inv(A'*A)*A';% general inverse
+    deltam=Ag*deltad;
+    # new model:
+    m = m0 + (damping*deltam);
+
+    # %% jumping approach
+    # %m=inv(A'*CdInv*A)*A'*CdInv*dprime; % retrieved model using ML
+
+    # % Data misfit
+    # X2=((A*deltam)-deltad)'*((A*deltam)-deltad);
+    # % Covariance matrix of resulting model
+    # Anew=setKernel(M,N,Hpos,pair,m,V);
+
+     #[m,X2,Anew]
+
+
+def linearized_inversion(d, hydrophones_coords,hydrophone_pairs,inversion_params, sound_speed_mps, doplot=False):
+
+    # convert parameters to numpy arrays or dataframes
+    m0 = pd.DataFrame({'x': [inversion_params['m0'][0]], 'y': [inversion_params['m0'][1]], 'z': [inversion_params['m0'][2]]})
+    damping_factor = np.array(inversion_params['damping_factor'])
+    Tdelta_m = np.array(inversion_params['stop_delta_m'])
+    V = np.array(sound_speed_mps)
+    max_iteration = np.array(inversion_params['max_iteration'])
+
+    # Start iterations
+    M=len(m0)
+    N=len(d)
+    m_hist=[] # historic of model parameters obtained at each iteration
+    mnorm_hist=[] # historic of norm of the model parameters obtained at each iteration
+    X2_hist=[] # historic of data misfit obtained at each iteration
+    m1=m0
+    stop=0
+    idx=0
+    print('Iteration - Model norm - Misfit')
+    while stop == 0:
+        idx=idx+1
+        m_it, X2_it, A = solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m1, V, damping_factor)
+        m_hist=[m_hist,m1] # stacks model parameters
+        mnorm_hist = [mnorm_hist,rmsNorm(m1-m_it)] # stacks norm of model diffreence
+        X2_hist=[X2_hist,X2_it] # stacks data misfit
+        m1=m_it # updates m0
+
+        # stopping criteria
+        if idx>1:
+            delta_m=abs(mnorm_hist(idx)-mnorm_hist(idx-1)) # change in norm of model diffreence
+            delta_X2=abs(X2_hist(idx)-X2_hist(idx-1)) # change in misfit
+            if (delta_m<= Tdelta_m): #&& (delta_X2 <=Tdelta_X2)
+                stop=1
+            else:
+                stop=0
+
+        # stops if never converges
+        if idx > maxIteration:
+            stop = 1
+            print('Inversion hasn''t converged.')
+            #m1=[np.I inf inf]
+
+        # # if it can't converge well (returns NaNs)
+        # if isnan(m1):
+        #     stop = 1
+
+        #print([int2str(idx-1) ' - ' num2str(mnorm_hist(idx)) ' - ' num2str(X2_hist(idx))])
+
+[m,A]=linearized_inversion(tdoa_sec,hydrophones_coords,hydrophone_pairs, inversion_params, sound_speed_mps,doplot=False)
+
+

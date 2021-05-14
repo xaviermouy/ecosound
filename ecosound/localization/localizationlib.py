@@ -98,8 +98,9 @@ def defineReceiverPairs (n_receivers, ref_receiver=0):
 
 
 def defineJacobian(R, S, V, Rpairs):
+    unknowns = ['x','y','z']    # unknowns: 3D coordinates of sound source
     N = R.shape[0] - 1          # nb of measurements (TDOAs)
-    M = 3                       # number of model parameters (unknowns)
+    M = len(unknowns)                       # number of model parameters (unknowns)
     nsources = S.shape[0]       # number of sources
     J = [None] * nsources       # initiaization
     # for each source location
@@ -109,12 +110,26 @@ def defineJacobian(R, S, V, Rpairs):
         for i in range(N):
             p1 = Rpairs[i][0]        # receiver #1 ID
             p2 = Rpairs[i][1]        # receiver #2 ID
-            for kk in range(M):
-                Term1 = (1/V)*0.5*((((s.x-R.x[p1])**2)+((s.y-R.y[p1])**2)+((s.z-R.z[p1])**2))**(-0.5))*2*(s.iloc[kk]-R.iloc[p1][kk])
-                Term2 = (1/V)*0.5*((((s.x-R.x[p2])**2)+((s.y-R.y[p2])**2)+((s.z-R.z[p2])**2))**(-0.5))*2*(s.iloc[kk]-R.iloc[p2][kk])
+            for kk, unknown in enumerate(unknowns):
+                Term1 = (1/V)*0.5*((((s.x-R.x[p1])**2)+((s.y-R.y[p1])**2)+((s.z-R.z[p1])**2))**(-0.5))*2*(s[unknown]-R[unknown][p1])
+                Term2 = (1/V)*0.5*((((s.x-R.x[p2])**2)+((s.y-R.y[p2])**2)+((s.z-R.z[p2])**2))**(-0.5))*2*(s[unknown]-R[unknown][p2])
                 j[i][kk] = Term2 - Term1
         J[idx] = j  # stacks jacobians for each source
     return J
+
+def predict_tdoa(m, V, hydrophones_coords, hydrophone_pairs):
+    """ Create data from the forward problem.
+        Generate TDOAs based on location of hydrophones and source.
+    """
+    N = len(hydrophone_pairs)
+    dt = np.full([N,1], np.nan)
+    for idx, hydrophone_pair in enumerate(hydrophone_pairs):
+        p1=hydrophone_pair[0]
+        p2=hydrophone_pair[1]
+        t1=((1/V)*np.sqrt( ((m.x-hydrophones_coords.x[p1])**2)+((m.y-hydrophones_coords.y[p1])**2)+((m.z-hydrophones_coords.z[p1])**2)) )
+        t2=((1/V)*np.sqrt(((m.x-hydrophones_coords.x[p2])**2)+((m.y-hydrophones_coords.y[p2])**2)+((m.z-hydrophones_coords.z[p2])**2)))
+        dt[idx] = np.array(t2-t1) # noiseless data
+    return dt
 
 
 def getUncertainties(J, NoiseVariance):
