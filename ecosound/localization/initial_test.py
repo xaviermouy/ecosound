@@ -20,7 +20,7 @@ from ecosound.core.spectrogram import Spectrogram
 from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
 from ecosound.core.tools import derivative_1d, envelope
-from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, set_data
+from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, predict_tdoa
 
 ## ############################################################################
 #TDOA
@@ -28,7 +28,7 @@ ref_channel=3
 #Linearized inversion
 sound_speed_mps = 1484
 inversion_params = {
-    'm0': [0,0,0],
+    'm0': [-1,-1,-1],
     'damping_factor': 0.1,
     'stop_delta_m': 0.0001, # threshold for stoping iterations (change in norm of models)
     'max_iteration': 2000,
@@ -194,83 +194,86 @@ tdoa_sec, corr_val = calc_tdoa(waveform_stack,
 
 
 def solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m, V, damping_factor):
-    # Define the Jacobian matrix
+    # Define the Jacobian matrix: Eq. (5) in Mouy et al. (2018)
     A = defineJacobian(hydrophones_coords, m, V, hydrophone_pairs)
-    # Reformulation of the problem
+    # Predicted TDOA at m (forward problem): Eq. (1) in Mouy et al. (2018)
     d0 = predict_tdoa(m, V, hydrophones_coords, hydrophone_pairs)
-
-
-    ## STOPPED HERE
-
-
-# creeping approach
-    # Delta d: original data - predicted data
-    deltad= d-d0;
-    # ML inverse for delta m:
-    Ag= inv(A'*A)*A';% general inverse
-    deltam=Ag*deltad;
-    # new model:
-    m = m0 + (damping*deltam);
-
-    # %% jumping approach
-    # %m=inv(A'*CdInv*A)*A'*CdInv*dprime; % retrieved model using ML
-
-    # % Data misfit
-    # X2=((A*deltam)-deltad)'*((A*deltam)-deltad);
-    # % Covariance matrix of resulting model
-    # Anew=setKernel(M,N,Hpos,pair,m,V);
-
-     #[m,X2,Anew]
+    # Reformulation of the problem
+    delta_d = d-d0 # Delta d: original data - predicted data
+    # Resolving by creeping approach(ML inverse for delta m): Eq. (6) in Mouy et al. (2018)
+    delta_m = np.dot(np.dot(np.linalg.inv(np.dot(A.transpose(),A)),A.transpose()),delta_d) #general inverse
+    # New model: Eq. (7) in Mouy et al. (2018)
+    m_new = m.iloc[0].values + (damping_factor*delta_m.transpose())
+    m['x'] = m_new[0,0]
+    m['y'] = m_new[0,1]
+    m['z'] = m_new[0,2]
+    # ## jumping approach
+    # #m=inv(A'*CdInv*A)*A'*CdInv*dprime; % retrieved model using ML
+    # Data misfit
+    part1 = np.dot(A,delta_m)-delta_d
+    data_misfit = np.dot(part1.transpose(), part1)
+    return m, data_misfit[0, 0]
 
 
 def linearized_inversion(d, hydrophones_coords,hydrophone_pairs,inversion_params, sound_speed_mps, doplot=False):
 
-    # convert parameters to numpy arrays or dataframes
-    m0 = pd.DataFrame({'x': [inversion_params['m0'][0]], 'y': [inversion_params['m0'][1]], 'z': [inversion_params['m0'][2]]})
+    # convert parameters to numpy arrays or pandas dataframes
+    m = pd.DataFrame({'x': [inversion_params['m0'][0]], 'y': [inversion_params['m0'][1]], 'z': [inversion_params['m0'][2]]})
     damping_factor = np.array(inversion_params['damping_factor'])
     Tdelta_m = np.array(inversion_params['stop_delta_m'])
     V = np.array(sound_speed_mps)
     max_iteration = np.array(inversion_params['max_iteration'])
 
-    # Start iterations
-    M=len(m0)
-    N=len(d)
-    m_hist=[] # historic of model parameters obtained at each iteration
-    mnorm_hist=[] # historic of norm of the model parameters obtained at each iteration
-    X2_hist=[] # historic of data misfit obtained at each iteration
-    m1=m0
-    stop=0
-    idx=0
-    print('Iteration - Model norm - Misfit')
-    while stop == 0:
-        idx=idx+1
-        m_it, X2_it, A = solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m1, V, damping_factor)
-        m_hist=[m_hist,m1] # stacks model parameters
-        mnorm_hist = [mnorm_hist,rmsNorm(m1-m_it)] # stacks norm of model diffreence
-        X2_hist=[X2_hist,X2_it] # stacks data misfit
-        m1=m_it # updates m0
+    # Keeps track of values for each iteration
+    iterations_logs = pd.DataFrame({
+        'x': [inversion_params['m0'][0]],
+        'y': [inversion_params['m0'][1]],
+        'z': [inversion_params['m0'][2]],
+        'norm': np.nan,
+        'data_misfit': np.nan,
+        })
 
+    # Start iterations
+    stop = False
+    idx=0
+    while stop == False:
+        idx=idx+1
+        # Linear inversion
+        m_it, data_misfit_it = solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m, V, damping_factor)
+        # Save model and data misfit for each iteration
+        iterations_logs = iterations_logs.append({
+            'x': m_it['x'].values[0],
+            'y': m_it['y'].values[0],
+            'z': m_it['z'].values[0],
+            'norm': np.sqrt(np.square(m_it).sum(axis=1)).values[0],
+            'data_misfit': data_misfit_it,
+            }, ignore_index=True)
+        # Update m
+        m = m_it
         # stopping criteria
         if idx>1:
-            delta_m=abs(mnorm_hist(idx)-mnorm_hist(idx-1)) # change in norm of model diffreence
-            delta_X2=abs(X2_hist(idx)-X2_hist(idx-1)) # change in misfit
-            if (delta_m<= Tdelta_m): #&& (delta_X2 <=Tdelta_X2)
-                stop=1
-            else:
-                stop=0
-
+             # change in norm of model diffreence
+            if (iterations_logs['norm'][idx] - iterations_logs['norm'][idx-1] <= Tdelta_m):
+                stop = True
+                converged=True
+            elif idx > max_iteration: # max iterations exceeded
+                stop = True
+                converged=False
         # stops if never converges
-        if idx > maxIteration:
+        if idx > max_iteration:
             stop = 1
             print('Inversion hasn''t converged.')
-            #m1=[np.I inf inf]
 
-        # # if it can't converge well (returns NaNs)
-        # if isnan(m1):
-        #     stop = 1
+    if not converged:
+        m['x']=np.nan
+        m['y']=np.nan
+        m['z']=np.nan
 
-        #print([int2str(idx-1) ' - ' num2str(mnorm_hist(idx)) ' - ' num2str(X2_hist(idx))])
+    return m, iterations_logs
 
-[m,A]=linearized_inversion(tdoa_sec,hydrophones_coords,hydrophone_pairs, inversion_params, sound_speed_mps,doplot=False)
+[m, iterations_logs]=linearized_inversion(tdoa_sec,hydrophones_coords,hydrophone_pairs, inversion_params, sound_speed_mps,doplot=False)
 
+## TODO: repeat with dfferent m0 and pick teh one with the lowest datamisfit
+## TODO: verify that the localization correspond to teh fish/matlab
 
+print('s')

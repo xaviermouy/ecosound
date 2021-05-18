@@ -100,7 +100,7 @@ def defineReceiverPairs (n_receivers, ref_receiver=0):
 def defineJacobian(R, S, V, Rpairs):
     unknowns = ['x','y','z']    # unknowns: 3D coordinates of sound source
     N = R.shape[0] - 1          # nb of measurements (TDOAs)
-    M = len(unknowns)                       # number of model parameters (unknowns)
+    M = len(unknowns)           # number of model parameters (unknowns)
     nsources = S.shape[0]       # number of sources
     J = [None] * nsources       # initiaization
     # for each source location
@@ -115,6 +115,8 @@ def defineJacobian(R, S, V, Rpairs):
                 Term2 = (1/V)*0.5*((((s.x-R.x[p2])**2)+((s.y-R.y[p2])**2)+((s.z-R.z[p2])**2))**(-0.5))*2*(s[unknown]-R[unknown][p2])
                 j[i][kk] = Term2 - Term1
         J[idx] = j  # stacks jacobians for each source
+    if nsources == 1:
+        J = J[0]
     return J
 
 def predict_tdoa(m, V, hydrophones_coords, hydrophone_pairs):
@@ -453,9 +455,9 @@ def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec
 
     Returns
     -------
-    tdoa_sec : list
+    tdoa_sec : 1-D numpy array
         Time-difference of arrival in seconds, for each hydrophone pair.
-    tdoa_corr : list
+    tdoa_corr : 1-D numpy array
         Maximum cross-correlation value for each hydrophone pair (between 0
         and 1).
 
@@ -531,4 +533,4 @@ def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec
             ax[1].grid()
             ax[1].legend()
             plt.tight_layout()
-    return tdoa_sec, tdoa_corr
+    return np.array([tdoa_sec]).transpose(), np.array([tdoa_corr]).transpose()
