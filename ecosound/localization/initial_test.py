@@ -24,15 +24,14 @@ from ecosound.core.tools import derivative_1d, envelope, read_yaml
 from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, predict_tdoa, linearized_inversion, solve_iterative_ML
 import platform
 
-def run_detector(infile, config, chunk=None, deployment_file=None):
+def run_detector(sound, config, chunk=None, deployment_file=None):
 
 
     # load audio data
-    sound = Sound(infile)
     if chunk:
-        sound.read(channel=0, chunk=[t1, t2], unit='sec', detrend=True)
+        sound.read(channel=config['AUDIO']['channel'], chunk=[t1, t2], unit='sec', detrend=True)
     else:
-        sound.read(channel=0, detrend=True)
+        sound.read(channel=config['AUDIO']['channel'], detrend=True)
 
     # Calculates  spectrogram
     spectro = Spectrogram(config['SPECTROGRAM']['frame_sec'],
@@ -59,7 +58,7 @@ def run_detector(infile, config, chunk=None, deployment_file=None):
                     inplace=True)
     # Detector
     print('Detector')
-    file_timestamp = ecosound.core.tools.filename_to_datetime(infile)[0]
+    file_timestamp = ecosound.core.tools.filename_to_datetime(sound.file_name)[0]
     detector = DetectorFactory(config['DETECTOR']['detector_name'],
                                kernel_duration=config['DETECTOR']['kernel_duration_sec'],
                                kernel_bandwidth=config['DETECTOR']['kernel_bandwidth_hz'],
@@ -75,17 +74,17 @@ def run_detector(infile, config, chunk=None, deployment_file=None):
                               )
 
     # add deployment metadata
-    detections.insert_metadata(deployment_file)
+    detections.insert_metadata(deployment_file, channel = sound.channel_selected)
 
     # Add file informations
-    file_name = os.path.splitext(os.path.basename(infile))[0]
-    file_dir = os.path.dirname(infile)
-    file_ext = os.path.splitext(infile)[1]
+    file_name = os.path.splitext(os.path.basename(sound.file_full_path))[0]
+    file_dir = os.path.dirname(sound.file_full_path)
+    file_ext = os.path.splitext(sound.file_full_path)[1]
     detections.insert_values(operator_name=platform.uname().node,
                                audio_file_name=file_name,
                                audio_file_dir=file_dir,
                                audio_file_extension=file_ext,
-                               audio_file_start_date=ecosound.core.tools.filename_to_datetime(infile)[0]
+                               audio_file_start_date=ecosound.core.tools.filename_to_datetime(sound.file_full_path)[0]
                                )
 
     print('s')
@@ -142,7 +141,12 @@ window_type = 'hann'
 t1 = 1570
 t2 = 1590
 
-run_detector(audio_files[3], detection_config, chunk = [t1, t2], deployment_file=deployment_info_file)
+
+# load audio data
+sound = Sound(audio_files[3])
+
+# run detector on reference channel
+run_detector(sound, detection_config, chunk = [t1, t2], deployment_file=deployment_info_file)
 
 ## ############################################################################
 ## ############################################################################

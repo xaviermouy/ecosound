@@ -23,7 +23,7 @@ class Sound:
     A class to load and manipulate a sound file
 
     This class can load data from an entire, or part of a, sound file, filter
-    the loaded data, select subsections, and plotteh waveform. Currently a
+    the loaded data, select subsections, and plot the waveform. Currently a
     Sound object can only load data from one channel at a time.
 
     Attributes

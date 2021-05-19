@@ -740,7 +740,7 @@ class Annotation():
                 raise ValueError('The annotation object has no field: '
                                  + str(key))
 
-    def insert_metadata(self, deployment_info_file):
+    def insert_metadata(self, deployment_info_file, channel=0):
         """
         Insert metadata infortion to the annotation.
 
@@ -753,29 +753,33 @@ class Annotation():
         deployment_info_file : str
             Csv file readable by ecosound.core.meta.DeploymentInfo.read(). It
             contains all the deployment metadata.
+        channel : int
+            Channel number of the recorder for the metadata to insert.
+            Default is 0
 
         Returns
         -------
         None.
 
         """
+        channel = int(channel)
         dep_info = DeploymentInfo()
         dep_info.read(deployment_info_file)
-        self.insert_values(UTC_offset=dep_info.data['UTC_offset'].values[0],
-                           audio_channel=dep_info.data['audio_channel_number'].values[0],
-                           audio_sampling_frequency=dep_info.data['sampling_frequency'].values[0],
-                           audio_bit_depth=dep_info.data['bit_depth'].values[0],
-                           mooring_platform_name = dep_info.data['mooring_platform_name'].values[0],
-                           recorder_type=dep_info.data['recorder_type'].values[0],
-                           recorder_SN=dep_info.data['recorder_SN'].values[0],
-                           hydrophone_model=dep_info.data['hydrophone_model'].values[0],
-                           hydrophone_SN=dep_info.data['hydrophone_SN'].values[0],
-                           hydrophone_depth=dep_info.data['hydrophone_depth'].values[0],
-                           location_name=dep_info.data['location_name'].values[0],
-                           location_lat=dep_info.data['location_lat'].values[0],
-                           location_lon=dep_info.data['location_lon'].values[0],
-                           location_water_depth=dep_info.data['location_water_depth'].values[0],
-                           deployment_ID=dep_info.data['deployment_ID'].values[0],
+        self.insert_values(UTC_offset=dep_info.data['UTC_offset'].values[channel],
+                           audio_channel=dep_info.data['audio_channel_number'].values[channel],
+                           audio_sampling_frequency=dep_info.data['sampling_frequency'].values[channel],
+                           audio_bit_depth=dep_info.data['bit_depth'].values[channel],
+                           mooring_platform_name = dep_info.data['mooring_platform_name'].values[channel],
+                           recorder_type=dep_info.data['recorder_type'].values[channel],
+                           recorder_SN=dep_info.data['recorder_SN'].values[channel],
+                           hydrophone_model=dep_info.data['hydrophone_model'].values[channel],
+                           hydrophone_SN=dep_info.data['hydrophone_SN'].values[channel],
+                           hydrophone_depth=dep_info.data['hydrophone_depth'].values[channel],
+                           location_name=dep_info.data['location_name'].values[channel],
+                           location_lat=dep_info.data['location_lat'].values[channel],
+                           location_lon=dep_info.data['location_lon'].values[channel],
+                           location_water_depth=dep_info.data['location_water_depth'].values[channel],
+                           deployment_ID=dep_info.data['deployment_ID'].values[channel],
                           )
 
     def filter_overlap_with(self, annot, freq_ovp=True,dur_factor_max=None,dur_factor_min=None,ovlp_ratio_min=None,remove_duplicates=False,inherit_metadata=False,filter_deploymentID=True, inplace=False):
