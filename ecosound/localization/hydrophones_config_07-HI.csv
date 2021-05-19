@@ -1,0 +1,7 @@
+name, x, y, z
+Hydrophone 0, -0.858, -0.860, -0.671         
+Hydrophone 1, -0.858, -0.860,  0.479
+Hydrophone 2,  0.858, -0.860, -0.671
+Hydrophone 3,  0.028,  0.000, -0.002
+Hydrophone 4, -0.858,  0.860, -0.671
+Hydrophone 5,  0.858,  0.860,  0.671 

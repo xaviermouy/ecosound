@@ -19,26 +19,106 @@ from ecosound.core.audiotools import Sound, upsample
 from ecosound.core.spectrogram import Spectrogram
 from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
-from ecosound.core.tools import derivative_1d, envelope
-from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, predict_tdoa
+import ecosound.core.tools
+from ecosound.core.tools import derivative_1d, envelope, read_yaml
+from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, predict_tdoa, linearized_inversion, solve_iterative_ML
+import platform
+
+def run_detector(infile, config, chunk=None, deployment_file=None):
+
+
+    # load audio data
+    sound = Sound(infile)
+    if chunk:
+        sound.read(channel=0, chunk=[t1, t2], unit='sec', detrend=True)
+    else:
+        sound.read(channel=0, detrend=True)
+
+    # Calculates  spectrogram
+    spectro = Spectrogram(config['SPECTROGRAM']['frame_sec'],
+                                  config['SPECTROGRAM']['window_type'],
+                                  config['SPECTROGRAM']['nfft_sec'],
+                                  config['SPECTROGRAM']['step_sec'],
+                                  sound.waveform_sampling_frequency,
+                                  unit='sec',)
+    spectro.compute(sound,
+                    config['SPECTROGRAM']['dB'],
+                    config['SPECTROGRAM']['use_dask'],
+                    config['SPECTROGRAM']['dask_chunks'],)
+
+    spectro.crop(frequency_min=config['SPECTROGRAM']['fmin_hz'],
+                         frequency_max=config['SPECTROGRAM']['fmax_hz'],
+                         inplace=True,
+                         )
+    # Denoise
+    print('Denoise')
+    spectro.denoise(config['DENOISER']['denoiser_name'],
+                    window_duration=config['DENOISER']['window_duration_sec'],
+                    use_dask=config['DENOISER']['use_dask'],
+                    dask_chunks=tuple(config['DENOISER']['dask_chunks']),
+                    inplace=True)
+    # Detector
+    print('Detector')
+    file_timestamp = ecosound.core.tools.filename_to_datetime(infile)[0]
+    detector = DetectorFactory(config['DETECTOR']['detector_name'],
+                               kernel_duration=config['DETECTOR']['kernel_duration_sec'],
+                               kernel_bandwidth=config['DETECTOR']['kernel_bandwidth_hz'],
+                               threshold=config['DETECTOR']['threshold'],
+                               duration_min=config['DETECTOR']['duration_min_sec'],
+                               bandwidth_min=config['DETECTOR']['bandwidth_min_hz']
+                               )
+    detections = detector.run(spectro,
+                              start_time=file_timestamp,
+                              use_dask=config['DETECTOR']['use_dask'],
+                              dask_chunks=tuple(config['DETECTOR']['dask_chunks']),
+                              debug=False,
+                              )
+
+    # add deployment metadata
+    detections.insert_metadata(deployment_file)
+
+    # Add file informations
+    file_name = os.path.splitext(os.path.basename(infile))[0]
+    file_dir = os.path.dirname(infile)
+    file_ext = os.path.splitext(infile)[1]
+    detections.insert_values(operator_name=platform.uname().node,
+                               audio_file_name=file_name,
+                               audio_file_dir=file_dir,
+                               audio_file_extension=file_ext,
+                               audio_file_start_date=ecosound.core.tools.filename_to_datetime(infile)[0]
+                               )
+
+    print('s')
+
+    #measurements.insert_metadata(deployment_file)
 
 ## ############################################################################
-#TDOA
-ref_channel=3
-#Linearized inversion
-sound_speed_mps = 1484
-inversion_params = {
-    'm0': [-1,-1,-1],
-    'damping_factor': 0.1,
-    'stop_delta_m': 0.0001, # threshold for stoping iterations (change in norm of models)
-    'max_iteration': 2000,
-    }
-# hydrophone coordinates (meters)
-x=[-0.858, -0.858,  0.858, 0.028, -0.858, 0.858]
-y=[-0.860, -0.860, -0.860, 0.000,  0.860, 0.860]
-z=[-0.671,  0.479, -0.671,-0.002, -0.671, 0.671]
-names=['Hydrophone 0', 'Hydrophone 1', 'Hydrophone 2', 'Hydrophone 3', 'Hydrophone 4', 'Hydrophone 5']
-hydrophones_coords= pd.DataFrame({'name':names, 'x':x,'y':y, 'z':z})
+
+# Config files
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\hydrophones_config_07-HI.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\detection_config.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\localization_config.yaml'
+deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\deployment_info.csv'
+
+# load configuration parameters
+hydrophones_coords= pd.read_csv(hydrophones_config_file) # load hydrophone coordinates (meters)
+detection_config = read_yaml(detection_config_file)
+localization_config = read_yaml(localization_config_file)
+
+# #TDOA
+# ref_channel=3
+# #Linearized inversion
+# sound_speed_mps = 1484
+# inversion_params = {
+#     'start_model':[0,0,0],
+#     'start_model_repeats': 5,
+#     'damping_factor': 0.2,
+#     'stop_delta_m': 0.01, # threshold for stoping iterations (change in norm of models)
+#     'stop_max_iteration': 1000,
+#     }
+
+
+
 
 # audio files
 audio_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\wav_files\localization'
@@ -62,50 +142,36 @@ window_type = 'hann'
 t1 = 1570
 t2 = 1590
 
+run_detector(audio_files[3], detection_config, chunk = [t1, t2], deployment_file=deployment_info_file)
+
 ## ############################################################################
 ## ############################################################################
 
-# plot hydrophones
-fig1 = plt.figure()
-ax = fig1.add_subplot(111, projection='3d')
-colors = matplotlib.cm.tab10(hydrophones_coords.index.values)
-# Sources
-for index, hp in hydrophones_coords.iterrows():
-    point = ax.scatter(hp['x'],hp['y'],hp['z'],
-                    s=20,
-                    color=colors[index],
-                    label=hp['name'],
-                    )
-# Axes labels
-ax.set_xlabel('X (m)', labelpad=10)
-ax.set_ylabel('Y (m)', labelpad=10)
-ax.set_zlabel('Z (m)', labelpad=10)
-# legend
-ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
-plt.tight_layout()
-plt.show()
+# # plot hydrophones
+# fig1 = plt.figure()
+# ax = fig1.add_subplot(111, projection='3d')
+# colors = matplotlib.cm.tab10(hydrophones_coords.index.values)
+# # Sources
+# for index, hp in hydrophones_coords.iterrows():
+#     point = ax.scatter(hp['x'],hp['y'],hp['z'],
+#                     s=20,
+#                     color=colors[index],
+#                     label=hp['name'],
+#                     )
+# # Axes labels
+# ax.set_xlabel('X (m)', labelpad=10)
+# ax.set_ylabel('Y (m)', labelpad=10)
+# ax.set_zlabel('Z (m)', labelpad=10)
+# # legend
+# ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
+# plt.tight_layout()
+# plt.show()
 
 ## ###########################################################################
 ##               Automatic detection on reference channel
 ## ###########################################################################
 
-# load audio data
-sound = Sound(audio_files[ref_channel])
-sound.read(channel=0, chunk=[t1, t2], unit='sec', detrend=True)
 
-# Calculates  spectrogram
-spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='sec')
-spectro.compute(sound, dB=True, use_dask=True, dask_chunks=40)
-
-# Crop unused frequencies
-spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
-
-# Denoise
-spectro.denoise('median_equalizer', window_duration=3, use_dask=True, dask_chunks=(2048,1000), inplace=True)
-
-# Detector
-detector = DetectorFactory('BlobDetector', use_dask=True, dask_chunks=(2048,2000), kernel_duration=0.05, kernel_bandwidth=300, threshold=20, duration_min=0.05, bandwidth_min=40)
-detections = detector.run(spectro, debug=False)
 
 
 ## ###########################################################################
@@ -188,92 +254,18 @@ tdoa_sec, corr_val = calc_tdoa(waveform_stack,
 # 1 - calc TDOA on sliding window
 # 2 - calc TDOA on narrow frequency bands
 # 3 - Use less Hp to localize
+## ###########################################################################
+##                                Localisation
+## ###########################################################################
 
 # Lineralized inversion
+[m, iterations_logs] = linearized_inversion(tdoa_sec,
+                                            hydrophones_coords,
+                                            hydrophone_pairs,
+                                            inversion_params,
+                                            sound_speed_mps,
+                                            doplot=False)
 
-
-
-def solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m, V, damping_factor):
-    # Define the Jacobian matrix: Eq. (5) in Mouy et al. (2018)
-    A = defineJacobian(hydrophones_coords, m, V, hydrophone_pairs)
-    # Predicted TDOA at m (forward problem): Eq. (1) in Mouy et al. (2018)
-    d0 = predict_tdoa(m, V, hydrophones_coords, hydrophone_pairs)
-    # Reformulation of the problem
-    delta_d = d-d0 # Delta d: original data - predicted data
-    # Resolving by creeping approach(ML inverse for delta m): Eq. (6) in Mouy et al. (2018)
-    delta_m = np.dot(np.dot(np.linalg.inv(np.dot(A.transpose(),A)),A.transpose()),delta_d) #general inverse
-    # New model: Eq. (7) in Mouy et al. (2018)
-    m_new = m.iloc[0].values + (damping_factor*delta_m.transpose())
-    m['x'] = m_new[0,0]
-    m['y'] = m_new[0,1]
-    m['z'] = m_new[0,2]
-    # ## jumping approach
-    # #m=inv(A'*CdInv*A)*A'*CdInv*dprime; % retrieved model using ML
-    # Data misfit
-    part1 = np.dot(A,delta_m)-delta_d
-    data_misfit = np.dot(part1.transpose(), part1)
-    return m, data_misfit[0, 0]
-
-
-def linearized_inversion(d, hydrophones_coords,hydrophone_pairs,inversion_params, sound_speed_mps, doplot=False):
-
-    # convert parameters to numpy arrays or pandas dataframes
-    m = pd.DataFrame({'x': [inversion_params['m0'][0]], 'y': [inversion_params['m0'][1]], 'z': [inversion_params['m0'][2]]})
-    damping_factor = np.array(inversion_params['damping_factor'])
-    Tdelta_m = np.array(inversion_params['stop_delta_m'])
-    V = np.array(sound_speed_mps)
-    max_iteration = np.array(inversion_params['max_iteration'])
-
-    # Keeps track of values for each iteration
-    iterations_logs = pd.DataFrame({
-        'x': [inversion_params['m0'][0]],
-        'y': [inversion_params['m0'][1]],
-        'z': [inversion_params['m0'][2]],
-        'norm': np.nan,
-        'data_misfit': np.nan,
-        })
-
-    # Start iterations
-    stop = False
-    idx=0
-    while stop == False:
-        idx=idx+1
-        # Linear inversion
-        m_it, data_misfit_it = solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m, V, damping_factor)
-        # Save model and data misfit for each iteration
-        iterations_logs = iterations_logs.append({
-            'x': m_it['x'].values[0],
-            'y': m_it['y'].values[0],
-            'z': m_it['z'].values[0],
-            'norm': np.sqrt(np.square(m_it).sum(axis=1)).values[0],
-            'data_misfit': data_misfit_it,
-            }, ignore_index=True)
-        # Update m
-        m = m_it
-        # stopping criteria
-        if idx>1:
-             # change in norm of model diffreence
-            if (iterations_logs['norm'][idx] - iterations_logs['norm'][idx-1] <= Tdelta_m):
-                stop = True
-                converged=True
-            elif idx > max_iteration: # max iterations exceeded
-                stop = True
-                converged=False
-        # stops if never converges
-        if idx > max_iteration:
-            stop = 1
-            print('Inversion hasn''t converged.')
-
-    if not converged:
-        m['x']=np.nan
-        m['y']=np.nan
-        m['z']=np.nan
-
-    return m, iterations_logs
-
-[m, iterations_logs]=linearized_inversion(tdoa_sec,hydrophones_coords,hydrophone_pairs, inversion_params, sound_speed_mps,doplot=False)
-
-## TODO: repeat with dfferent m0 and pick teh one with the lowest datamisfit
 ## TODO: verify that the localization correspond to teh fish/matlab
 
 print('s')

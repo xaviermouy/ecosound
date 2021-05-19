@@ -13,6 +13,7 @@ import time
 import os
 from ecosound.core.audiotools import upsample
 import scipy.signal
+from numba import njit
 
 
 def defineSphereSurfaceGrid(npoints, radius, origin=[0, 0, 0]):
@@ -95,7 +96,6 @@ def defineReceiverPairs (n_receivers, ref_receiver=0):
             pair = [ref_receiver, i]
             Rpairs.append(pair)
     return Rpairs
-
 
 def defineJacobian(R, S, V, Rpairs):
     unknowns = ['x','y','z']    # unknowns: 3D coordinates of sound source
@@ -489,9 +489,9 @@ def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec
         s1 = waveform_stack[hydrophone_pair[0]]
         s2 = waveform_stack[hydrophone_pair[1]]
         # cross correlation
-        corr = scipy.signal.correlate(s1,s2, mode='full', method='auto')
+        corr = scipy.signal.correlate(s2,s1, mode='full', method='auto')
         corr = corr/(np.linalg.norm(s1)*np.linalg.norm(s2))
-        lag_array = scipy.signal.correlation_lags(s1.size, s2.size, mode="full")
+        lag_array = scipy.signal.correlation_lags(s2.size,s1.size, mode="full")
         # Identify correlation peak within the TDOA search window (SW)
         if TDOA_max_sec:
             SW_start_idx = np.where(lag_array == -TDOA_max_samp)[0][0] # search window start idx
@@ -507,8 +507,8 @@ def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec
 
         if doplot:
             fig, ax = plt.subplots(nrows=2, sharex=False)
-            ax[0].plot(s1, color='black', label= 'Hydrophone ' + str(hydrophone_pair[0]))
-            ax[0].plot(s2, color='red',label= 'Hydrophone ' + str(hydrophone_pair[1]))
+            ax[0].plot(s1, color='red', label= 'Hydrophone ' + str(hydrophone_pair[0]) + ' (ref)')
+            ax[0].plot(s2, color='black',label= 'Hydrophone ' + str(hydrophone_pair[1]))
             ax[0].set_xlabel('Time (sample)')
             ax[0].set_ylabel('Amplitude')
             ax[0].legend()
@@ -534,3 +534,99 @@ def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec
             ax[1].legend()
             plt.tight_layout()
     return np.array([tdoa_sec]).transpose(), np.array([tdoa_corr]).transpose()
+
+
+def solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m, V, damping_factor):
+    # Define the Jacobian matrix: Eq. (5) in Mouy et al. (2018)
+    A = defineJacobian(hydrophones_coords, m, V, hydrophone_pairs)
+    # Predicted TDOA at m (forward problem): Eq. (1) in Mouy et al. (2018)
+    d0 = predict_tdoa(m, V, hydrophones_coords, hydrophone_pairs)
+    # Reformulation of the problem
+    delta_d = d-d0 # Delta d: original data - predicted data
+    # Resolving by creeping approach(ML inverse for delta m): Eq. (6) in Mouy et al. (2018)
+    delta_m = np.dot(np.dot(np.linalg.inv(np.dot(A.transpose(),A)),A.transpose()),delta_d) #general inverse
+    # New model: Eq. (7) in Mouy et al. (2018)
+    m_new = m.iloc[0].values + (damping_factor*delta_m.transpose())
+    m['x'] = m_new[0,0]
+    m['y'] = m_new[0,1]
+    m['z'] = m_new[0,2]
+    # ## jumping approach
+    # #m=inv(A'*CdInv*A)*A'*CdInv*dprime; % retrieved model using ML
+    # Data misfit
+    part1 = np.dot(A,delta_m)-delta_d
+    data_misfit = np.dot(part1.transpose(), part1)
+    return m, data_misfit[0, 0]
+
+
+def linearized_inversion(d, hydrophones_coords,hydrophone_pairs,inversion_params, sound_speed_mps, doplot=False):
+    # convert parameters to numpy arrays
+    damping_factor = np.array(inversion_params['damping_factor'])
+    Tdelta_m = np.array(inversion_params['stop_delta_m'])
+    V = np.array(sound_speed_mps)
+    max_iteration = np.array(inversion_params['stop_max_iteration'])
+    # define starting model(s)
+    start_models = [inversion_params['start_model']]
+    if inversion_params['start_model_repeats'] > 1:
+        x_bounds = [hydrophones_coords['x'].min(), hydrophones_coords['x'].max()]
+        y_bounds = [hydrophones_coords['y'].min(), hydrophones_coords['y'].max()]
+        z_bounds = [hydrophones_coords['z'].min(), hydrophones_coords['z'].max()]
+        for m_nb in range(1, inversion_params['start_model_repeats']):
+            x_tmp = np.random.uniform(low=x_bounds[0], high=x_bounds[1])
+            y_tmp = np.random.uniform(low=y_bounds[0], high=y_bounds[1])
+            z_tmp = np.random.uniform(low=z_bounds[0], high=z_bounds[1])
+            start_models.append([x_tmp, y_tmp, z_tmp])
+    m_stack = []
+    iterations_logs_stack = []
+    data_misfit_stack = []
+    for start_model in start_models:
+        # current starting model
+        m = pd.DataFrame({'x': [start_model[0]], 'y': [start_model[1]], 'z': [start_model[2]]})
+        # Keeps track of values for each iteration
+        iterations_logs = pd.DataFrame({
+            'x': [start_model[0]],
+            'y': [start_model[1]],
+            'z': [start_model[2]],
+            'norm': np.nan,
+            'data_misfit': np.nan,
+            })
+        # Start iterations
+        stop = False
+        idx=0
+        while stop == False:
+            idx=idx+1
+            # Linear inversion
+            m_it, data_misfit_it = solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m, V, damping_factor)
+            # Save model and data misfit for each iteration
+            iterations_logs = iterations_logs.append({
+                'x': m_it['x'].values[0],
+                'y': m_it['y'].values[0],
+                'z': m_it['z'].values[0],
+                'norm': np.sqrt(np.square(m_it).sum(axis=1)).values[0],
+                'data_misfit': data_misfit_it,
+                }, ignore_index=True)
+            # Update m
+            m = m_it
+            # stopping criteria
+            if idx>1:
+                 # change in norm of model diffreence
+                if (iterations_logs['norm'][idx] - iterations_logs['norm'][idx-1] <= Tdelta_m):
+                    stop = True
+                    converged=True
+                elif idx > max_iteration: # max iterations exceeded
+                    stop = True
+                    converged=False
+            # stops if never converges
+            if idx > max_iteration:
+                stop = 1
+                print('Inversion hasn''t converged.')
+        if not converged:
+            m['x']=np.nan
+            m['y']=np.nan
+            m['z']=np.nan
+        # Save results for each starting model
+        m_stack.append(m)
+        iterations_logs_stack.append(iterations_logs)
+        data_misfit_stack.append(iterations_logs['data_misfit'].iloc[-1])
+    # Select results for starting model with best ending data misfit
+    min_idx = data_misfit_stack.index(min(data_misfit_stack))
+    return m_stack[min_idx], iterations_logs_stack[min_idx]

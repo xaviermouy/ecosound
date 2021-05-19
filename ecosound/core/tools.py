@@ -14,6 +14,7 @@ from scipy.signal import argrelmax
 import os, sys
 from numba import njit
 import pkg_resources
+import yaml
 
 def read_json(file):
     """Load JSON file as dict."""
@@ -21,6 +22,26 @@ def read_json(file):
         data = json.load(read_file)
     return data
 
+
+def read_yaml(file):
+    """
+    Load config file.
+
+    Parameters
+    ----------
+    file : str
+        Path of the yaml file with all the parameters.
+
+    Returns
+    -------
+    config : dict
+        Parsed parameters.
+
+    """
+    # Loads config  files
+    yaml_file = open(file)
+    config = yaml.load(yaml_file, Loader=yaml.FullLoader)
+    return config
 
 @ecosound.core.decorators.listinput
 def filename_to_datetime(files):
