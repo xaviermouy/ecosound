@@ -14,6 +14,7 @@ import mpl_toolkits.mplot3d
 import matplotlib.cm
 #import scipy.spatial
 import numpy as np
+import datetime
 
 from ecosound.core.audiotools import Sound, upsample
 from ecosound.core.spectrogram import Spectrogram
@@ -24,14 +25,34 @@ from ecosound.core.tools import derivative_1d, envelope, read_yaml
 from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, predict_tdoa, linearized_inversion, solve_iterative_ML
 import platform
 
-def run_detector(sound, config, chunk=None, deployment_file=None):
+def find_audio_files(filename, hydrophones_config):
+    """ Find corresponding files and channels for all the hydrophones of the array """
+    filename = os.path.basename(infile)
+    # Define file tail
+    for file_root in hydrophones_config['file_name_root']:
+        idx = filename.find(file_root)
+        if idx >= 0:
+            file_tail = filename[len(file_root):]
+            break
+    # Loop through channels and define all files paths and audio channels
+    audio_files = {'path':[], 'channel':[]}
+    for row_idx, row_data in hydrophones_config.iterrows():
+        file_path = os.path.join(row_data.data_path, row_data.file_name_root + file_tail)
+        chan = row_data.audio_file_channel
+        audio_files['path'].append(file_path)
+        audio_files['channel'].append(chan)
+    return audio_files
 
+def run_detector(infile, channel, config, chunk=None, deployment_file=None):
 
+    sound = Sound(infile)
     # load audio data
     if chunk:
-        sound.read(channel=config['AUDIO']['channel'], chunk=[t1, t2], unit='sec', detrend=True)
+        sound.read(channel=channel, chunk=[t1, t2], unit='sec', detrend=True)
+        time_offset_sec = t1
     else:
-        sound.read(channel=config['AUDIO']['channel'], detrend=True)
+        sound.read(channel=channel, detrend=True)
+        time_offset_sec = 0
 
     # Calculates  spectrogram
     spectro = Spectrogram(config['SPECTROGRAM']['frame_sec'],
@@ -58,7 +79,7 @@ def run_detector(sound, config, chunk=None, deployment_file=None):
                     inplace=True)
     # Detector
     print('Detector')
-    file_timestamp = ecosound.core.tools.filename_to_datetime(sound.file_name)[0]
+    file_timestamp = ecosound.core.tools.filename_to_datetime(sound.file_full_path)[0]
     detector = DetectorFactory(config['DETECTOR']['detector_name'],
                                kernel_duration=config['DETECTOR']['kernel_duration_sec'],
                                kernel_bandwidth=config['DETECTOR']['kernel_bandwidth_hz'],
@@ -66,15 +87,19 @@ def run_detector(sound, config, chunk=None, deployment_file=None):
                                duration_min=config['DETECTOR']['duration_min_sec'],
                                bandwidth_min=config['DETECTOR']['bandwidth_min_hz']
                                )
+    start_time = file_timestamp + datetime.timedelta(seconds=time_offset_sec)
     detections = detector.run(spectro,
-                              start_time=file_timestamp,
+                              start_time=start_time,
                               use_dask=config['DETECTOR']['use_dask'],
                               dask_chunks=tuple(config['DETECTOR']['dask_chunks']),
                               debug=False,
                               )
+    # add time offset in only a section of recording was analysed.
+    detections.data['time_min_offset'] = detections.data['time_min_offset'] + time_offset_sec
+    detections.data['time_max_offset'] = detections.data['time_max_offset'] + time_offset_sec
 
     # add deployment metadata
-    detections.insert_metadata(deployment_file, channel = sound.channel_selected)
+    detections.insert_metadata(deployment_file, channel=channel)
 
     # Add file informations
     file_name = os.path.splitext(os.path.basename(sound.file_full_path))[0]
@@ -87,136 +112,90 @@ def run_detector(sound, config, chunk=None, deployment_file=None):
                                audio_file_start_date=ecosound.core.tools.filename_to_datetime(sound.file_full_path)[0]
                                )
 
-    print('s')
+    return detections
 
-    #measurements.insert_metadata(deployment_file)
+
+def plot_data(audio_files,frame, window_type, nfft, step, fmin, fmax, chunk = None, detections=None, detections_channel=0):
+    graph_spectros = GrapherFactory('SoundPlotter', title='Spectrograms', frequency_max=fmax)
+    graph_waveforms = GrapherFactory('SoundPlotter', title='Waveforms')
+    for audio_file, channel in zip(audio_files['path'], audio_files['channel'] ): # for each channel
+        # load waveform
+        sound = Sound(audio_file)
+        sound.read(channel=channel, chunk=chunk, unit='sec', detrend=True)
+        # Calculates  spectrogram
+        spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='sec')
+        spectro.compute(sound, dB=True, use_dask=False)
+        # Crop unused frequencies
+        spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
+        # Plot
+        graph_spectros.add_data(spectro, time_offset_sec=chunk[0])
+        graph_waveforms.add_data(sound, time_offset_sec=chunk[0])
+
+    graph_spectros.colormap = 'binary'
+    if detections:
+        graph_spectros.add_annotation(detections, panel=detections_channel, color='green',label='Detections')
+        graph_waveforms.add_annotation(detections, panel=detections_channel, color='green',label='Detections')
+
+    if chunk:
+        graph_spectros.time_min = chunk[0]
+        graph_spectros.time_max = chunk[1]
+        graph_waveforms.time_min = chunk[0]
+        graph_waveforms.time_max = chunk[1]
+
+    graph_spectros.show()
+    graph_waveforms.show()
 
 ## ############################################################################
 
 # Config files
-hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\hydrophones_config_07-HI.csv'
-detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\detection_config.yaml'
-localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\localization_config.yaml'
-deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\deployment_info.csv'
+deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_07-HI.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config.yaml'
 
 # load configuration parameters
-hydrophones_coords= pd.read_csv(hydrophones_config_file) # load hydrophone coordinates (meters)
+hydrophones_config= pd.read_csv(hydrophones_config_file) # load hydrophone coordinates (meters)
 detection_config = read_yaml(detection_config_file)
 localization_config = read_yaml(localization_config_file)
 
-# #TDOA
-# ref_channel=3
-# #Linearized inversion
-# sound_speed_mps = 1484
-# inversion_params = {
-#     'start_model':[0,0,0],
-#     'start_model_repeats': 5,
-#     'damping_factor': 0.2,
-#     'stop_delta_m': 0.01, # threshold for stoping iterations (change in norm of models)
-#     'stop_max_iteration': 1000,
-#     }
-
-
-
-
-# audio files
-audio_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\wav_files\localization'
-audio_files = []
-audio_files.append(os.path.join(audio_dir, 'AMAR173.1.20190920T161248Z.wav'))
-audio_files.append(os.path.join(audio_dir, 'AMAR173.2.20190920T161248Z.wav'))
-audio_files.append(os.path.join(audio_dir, 'AMAR173.3.20190920T161248Z.wav'))
-audio_files.append(os.path.join(audio_dir, 'AMAR173.4.20190920T161248Z.wav'))
-audio_files.append(os.path.join(audio_dir, 'AMAR173.5.20190920T161248Z.wav'))
-audio_files.append(os.path.join(audio_dir, 'AMAR173.6.20190920T161248Z.wav'))
-
-# detection parameters:
-# Spectrogram parameters
-frame = 0.0625
-nfft = 0.0853
-step = 0.01
-fmin = 0
-fmax = 1000
-window_type = 'hann'
-# start and stop time of wavfile to analyze
+# will need to loop later ?
+infile = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\wav_files\localization\AMAR173.4.20190920T161248Z.wav'
 t1 = 1570
 t2 = 1590
 
+# Look up data files for all channels
+audio_files = find_audio_files(infile, hydrophones_config)
 
-# load audio data
-sound = Sound(audio_files[3])
+# run detector on selected channel
+detections = run_detector(audio_files['path'][detection_config['AUDIO']['channel']],
+                          audio_files['channel'][detection_config['AUDIO']['channel']],
+                          detection_config,
+                          chunk = [t1, t2],
+                          deployment_file=deployment_info_file)
 
-# run detector on reference channel
-run_detector(sound, detection_config, chunk = [t1, t2], deployment_file=deployment_info_file)
-
-## ############################################################################
-## ############################################################################
-
-# # plot hydrophones
-# fig1 = plt.figure()
-# ax = fig1.add_subplot(111, projection='3d')
-# colors = matplotlib.cm.tab10(hydrophones_coords.index.values)
-# # Sources
-# for index, hp in hydrophones_coords.iterrows():
-#     point = ax.scatter(hp['x'],hp['y'],hp['z'],
-#                     s=20,
-#                     color=colors[index],
-#                     label=hp['name'],
-#                     )
-# # Axes labels
-# ax.set_xlabel('X (m)', labelpad=10)
-# ax.set_ylabel('Y (m)', labelpad=10)
-# ax.set_zlabel('Z (m)', labelpad=10)
-# # legend
-# ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
-# plt.tight_layout()
-# plt.show()
-
-## ###########################################################################
-##               Automatic detection on reference channel
-## ###########################################################################
-
-
-
-
-## ###########################################################################
-##                             Plot all channels
-## ###########################################################################
-
-graph_spectros = GrapherFactory('SoundPlotter', title='Spectrograms', frequency_max=1000)
-graph_waveforms = GrapherFactory('SoundPlotter', title='Waveforms', frequency_max=1000)
-
-for idx, audio_file in enumerate(audio_files): # for each channel
-    # load waveform
-    sound = Sound(audio_file)
-    sound.read(channel=0, chunk=[t1, t2], unit='sec', detrend=True)
-    # Calculates  spectrogram
-    spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='sec')
-    spectro.compute(sound, dB=True, use_dask=True, dask_chunks=40)
-    # Crop unused frequencies
-    spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
-    # Plot
-    graph_spectros.add_data(spectro)
-    graph_waveforms.add_data(sound)
-
-graph_spectros.colormap = 'binary'
-graph_spectros.add_annotation(detections, panel=ref_channel, color='green',label='Detections')
-graph_spectros.show()
-
-graph_waveforms.add_annotation(detections, panel=ref_channel, color='green',label='Detections')
-graph_waveforms.show()
+# plot spectrogram/waveforms of all channels and detections
+plot_data(audio_files,
+          detection_config['SPECTROGRAM']['frame_sec'],
+          detection_config['SPECTROGRAM']['window_type'],
+          detection_config['SPECTROGRAM']['nfft_sec'],
+          detection_config['SPECTROGRAM']['step_sec'],
+          detection_config['SPECTROGRAM']['fmin_hz'],
+          detection_config['SPECTROGRAM']['fmax_hz'],
+          chunk = [t1, t2],
+          detections=detections,
+          detections_channel=detection_config['AUDIO']['channel'])
 
 
 ## ###########################################################################
 ##                                   TDOA
 ## ###########################################################################
 
-
 # define search window based on hydrophone separation and sound speed
-hydrophones_dist_matrix = calc_hydrophones_distances(hydrophones_coords)
+hydrophones_dist_matrix = calc_hydrophones_distances(hydrophones_config)
 TDOA_max_sec = np.max(hydrophones_dist_matrix)/sound_speed_mps
 
 # define hydrophone pairs
-hydrophone_pairs = defineReceiverPairs(len(hydrophones_coords), ref_receiver=ref_channel)
+hydrophone_pairs = defineReceiverPairs(len(hydrophones_config), ref_receiver=ref_channel)
 
 # pick single detection (will use loop after)
 detec = detections.data.iloc[0]
@@ -262,9 +241,21 @@ tdoa_sec, corr_val = calc_tdoa(waveform_stack,
 ##                                Localisation
 ## ###########################################################################
 
+# #TDOA
+# ref_channel=3
+# #Linearized inversion
+# sound_speed_mps = 1484
+# inversion_params = {
+#     'start_model':[0,0,0],
+#     'start_model_repeats': 5,
+#     'damping_factor': 0.2,
+#     'stop_delta_m': 0.01, # threshold for stoping iterations (change in norm of models)
+#     'stop_max_iteration': 1000,
+#     }
+
 # Lineralized inversion
 [m, iterations_logs] = linearized_inversion(tdoa_sec,
-                                            hydrophones_coords,
+                                            hydrophones_config,
                                             hydrophone_pairs,
                                             inversion_params,
                                             sound_speed_mps,
@@ -273,3 +264,24 @@ tdoa_sec, corr_val = calc_tdoa(waveform_stack,
 ## TODO: verify that the localization correspond to teh fish/matlab
 
 print('s')
+
+
+# # plot hydrophones
+# fig1 = plt.figure()
+# ax = fig1.add_subplot(111, projection='3d')
+# colors = matplotlib.cm.tab10(hydrophones_config.index.values)
+# # Sources
+# for index, hp in hydrophones_config.iterrows():
+#     point = ax.scatter(hp['x'],hp['y'],hp['z'],
+#                     s=20,
+#                     color=colors[index],
+#                     label=hp['name'],
+#                     )
+# # Axes labels
+# ax.set_xlabel('X (m)', labelpad=10)
+# ax.set_ylabel('Y (m)', labelpad=10)
+# ax.set_zlabel('Z (m)', labelpad=10)
+# # legend
+# ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
+# plt.tight_layout()
+# plt.show()

@@ -161,7 +161,7 @@ class SoundPlotter(BaseClass):
         version = '0.1'
         return version
 
-    def add_data(self, *args):
+    def add_data(self, *args, time_offset_sec=0):
         """
         Define sound or spectrogram data to plot.
 
@@ -191,7 +191,8 @@ class SoundPlotter(BaseClass):
         if len(args) < 1:
             raise ValueError('There must be at least one input argument')
         # Check  type of each input arguments
-        self._stack_data(args)
+        self._stack_data(args, time_offset_sec=time_offset_sec)
+
 
     def add_annotation(self, annotation, panel=None, label=False, color='red', tag=False, line_width=1):
         """
@@ -312,9 +313,9 @@ class SoundPlotter(BaseClass):
             else:
                 current_ax = ax[idx]
             if data['type'] == 'waveform':
-                self._plot_waveform(data['data'], current_ax, title=titles[idx])
+                self._plot_waveform(data['data'], current_ax, time_offset_sec=data['time_offset_sec'], title=titles[idx])
             elif data['type'] == 'spectrogram':
-                self._plot_spectrogram(data['data'], current_ax, title=titles[idx])
+                self._plot_spectrogram(data['data'], current_ax, time_offset_sec=data['time_offset_sec'], title=titles[idx])
             # only dipslay x label of bottom plot if shared axes
             if self.share_xaxis and (idx != nb_plots-1):
                 current_ax.set_xlabel('')
@@ -347,7 +348,7 @@ class SoundPlotter(BaseClass):
                     unique_labels=list(set(labels))
                     new_handles=[]
                     for l in unique_labels:
-                        new_handles.append(handles[labels.index(l)])                        
+                        new_handles.append(handles[labels.index(l)])
                     current_ax.legend(new_handles,unique_labels,loc='upper right')
 
                 if annot['tag'] is True:
@@ -370,8 +371,8 @@ class SoundPlotter(BaseClass):
                                 y = max(current_ax.get_ylim())
                             conf = str(round(row['confidence'],2))
                         current_ax.text(x, y, conf, size=8, bbox=bbox_props)
-                    
-                
+
+
         return fig, ax
 
     def to_file(self, filename):
@@ -432,23 +433,25 @@ class SoundPlotter(BaseClass):
                                  label=label)
             ax.add_patch(rect)
 
-    def _stack_data(self, args):
+    def _stack_data(self, args, time_offset_sec=0):
         """Stack data to be plotted."""
         for idx, arg in enumerate(args):
             if isinstance(arg, Sound):
-                self.data.append({'data': arg, 'type': 'waveform'})
+                self.data.append({'data': arg, 'type': 'waveform', 'time_offset_sec': time_offset_sec})
             elif isinstance(arg, Spectrogram):
-                self.data.append({'data': arg, 'type': 'spectrogram'})
+                self.data.append({'data': arg, 'type': 'spectrogram', 'time_offset_sec': time_offset_sec})
             else:
                 raise ValueError('Type of input argument not recognized.'
                                  'Accepted object types: Spectrogram, Sound')
 
-    def _plot_spectrogram(self, spectro, current_ax, title=None):
+    def _plot_spectrogram(self, spectro, current_ax, time_offset_sec=0, title=None):
         """Plot spectrogram on the current axis"""
         if self.frequency_max is None:
             self.frequency_max = spectro.sampling_frequency/2
         assert len(spectro.spectrogram) > 0, "Spectrogram not computed yet. "
         "Use the .compute() method first."
+        # add time offset if defined
+        spectro._axis_times = spectro.axis_times + time_offset_sec
         if self.unit == 'sec':
             if self.time_max is None:
                 self.time_max = spectro.axis_times[-1]
@@ -463,6 +466,7 @@ class SoundPlotter(BaseClass):
             xlabel = 'Time (sec)'
         elif self.unit == 'samp':
             axis_t = np.arange(0, len(spectro.axis_times), 1)
+            axis_t = axis_t + round(time_offset_sec/spectro.time_resolution)
             if self.time_max is None:
                 self.time_max = axis_t[-1]
             current_ax.pcolormesh(axis_t,
@@ -488,7 +492,7 @@ class SoundPlotter(BaseClass):
         #    current_ax.grid()
         return
 
-    def _plot_waveform(self, sound, current_ax, title=None):
+    def _plot_waveform(self, sound, current_ax, time_offset_sec=0, title=None):
         """Plot waveform of a sound object on the current axis."""
         if len(sound._waveform) == 0:
             raise ValueError('Cannot plot, waveform data enpty. Use Sound.read'
@@ -497,9 +501,11 @@ class SoundPlotter(BaseClass):
             axis_t = np.arange(0, sound.waveform_duration_sample
                                / sound.waveform_sampling_frequency, 1
                                / sound.waveform_sampling_frequency)
+            axis_t = axis_t + time_offset_sec
             xlabel = 'Time (sec)'
         elif self.unit == 'samp':
             axis_t = np.arange(0, len(sound._waveform), 1)
+            axis_t = axis_t + (time_offset_sec*sound.waveform_sampling_frequency)
             xlabel = 'Time (sample)'
         else:
             raise ValueError("Keyword 'unit' must be set to either 'sec' or"
@@ -511,7 +517,7 @@ class SoundPlotter(BaseClass):
         current_ax.set_xlabel(xlabel)
         current_ax.set_ylabel('Amplitude')
         current_ax.set_title(title)
-        
+
         current_ax.axis([self.time_min,
                          self.time_max,
                          min(sound._waveform),
