@@ -1,4 +1,4 @@
-name, x, y, z,array_channel,audio_file_channel,data_path,file_name_root
+name,x,y,z,array_channel,audio_file_channel,data_path,file_name_root
 Hydrophone 0,-0.858,-0.86,-0.671,0,0,C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\wav_files\localization,AMAR173.1.
 Hydrophone 1,-0.858,-0.86,0.479,1,0,C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\wav_files\localization,AMAR173.2.
 Hydrophone 2,0.858,-0.86,-0.671,2,0,C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\wav_files\localization,AMAR173.3.
