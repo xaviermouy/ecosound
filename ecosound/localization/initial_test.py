@@ -18,6 +18,7 @@ import datetime
 
 from ecosound.core.audiotools import Sound, upsample
 from ecosound.core.spectrogram import Spectrogram
+from ecosound.core.measurement import Measurement
 from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
 import ecosound.core.tools
@@ -175,7 +176,7 @@ def calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hyd
     A = defineJacobian(hydrophones_config, m, sound_speed_mps, hydrophone_pairs)
     Cm = (tdoa_errors_std**2) * np.linalg.inv(np.dot(A.transpose(),A)) # Model covariance matrix for IID
     err_std = np.sqrt(np.diag(Cm))
-    return pd.DataFrame({'x_std': err_std[0], 'y_std': err_std[1], 'z_std': err_std[2]})
+    return pd.DataFrame({'x_std': [err_std[0]], 'y_std': [err_std[1]], 'z_std': [err_std[2]]})
 
 
 ## ############################################################################
@@ -200,23 +201,25 @@ t2 = 1590
 audio_files = find_audio_files(infile, hydrophones_config)
 
 # run detector on selected channel
+print('DETECTION')
 detections = run_detector(audio_files['path'][detection_config['AUDIO']['channel']],
                           audio_files['channel'][detection_config['AUDIO']['channel']],
                           detection_config,
                           chunk = [t1, t2],
                           deployment_file=deployment_info_file)
+print(str(len(detections)) + ' detections')
 
-# plot spectrogram/waveforms of all channels and detections
-plot_data(audio_files,
-          detection_config['SPECTROGRAM']['frame_sec'],
-          detection_config['SPECTROGRAM']['window_type'],
-          detection_config['SPECTROGRAM']['nfft_sec'],
-          detection_config['SPECTROGRAM']['step_sec'],
-          detection_config['SPECTROGRAM']['fmin_hz'],
-          detection_config['SPECTROGRAM']['fmax_hz'],
-          chunk = [t1, t2],
-          detections=detections,
-          detections_channel=detection_config['AUDIO']['channel'])
+# # plot spectrogram/waveforms of all channels and detections
+# plot_data(audio_files,
+#           detection_config['SPECTROGRAM']['frame_sec'],
+#           detection_config['SPECTROGRAM']['window_type'],
+#           detection_config['SPECTROGRAM']['nfft_sec'],
+#           detection_config['SPECTROGRAM']['step_sec'],
+#           detection_config['SPECTROGRAM']['fmin_hz'],
+#           detection_config['SPECTROGRAM']['fmax_hz'],
+#           chunk = [t1, t2],
+#           detections=detections,
+#           detections_channel=detection_config['AUDIO']['channel'])
 
 
 # localization
@@ -230,57 +233,88 @@ TDOA_max_sec = np.max(hydrophones_dist_matrix)/sound_speed_mps
 # define hydrophone pairs
 hydrophone_pairs = defineReceiverPairs(len(hydrophones_config), ref_receiver=ref_channel)
 
+
+# Define Measurement object for the localization results
+localizations = Measurement()
+localizations.metadata['measurer_name'] = '3D Linearized inversion'
+localizations.metadata['measurer_version'] = '0.1'
+localizations.metadata['measurements_name'] = [['x', 'y', 'z', 'x_std', 'y_std', 'z_std', 'tdoa_errors_std']]
+
 # pick single detection (will use loop after)
-detec = detections.data.iloc[0]
-#detec = detections.data.iloc[33]
+print('LOCALIZATION')
+for detec_idx, detec in detections.data.iterrows():
 
-# load data from all channels for that detection
-waveform_stack = stack_waveforms(audio_files, detec, TDOA_max_sec)
+    #detec = detections.data.iloc[2]
+    print( str(detec_idx+1) + '/' + str(len(detections)))
 
-# calculate TDOAs
-tdoa_sec, corr_val = calc_tdoa(waveform_stack,
-                               hydrophone_pairs,
-                               detec['audio_sampling_frequency'],
-                               TDOA_max_sec=TDOA_max_sec,
-                               upsample_res_sec=localization_config['TDOA']['upsample_res_sec'],
-                               normalize=localization_config['TDOA']['normalize'],
-                               doplot=True,
-                               )
-## TO DO
-# If correlation coef too small =>
-# 1 - calc TDOA on sliding window
-# 2 - calc TDOA on narrow frequency bands
-# 3 - Use less Hp to localize
+    # load data from all channels for that detection
+    waveform_stack = stack_waveforms(audio_files, detec, TDOA_max_sec)
 
-# Lineralized inversion
-[m, iterations_logs] = linearized_inversion(tdoa_sec,
-                                            hydrophones_config,
-                                            hydrophone_pairs,
-                                            localization_config['INVERSION'],
-                                            sound_speed_mps,
-                                            doplot=False)
+    # calculate TDOAs
+    tdoa_sec, corr_val = calc_tdoa(waveform_stack,
+                                   hydrophone_pairs,
+                                   detec['audio_sampling_frequency'],
+                                   TDOA_max_sec=TDOA_max_sec,
+                                   upsample_res_sec=localization_config['TDOA']['upsample_res_sec'],
+                                   normalize=localization_config['TDOA']['normalize'],
+                                   doplot=False,
+                                   )
+    ## TO DO
+    # If correlation coef too small =>
+    # 1 - calc TDOA on sliding window
+    # 2 - calc TDOA on narrow frequency bands
+    # 3 - Use less Hp to localize
 
-# Estimate uncertainty
-tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
-loc_errors_std = calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
+    # Lineralized inversion
+    [m, iterations_logs] = linearized_inversion(tdoa_sec,
+                                                hydrophones_config,
+                                                hydrophone_pairs,
+                                                localization_config['INVERSION'],
+                                                sound_speed_mps,
+                                                doplot=False)
 
+    # Estimate uncertainty
+    tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
+    loc_errors_std = calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
 
-# Plot hydrophones
-fig1 = plt.figure()
-ax = fig1.add_subplot(111, projection='3d')
-colors = matplotlib.cm.tab10(hydrophones_config.index.values)
-# Sources
-for index, hp in hydrophones_config.iterrows():
-    point = ax.scatter(hp['x'],hp['y'],hp['z'],
-                    s=20,
-                    color=colors[index],
-                    label=hp['name'],
-                    )
-# Axes labels
-ax.set_xlabel('X (m)', labelpad=10)
-ax.set_ylabel('Y (m)', labelpad=10)
-ax.set_zlabel('Z (m)', labelpad=10)
-# legend
-ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
-plt.tight_layout()
-plt.show()
+    # Bring all detection and localization informations together
+    detec.loc['x'] = m['x'].values[0]
+    detec.loc['y'] = m['y'].values[0]
+    detec.loc['z'] = m['z'].values[0]
+    detec.loc['x_std'] = loc_errors_std['x_std'].values[0]
+    detec.loc['y_std'] = loc_errors_std['y_std'].values[0]
+    detec.loc['z_std'] = loc_errors_std['z_std'].values[0]
+    detec.loc['tdoa_errors_std'] = tdoa_errors_std[0]
+
+    # stack to results into localization object
+    localizations.data = localizations.data.append(detec, ignore_index=True)
+
+# # Plot hydrophones
+# fig1 = plt.figure()
+# ax = fig1.add_subplot(111, projection='3d')
+# colors = matplotlib.cm.tab10(hydrophones_config.index.values)
+# # Sources
+# for index, hp in hydrophones_config.iterrows():
+#     point = ax.scatter(hp['x'],hp['y'],hp['z'],
+#                     s=20,
+#                     color=colors[index],
+#                     label=hp['name'],
+#                     )
+
+# localization = ax.scatter(localizations.data['x'],
+#                           localizations.data['y'],
+#                           localizations.data['z'],
+#                     s=30,
+#                     marker='*',
+#                     color='black',
+#                     label='Localizations',
+#                     )
+
+# # Axes labels
+# ax.set_xlabel('X (m)', labelpad=10)
+# ax.set_ylabel('Y (m)', labelpad=10)
+# ax.set_zlabel('Z (m)', labelpad=10)
+# # legend
+# ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
+# plt.tight_layout()
+# plt.show()

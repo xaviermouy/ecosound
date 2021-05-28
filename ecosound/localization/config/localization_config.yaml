@@ -22,6 +22,6 @@ INVERSION:
     start_model_repeats: 5
     damping_factor: 0.2
     stop_delta_m: 0.01
-    stop_max_iteration: 1000
+    stop_max_iteration: 50
 
 

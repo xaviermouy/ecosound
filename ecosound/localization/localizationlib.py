@@ -543,18 +543,29 @@ def solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m, V, damping_fa
     d0 = predict_tdoa(m, V, hydrophones_coords, hydrophone_pairs)
     # Reformulation of the problem
     delta_d = d-d0 # Delta d: original data - predicted data
-    # Resolving by creeping approach(ML inverse for delta m): Eq. (6) in Mouy et al. (2018)
-    delta_m = np.dot(np.dot(np.linalg.inv(np.dot(A.transpose(),A)),A.transpose()),delta_d) #general inverse
-    # New model: Eq. (7) in Mouy et al. (2018)
-    m_new = m.iloc[0].values + (damping_factor*delta_m.transpose())
-    m['x'] = m_new[0,0]
-    m['y'] = m_new[0,1]
-    m['z'] = m_new[0,2]
-    # ## jumping approach
-    # #m=inv(A'*CdInv*A)*A'*CdInv*dprime; % retrieved model using ML
-    # Data misfit
-    part1 = np.dot(A,delta_m)-delta_d
-    data_misfit = np.dot(part1.transpose(), part1)
+    try:
+        # Resolving by creeping approach(ML inverse for delta m): Eq. (6) in Mouy et al. (2018)
+        delta_m = np.dot(np.dot(np.linalg.inv(np.dot(A.transpose(),A)),A.transpose()),delta_d) #general inverse
+        # New model: Eq. (7) in Mouy et al. (2018)
+        m_new = m.iloc[0].values + (damping_factor*delta_m.transpose())
+        m['x'] = m_new[0,0]
+        m['y'] = m_new[0,1]
+        m['z'] = m_new[0,2]
+        # ## jumping approach
+        # #m=inv(A'*CdInv*A)*A'*CdInv*dprime; % retrieved model using ML
+        # Data misfit
+        part1 = np.dot(A,delta_m)-delta_d
+        data_misfit = np.dot(part1.transpose(), part1)
+    except np.linalg.LinAlgError as err:
+        if 'Singular matrix' in str(err):
+            print('Error when inverting for delta_m: Singular Matrix')
+            m['x'] = np.nan
+            m['y'] = np.nan
+            m['z'] = np.nan
+            data_misfit = np.array([[np.nan]])
+        else:
+            raise err
+
     return m, data_misfit[0, 0]
 
 
@@ -601,24 +612,32 @@ def linearized_inversion(d, hydrophones_coords,hydrophone_pairs,inversion_params
                 'x': m_it['x'].values[0],
                 'y': m_it['y'].values[0],
                 'z': m_it['z'].values[0],
-                'norm': np.sqrt(np.square(m_it).sum(axis=1)).values[0],
+                #'norm': np.sqrt(np.square(m_it).sum(axis=1)).values[0],
+                'norm': np.linalg.norm(m_it.iloc[0].to_numpy() - iterations_logs.iloc[-1][['x','y','z']].to_numpy()),
                 'data_misfit': data_misfit_it,
                 }, ignore_index=True)
             # Update m
             m = m_it
             # stopping criteria
             if idx>1:
-                 # change in norm of model diffreence
-                if (iterations_logs['norm'][idx] - iterations_logs['norm'][idx-1] <= Tdelta_m):
+                 # norm of model diffreence
+                #if (iterations_logs['norm'][idx] - iterations_logs['norm'][idx-1] <= Tdelta_m):
+                if iterations_logs['norm'][idx] <= Tdelta_m:
                     stop = True
-                    converged=True
+                    if np.isnan(m['x'].values[0]):
+                        converged=False # Due to singular matrix
+                        print('Singular matrix - inversion hasn''t converged.')
+                    else:
+                        converged=True
                 elif idx > max_iteration: # max iterations exceeded
                     stop = True
                     converged=False
-            # stops if never converges
-            if idx > max_iteration:
-                stop = 1
-                print('Inversion hasn''t converged.')
+                    print('Max iterations reached - inversion hasn''t converged.')
+                elif np.isnan(m['x'].values[0]):
+                    stop = True
+                    converged=False
+                    print('Singular matrix - inversion hasn''t converged.')
+
         if not converged:
             m['x']=np.nan
             m['y']=np.nan
@@ -628,5 +647,9 @@ def linearized_inversion(d, hydrophones_coords,hydrophone_pairs,inversion_params
         iterations_logs_stack.append(iterations_logs)
         data_misfit_stack.append(iterations_logs['data_misfit'].iloc[-1])
     # Select results for starting model with best ending data misfit
-    min_idx = data_misfit_stack.index(min(data_misfit_stack))
+    min_data_misfit = np.nanmin(data_misfit_stack)
+    if np.isnan(min_data_misfit):
+        min_idx=0
+    else:
+        min_idx = data_misfit_stack.index(min_data_misfit)
     return m_stack[min_idx], iterations_logs_stack[min_idx]
