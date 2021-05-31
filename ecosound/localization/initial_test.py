@@ -15,6 +15,7 @@ import matplotlib.cm
 #import scipy.spatial
 import numpy as np
 import datetime
+import math
 
 from ecosound.core.audiotools import Sound, upsample
 from ecosound.core.spectrogram import Spectrogram
@@ -23,7 +24,7 @@ from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
 import ecosound.core.tools
 from ecosound.core.tools import derivative_1d, envelope, read_yaml
-from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, predict_tdoa, linearized_inversion, solve_iterative_ML
+from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, predict_tdoa, linearized_inversion, solve_iterative_ML, defineCubeVolumeGrid, defineSphereVolumeGrid
 import platform
 
 def find_audio_files(filename, hydrophones_config):
@@ -178,24 +179,53 @@ def calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hyd
     err_std = np.sqrt(np.diag(Cm))
     return pd.DataFrame({'x_std': [err_std[0]], 'y_std': [err_std[1]], 'z_std': [err_std[2]]})
 
+def cartesian2spherical (x,y,z):
+    # Converting cartesian to polar coordinate
+    const = 180/np.pi
+    XsqPlusYsq = x**2 + y**2
+    r = math.sqrt(XsqPlusYsq + z**2)               # r
+    elev = math.atan2(math.sqrt(XsqPlusYsq),z)     # theta
+    az = math.atan2(y,x)*180/np.pi
+    return r, az, elev
+
+# # Calculating radius
+# radius = math.sqrt( x * x + y * y )
+# # Calculating angle (theta) in radian
+# theta = math.atan(y/x)
+# # Converting theta from radian to degree
+# theta = 180 * theta/math.pi
 
 ## ############################################################################
 
-# Config files
+# # Config files XAV array hornby - quilback
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_07-HI.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config.yaml'
+# # will need to loop later ?
+# infile = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\wav_files\localization\AMAR173.4.20190920T161248Z.wav'
+# t1 = 1570
+# t2 = 1590
+
+# Config files XAV array hornby - quilback
 deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
-hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_07-HI.csv'
-detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config.yaml'
-localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config.yaml'
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_MC-ROV.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config_MC-ROV.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config_MC-ROV.yaml'
+# will need to loop later ?
+infile = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Fish-array_ROV\2020-09-09_Localization_experiment_projector\SoundTrap_20200910\5147\5147.200910210736.wav'
+#fish
+t1 = 106
+t2 = 109
+#sweeps
+t1 = 141
+t2 = 160
+
 
 # load configuration parameters
-hydrophones_config= pd.read_csv(hydrophones_config_file, skipinitialspace=True) # load hydrophone coordinates (meters)
+hydrophones_config= pd.read_csv(hydrophones_config_file, skipinitialspace=True, dtype={'name': str, 'file_name_root': str}) # load hydrophone coordinates (meters)
 detection_config = read_yaml(detection_config_file)
 localization_config = read_yaml(localization_config_file)
-
-# will need to loop later ?
-infile = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\wav_files\localization\AMAR173.4.20190920T161248Z.wav'
-t1 = 1570
-t2 = 1590
 
 # Look up data files for all channels
 audio_files = find_audio_files(infile, hydrophones_config)
@@ -233,6 +263,16 @@ TDOA_max_sec = np.max(hydrophones_dist_matrix)/sound_speed_mps
 # define hydrophone pairs
 hydrophone_pairs = defineReceiverPairs(len(hydrophones_config), ref_receiver=ref_channel)
 
+# pre-compute grid search if needed
+sources = defineSphereVolumeGrid(0.2, 2, origin=[0, 0, 0])
+#sources = defineCubeVolumeGrid(0.2, 2, origin=[0, 0, 0])
+sources_tdoa = np.zeros(shape=(3,len(sources)))
+for source_idx, source in sources.iterrows():
+    sources_tdoa[:,source_idx] = predict_tdoa(source, sound_speed_mps, hydrophones_config, hydrophone_pairs).T
+theta = np.arctan2(sources['y'].to_numpy(),sources['x'].to_numpy())*(180/np.pi) # azimuth
+phi = np.arctan2(sources['y'].to_numpy()**2+sources['x'].to_numpy()**2,sources['z'].to_numpy())*(180/np.pi)
+sources['theta'] = theta
+sources['phi'] = phi
 
 # Define Measurement object for the localization results
 localizations = Measurement()
@@ -244,7 +284,7 @@ localizations.metadata['measurements_name'] = [['x', 'y', 'z', 'x_std', 'y_std',
 print('LOCALIZATION')
 for detec_idx, detec in detections.data.iterrows():
 
-    #detec = detections.data.iloc[2]
+    detec = detections.data.iloc[2]
     print( str(detec_idx+1) + '/' + str(len(detections)))
 
     # load data from all channels for that detection
@@ -264,6 +304,41 @@ for detec_idx, detec in detections.data.iterrows():
     # 1 - calc TDOA on sliding window
     # 2 - calc TDOA on narrow frequency bands
     # 3 - Use less Hp to localize
+
+    delta_tdoa = sources_tdoa - tdoa_sec
+    delta_tdoa_norm = np.linalg.norm(delta_tdoa, axis=0)
+    sources['delta_tdoa'] = delta_tdoa_norm
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    colors = matplotlib.cm.tab10(hydrophones_config.index.values)
+    #alphas = delta_tdoa_norm - min(delta_tdoa_norm)
+    #alphas = alphas/max(alphas)
+    #alphas = alphas - 1
+    #alphas = abs(alphas)
+    #alphas = np.array(alphas)
+    alphas = 0.5
+    for index, hp in hydrophones_config.iterrows():
+        point = ax.scatter(hp['x'],hp['y'],hp['z'],
+                        s=40,
+                        color=colors[index],
+                        label=hp['name'],
+                        )
+    ax.scatter(sources['x'],
+                sources['y'],
+                sources['z'],
+                c=sources['delta_tdoa'],
+                s=20,
+                alpha=alphas,)
+    # Axes labels
+    ax.set_xlabel('X (m)', labelpad=10)
+    ax.set_ylabel('Y (m)', labelpad=10)
+    ax.set_zlabel('Z (m)', labelpad=10)
+    # legend
+    ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
+    plt.tight_layout()
+    plt.show()
+
 
     # Lineralized inversion
     [m, iterations_logs] = linearized_inversion(tdoa_sec,
@@ -289,32 +364,32 @@ for detec_idx, detec in detections.data.iterrows():
     # stack to results into localization object
     localizations.data = localizations.data.append(detec, ignore_index=True)
 
-# # Plot hydrophones
-# fig1 = plt.figure()
-# ax = fig1.add_subplot(111, projection='3d')
-# colors = matplotlib.cm.tab10(hydrophones_config.index.values)
-# # Sources
-# for index, hp in hydrophones_config.iterrows():
-#     point = ax.scatter(hp['x'],hp['y'],hp['z'],
-#                     s=20,
-#                     color=colors[index],
-#                     label=hp['name'],
-#                     )
+# Plot hydrophones
+fig1 = plt.figure()
+ax = fig1.add_subplot(111, projection='3d')
+colors = matplotlib.cm.tab10(hydrophones_config.index.values)
+# Sources
+for index, hp in hydrophones_config.iterrows():
+    point = ax.scatter(hp['x'],hp['y'],hp['z'],
+                    s=20,
+                    color=colors[index],
+                    label=hp['name'],
+                    )
 
-# localization = ax.scatter(localizations.data['x'],
-#                           localizations.data['y'],
-#                           localizations.data['z'],
-#                     s=30,
-#                     marker='*',
-#                     color='black',
-#                     label='Localizations',
-#                     )
+localization = ax.scatter(localizations.data['x'],
+                          localizations.data['y'],
+                          localizations.data['z'],
+                    s=30,
+                    marker='*',
+                    color='black',
+                    label='Localizations',
+                    )
 
-# # Axes labels
-# ax.set_xlabel('X (m)', labelpad=10)
-# ax.set_ylabel('Y (m)', labelpad=10)
-# ax.set_zlabel('Z (m)', labelpad=10)
-# # legend
-# ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
-# plt.tight_layout()
-# plt.show()
+# Axes labels
+ax.set_xlabel('X (m)', labelpad=10)
+ax.set_ylabel('Y (m)', labelpad=10)
+ax.set_zlabel('Z (m)', labelpad=10)
+# legend
+ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
+plt.tight_layout()
+plt.show()
