@@ -513,7 +513,7 @@ class SoundPlotter(BaseClass):
         if self.time_max is None:
                 self.time_max = axis_t[-1]
         #axis_t = axis_t[0:len(sound._waveform)]
-        current_ax.plot(axis_t, sound._waveform, color='black')
+        current_ax.plot(axis_t[0:len(sound._waveform)], sound._waveform, color='black')
         current_ax.set_xlabel(xlabel)
         current_ax.set_ylabel('Amplitude')
         current_ax.set_title(title)

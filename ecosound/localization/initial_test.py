@@ -207,20 +207,84 @@ def cartesian2spherical (x,y,z):
 # t1 = 1570
 # t2 = 1590
 
-# Config files XAV array hornby - quilback
+# Config files mobile array 
 deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
 hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_MC-ROV.csv'
 detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config_MC-ROV.yaml'
 localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config_MC-ROV.yaml'
 # will need to loop later ?
+
 infile = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Fish-array_ROV\2020-09-09_Localization_experiment_projector\SoundTrap_20200910\5147\5147.200910210736.wav'
+
+# 0 degree
 #fish
 t1 = 106
-t2 = 109
-#sweeps
-t1 = 141
-t2 = 160
+t2 = 119
+detec_idx=2
+# # #sweeps
+# # t1 = 141
+# # t2 = 160
+# detec_idx=2
 
+# 90 degree
+#fish
+#t1 = 106
+#t2 = 109
+# detec_idx=
+# #sweeps
+# t1 = 803.7
+# t2 = 818
+# detec_idx=1
+
+
+# 180 degree
+#fish
+#t1 = 106
+#t2 = 109
+# detec_idx=
+# #sweeps
+# t1 = 944.7
+# t2 = 955.9
+# detec_idx=0
+
+# infile = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Fish-array_ROV\2020-09-09_Localization_experiment_projector\SoundTrap_20200910\5147\5147.200910213736.wav'
+# t1 = 928.8
+# t2 = 940
+# detec_idx=0
+
+# # Config files mobile array 
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_HI-ROV.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config_MC-ROV.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config_MC-ROV.yaml'
+# infile = r'D:\XAV_array_mobile\2019-09-14_HornbyIsland_Trident\2019-09-16\trip1_morning\SoundTrap\671404070\671404070.190916182406.wav'
+# t1 = 138.6
+# t2 = 147.9
+# detec_idx=10
+
+# # Config files mobile array 
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_HI-ROV2.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config_MC-ROV.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config_MC-ROV.yaml'
+# infile = r'D:\XAV_array_mobile\2019-09-14_HornbyIsland_Trident\2019-09-18\trip1_morning\SoundTrap\671404070\671404070.190918170055.wav'
+# t1 = 155
+# t2 = 159
+# detec_idx=1
+# t1 = 258
+# t2 = 262
+# detec_idx=1
+
+
+# Config files mobile array 
+deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_HI-ROV3.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config_MC-ROV.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config_MC-ROV.yaml'
+infile = r'D:\XAV_array_mobile\2019-09-14_HornbyIsland_Trident\2019-09-18\trip2_afternoon\SoundTrap\671404070\671404070.190918222812.wav'
+t1 = 216
+t2 = 223
+detec_idx=1
 
 # load configuration parameters
 hydrophones_config= pd.read_csv(hydrophones_config_file, skipinitialspace=True, dtype={'name': str, 'file_name_root': str}) # load hydrophone coordinates (meters)
@@ -237,19 +301,20 @@ detections = run_detector(audio_files['path'][detection_config['AUDIO']['channel
                           detection_config,
                           chunk = [t1, t2],
                           deployment_file=deployment_info_file)
+detections.insert_values(frequency_min=20)
 print(str(len(detections)) + ' detections')
 
-# # plot spectrogram/waveforms of all channels and detections
-# plot_data(audio_files,
-#           detection_config['SPECTROGRAM']['frame_sec'],
-#           detection_config['SPECTROGRAM']['window_type'],
-#           detection_config['SPECTROGRAM']['nfft_sec'],
-#           detection_config['SPECTROGRAM']['step_sec'],
-#           detection_config['SPECTROGRAM']['fmin_hz'],
-#           detection_config['SPECTROGRAM']['fmax_hz'],
-#           chunk = [t1, t2],
-#           detections=detections,
-#           detections_channel=detection_config['AUDIO']['channel'])
+# plot spectrogram/waveforms of all channels and detections
+plot_data(audio_files,
+          detection_config['SPECTROGRAM']['frame_sec'],
+          detection_config['SPECTROGRAM']['window_type'],
+          detection_config['SPECTROGRAM']['nfft_sec'],
+          detection_config['SPECTROGRAM']['step_sec'],
+          detection_config['SPECTROGRAM']['fmin_hz'],
+          detection_config['SPECTROGRAM']['fmax_hz'],
+          chunk = [t1, t2],
+          detections=detections,
+          detections_channel=detection_config['AUDIO']['channel'])
 
 
 # localization
@@ -284,7 +349,7 @@ localizations.metadata['measurements_name'] = [['x', 'y', 'z', 'x_std', 'y_std',
 print('LOCALIZATION')
 for detec_idx, detec in detections.data.iterrows():
 
-    detec = detections.data.iloc[2]
+    detec = detections.data.iloc[detec_idx]
     print( str(detec_idx+1) + '/' + str(len(detections)))
 
     # load data from all channels for that detection
@@ -297,7 +362,7 @@ for detec_idx, detec in detections.data.iterrows():
                                    TDOA_max_sec=TDOA_max_sec,
                                    upsample_res_sec=localization_config['TDOA']['upsample_res_sec'],
                                    normalize=localization_config['TDOA']['normalize'],
-                                   doplot=False,
+                                   doplot=True,
                                    )
     ## TO DO
     # If correlation coef too small =>
