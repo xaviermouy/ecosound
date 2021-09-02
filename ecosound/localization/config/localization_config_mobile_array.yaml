@@ -13,9 +13,13 @@ ENVIRONMENT:
     sound_speed_mps: 1484
 
 TDOA:
-    ref_channel: 3
+    ref_channel: 2
     upsample_res_sec: 0.0000001
     normalize: False
+
+METHOD:
+    linearized_inversion: False
+    grid_search: True
 
 INVERSION:
     start_model: [0,0,0] 
@@ -24,4 +28,7 @@ INVERSION:
     stop_delta_m: 0.01
     stop_max_iteration: 50
 
-
+GRIDSEARCH:
+    origin: [0,0,0] 
+    spacing_m: 0.1
+    radius_m: 2

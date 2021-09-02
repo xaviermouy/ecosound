@@ -197,99 +197,140 @@ def cartesian2spherical (x,y,z):
 
 ## ############################################################################
 
+## ------------------------- LARGE ARRAY --------------------------------------
+
 # # Config files XAV array hornby - quilback
-# deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
-# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_07-HI.csv'
-# detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config.yaml'
-# localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config.yaml'
-# # will need to loop later ?
-# infile = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\wav_files\localization\AMAR173.4.20190920T161248Z.wav'
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190920T161248Z.wav'
 # t1 = 1570
 # t2 = 1590
 
-# Config files mobile array 
-deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
-hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_MC-ROV.csv'
-detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config_MC-ROV.yaml'
-localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config_MC-ROV.yaml'
-# will need to loop later ?
+# # Config files XAV array hornby - lingcod
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190916T234248Z.wav'
+# t1 = 1440
+# t2 = 1459
 
-infile = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Fish-array_ROV\2020-09-09_Localization_experiment_projector\SoundTrap_20200910\5147\5147.200910210736.wav'
+## ------------------------- MOBILE ARRAY -------------------------------------
 
-# 0 degree
-#fish
-t1 = 106
-t2 = 119
-detec_idx=2
-# # #sweeps
-# # t1 = 141
-# # t2 = 160
-# detec_idx=2
+# # Config files mobile array - Projector MCauley Point -> fish - 0 degree
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\hydrophones_config_MCP-20200910.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\5147.200910210736.wav'
+# # projector fish signal
+# t1 = 106
+# t2 = 119
+# detec_idx_forced=2
 
-# 90 degree
-#fish
-#t1 = 106
-#t2 = 109
-# detec_idx=
-# #sweeps
-# t1 = 803.7
-# t2 = 818
-# detec_idx=1
+# # Config files mobile array - Projector MCauley Point -> fish - 90 degree
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\hydrophones_config_MCP-20200910.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\5147.200910210736.wav'
+# # projector fish signal
+# t1 = 769 
+# t2 = 782 
+# detec_idx_forced=1
 
+# # Config files mobile array - Projector MCauley Point -> fish - 180 degree
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\hydrophones_config_MCP-20200910.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\5147.200910210736.wav'
+# # projector fish signal
+# t1 = 910#928.8
+# t2 = 923#940
+# detec_idx_forced = 0
 
-# 180 degree
-#fish
-#t1 = 106
-#t2 = 109
-# detec_idx=
-# #sweeps
-# t1 = 944.7
-# t2 = 955.9
-# detec_idx=0
+# # Config files mobile array - Projector MCauley Point -> fish - 0 degree - source 1 m above
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\hydrophones_config_MCP-20200910.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\5147.200910213736.wav'
+# # projector fish signal
+# t1 = 893.8
+# t2 = 906.5
+# detec_idx_forced = 0
 
-# infile = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Fish-array_ROV\2020-09-09_Localization_experiment_projector\SoundTrap_20200910\5147\5147.200910213736.wav'
-# t1 = 928.8
-# t2 = 940
-# detec_idx=0
-
-# # Config files mobile array 
-# deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
-# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_HI-ROV.csv'
-# detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config_MC-ROV.yaml'
-# localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config_MC-ROV.yaml'
-# infile = r'D:\XAV_array_mobile\2019-09-14_HornbyIsland_Trident\2019-09-16\trip1_morning\SoundTrap\671404070\671404070.190916182406.wav'
+# # Config files mobile array - Horny Island - Black eye goby 
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190916182406.wav'
 # t1 = 138.6
 # t2 = 147.9
-# detec_idx=10
+# detec_idx_forced = 10
 
-# # Config files mobile array 
-# deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
-# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_HI-ROV2.csv'
-# detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config_MC-ROV.yaml'
-# localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config_MC-ROV.yaml'
-# infile = r'D:\XAV_array_mobile\2019-09-14_HornbyIsland_Trident\2019-09-18\trip1_morning\SoundTrap\671404070\671404070.190918170055.wav'
+# # Config files mobile array - Horny Island - Quillback part 1 
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918170055.wav'
 # t1 = 155
 # t2 = 159
-# detec_idx=1
+# detec_idx_forced = 1
+
+# # Config files mobile array - Horny Island - Quillback part 2 
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918170055.wav'
 # t1 = 258
 # t2 = 262
-# detec_idx=1
+# detec_idx_forced = 1
+
+## -------------------------- MINI ARRAY --------------------------------------
+
+# Config files mini array - Mill Bay - ROV facing fishcam 
+deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918170055.wav'
+t1 = 258
+t2 = 262
+detec_idx_forced = 1
 
 
-# Config files mobile array 
-deployment_info_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\deployment_info.csv'
-hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\hydrophones_config_HI-ROV3.csv'
-detection_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\detection_config_MC-ROV.yaml'
-localization_config_file = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization\config\localization_config_MC-ROV.yaml'
-infile = r'D:\XAV_array_mobile\2019-09-14_HornbyIsland_Trident\2019-09-18\trip2_afternoon\SoundTrap\671404070\671404070.190918222812.wav'
+# Config files mobile array - Horny Island - Copper Rockfish
+deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
 t1 = 216
 t2 = 223
-detec_idx=1
+detec_idx_forced = 1
+
+
+
 
 # load configuration parameters
 hydrophones_config= pd.read_csv(hydrophones_config_file, skipinitialspace=True, dtype={'name': str, 'file_name_root': str}) # load hydrophone coordinates (meters)
 detection_config = read_yaml(detection_config_file)
 localization_config = read_yaml(localization_config_file)
+if localization_config['METHOD']['linearized_inversion']:
+    localization_method_name = 'Linearized inversion'
+    if localization_config['METHOD']['grid_search']:
+        raise ValueError('Only 1 localization method allowed.')
+else:
+    localization_method_name = 'Grid search'
+    if localization_config['METHOD']['grid_search'] == False:
+        raise ValueError('At least 1 localization method needs to be defined.')
 
 # Look up data files for all channels
 audio_files = find_audio_files(infile, hydrophones_config)
@@ -301,7 +342,7 @@ detections = run_detector(audio_files['path'][detection_config['AUDIO']['channel
                           detection_config,
                           chunk = [t1, t2],
                           deployment_file=deployment_info_file)
-detections.insert_values(frequency_min=20)
+#detections.insert_values(frequency_min=20)
 print(str(len(detections)) + ' detections')
 
 # plot spectrogram/waveforms of all channels and detections
@@ -329,27 +370,37 @@ TDOA_max_sec = np.max(hydrophones_dist_matrix)/sound_speed_mps
 hydrophone_pairs = defineReceiverPairs(len(hydrophones_config), ref_receiver=ref_channel)
 
 # pre-compute grid search if needed
-sources = defineSphereVolumeGrid(0.2, 2, origin=[0, 0, 0])
-#sources = defineCubeVolumeGrid(0.2, 2, origin=[0, 0, 0])
-sources_tdoa = np.zeros(shape=(3,len(sources)))
-for source_idx, source in sources.iterrows():
-    sources_tdoa[:,source_idx] = predict_tdoa(source, sound_speed_mps, hydrophones_config, hydrophone_pairs).T
-theta = np.arctan2(sources['y'].to_numpy(),sources['x'].to_numpy())*(180/np.pi) # azimuth
-phi = np.arctan2(sources['y'].to_numpy()**2+sources['x'].to_numpy()**2,sources['z'].to_numpy())*(180/np.pi)
-sources['theta'] = theta
-sources['phi'] = phi
+if localization_config['METHOD']['grid_search']:
+    sources = defineSphereVolumeGrid(
+        localization_config['GRIDSEARCH']['spacing_m'],
+        localization_config['GRIDSEARCH']['radius_m'],
+        origin=localization_config['GRIDSEARCH']['origin'])
+    #sources = defineCubeVolumeGrid(0.2, 2, origin=[0, 0, 0])
+    sources_tdoa = np.zeros(shape=(3,len(sources)))
+    for source_idx, source in sources.iterrows():
+        sources_tdoa[:,source_idx] = predict_tdoa(source, sound_speed_mps, hydrophones_config, hydrophone_pairs).T
+    theta = np.arctan2(sources['y'].to_numpy(),sources['x'].to_numpy())*(180/np.pi) # azimuth
+    phi = np.arctan2(sources['y'].to_numpy()**2+sources['x'].to_numpy()**2,sources['z'].to_numpy())*(180/np.pi)
+    sources['theta'] = theta
+    sources['phi'] = phi
 
 # Define Measurement object for the localization results
-localizations = Measurement()
-localizations.metadata['measurer_name'] = '3D Linearized inversion'
-localizations.metadata['measurer_version'] = '0.1'
-localizations.metadata['measurements_name'] = [['x', 'y', 'z', 'x_std', 'y_std', 'z_std', 'tdoa_errors_std']]
+if localization_config['METHOD']['linearized_inversion']:
+    localizations = Measurement()
+    localizations.metadata['measurer_name'] = localization_method_name
+    localizations.metadata['measurer_version'] = '0.1'
+    localizations.metadata['measurements_name'] = [['x', 'y', 'z', 'x_std', 'y_std', 'z_std', 'tdoa_errors_std']]
+# need to define what output is for grid search
+
 
 # pick single detection (will use loop after)
 print('LOCALIZATION')
 for detec_idx, detec in detections.data.iterrows():
 
-    detec = detections.data.iloc[detec_idx]
+    if 'detec_idx_forced' in locals():
+        print('Warning: forced to only process detection #', str(detec_idx_forced))
+        detec = detections.data.iloc[detec_idx_forced]
+    
     print( str(detec_idx+1) + '/' + str(len(detections)))
 
     # load data from all channels for that detection
@@ -362,7 +413,7 @@ for detec_idx, detec in detections.data.iterrows():
                                    TDOA_max_sec=TDOA_max_sec,
                                    upsample_res_sec=localization_config['TDOA']['upsample_res_sec'],
                                    normalize=localization_config['TDOA']['normalize'],
-                                   doplot=True,
+                                   doplot=False,
                                    )
     ## TO DO
     # If correlation coef too small =>
@@ -370,52 +421,61 @@ for detec_idx, detec in detections.data.iterrows():
     # 2 - calc TDOA on narrow frequency bands
     # 3 - Use less Hp to localize
 
-    delta_tdoa = sources_tdoa - tdoa_sec
-    delta_tdoa_norm = np.linalg.norm(delta_tdoa, axis=0)
-    sources['delta_tdoa'] = delta_tdoa_norm
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    colors = matplotlib.cm.tab10(hydrophones_config.index.values)
-    #alphas = delta_tdoa_norm - min(delta_tdoa_norm)
-    #alphas = alphas/max(alphas)
-    #alphas = alphas - 1
-    #alphas = abs(alphas)
-    #alphas = np.array(alphas)
-    alphas = 0.5
-    for index, hp in hydrophones_config.iterrows():
-        point = ax.scatter(hp['x'],hp['y'],hp['z'],
-                        s=40,
-                        color=colors[index],
-                        label=hp['name'],
-                        )
-    ax.scatter(sources['x'],
-                sources['y'],
-                sources['z'],
-                c=sources['delta_tdoa'],
-                s=20,
-                alpha=alphas,)
-    # Axes labels
-    ax.set_xlabel('X (m)', labelpad=10)
-    ax.set_ylabel('Y (m)', labelpad=10)
-    ax.set_zlabel('Z (m)', labelpad=10)
-    # legend
-    ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
-    plt.tight_layout()
-    plt.show()
-
-
+    if localization_config['METHOD']['grid_search']:    
+        delta_tdoa = sources_tdoa - tdoa_sec
+        delta_tdoa_norm = np.linalg.norm(delta_tdoa, axis=0)
+        sources['delta_tdoa'] = delta_tdoa_norm
+    
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        colors = matplotlib.cm.tab10(hydrophones_config.index.values)
+        #alphas = delta_tdoa_norm - min(delta_tdoa_norm)
+        #alphas = alphas/max(alphas)
+        #alphas = alphas - 1
+        #alphas = abs(alphas)
+        #alphas = np.array(alphas)
+        alphas = 0.5
+        for index, hp in hydrophones_config.iterrows():
+            point = ax.scatter(hp['x'],hp['y'],hp['z'],
+                            s=40,
+                            color=colors[index],
+                            label=hp['name'],
+                            )
+        ax.scatter(sources['x'],
+                    sources['y'],
+                    sources['z'],
+                    c=sources['delta_tdoa'],
+                    s=20,
+                    alpha=alphas,)
+        # Axes labels
+        ax.set_xlabel('X (m)', labelpad=10)
+        ax.set_ylabel('Y (m)', labelpad=10)
+        ax.set_zlabel('Z (m)', labelpad=10)
+        # legend
+        ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
+        plt.tight_layout()
+        plt.show()
+    
+        plt.figure()
+        sources.plot.hexbin(x="theta",
+                            y="phi",
+                            C="delta_tdoa",
+                            reduce_C_function=np.mean,
+                            gridsize=40,
+                            cmap="viridis")
+    
     # Lineralized inversion
-    [m, iterations_logs] = linearized_inversion(tdoa_sec,
-                                                hydrophones_config,
-                                                hydrophone_pairs,
-                                                localization_config['INVERSION'],
-                                                sound_speed_mps,
-                                                doplot=False)
-
-    # Estimate uncertainty
-    tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
-    loc_errors_std = calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
+    if localization_config['METHOD']['linearized_inversion']:
+        [m, iterations_logs] = linearized_inversion(tdoa_sec,
+                                                    hydrophones_config,
+                                                    hydrophone_pairs,
+                                                    localization_config['INVERSION'],
+                                                    sound_speed_mps,
+                                                    doplot=False)
+    
+        # Estimate uncertainty
+        tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
+        loc_errors_std = calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
 
     # Bring all detection and localization informations together
     detec.loc['x'] = m['x'].values[0]

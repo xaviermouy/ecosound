@@ -419,7 +419,7 @@ def calc_hydrophones_distances(hydrophones_coords):
     return hydrophones_dist_matrix
 
 
-def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec=None, upsample_res_sec=None, normalize=False, doplot=False):
+def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec=None, upsample_res_sec=None, normalize=False, hydrophones_name=None, doplot=False):
     """
     TDOA measurements
 
@@ -449,6 +449,9 @@ def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec
     normalize : bool, optional
         If set to True, normalizes the wavforms in waveform_stack to have a
         maximum amplitude of 1. The default is False.
+    hydrophones_name : list, optional
+        list of string with the name of each hydrophone. Only used for plots.
+        The default is None.
     doplot : bool, optional
         If set to True, displays cross correlation plots for each hydrophone
         pair. The default is False.
@@ -507,8 +510,14 @@ def calc_tdoa(waveform_stack, hydrophone_pairs, sampling_frequency, TDOA_max_sec
 
         if doplot:
             fig, ax = plt.subplots(nrows=2, sharex=False)
-            ax[0].plot(s1, color='red', label= 'Hydrophone ' + str(hydrophone_pair[0]) + ' (ref)')
-            ax[0].plot(s2, color='black',label= 'Hydrophone ' + str(hydrophone_pair[1]))
+            if hydrophones_name:
+                label1= hydrophones_name[hydrophone_pair[0]] + ' (ref)'
+                label2= hydrophones_name[hydrophone_pair[1]]
+            else:
+                 label1 = 'Hydrophone ' + str(hydrophone_pair[0]) + ' (ref)'
+                 label2 = 'Hydrophone ' + str(hydrophone_pair[1])
+            ax[0].plot(s1, color='red', label=label1)
+            ax[0].plot(s2, color='black',label=label2)
             ax[0].set_xlabel('Time (sample)')
             ax[0].set_ylabel('Amplitude')
             ax[0].legend()

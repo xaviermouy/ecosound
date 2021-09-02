@@ -3,7 +3,7 @@
 
 # Parameter values after the semi-columns can be
 # modified as needed but section names and indentation
-# shoud be kept as is.
+# should be kept as is.
 # 
 # Make sure there is a space between the : and the
 # parameter value.
@@ -38,4 +38,3 @@ DETECTOR:
     bandwidth_min_hz: 40
     use_dask: True
     dask_chunks: [2048,2000]
-
