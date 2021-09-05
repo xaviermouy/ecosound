@@ -100,6 +100,31 @@ def tighten_signal_limits(signal, energy_percentage):
              np.nonzero(cumul_energy > percentage_end)[0][0]]
     return chunk
 
+
+def tighten_signal_limits_peak(signal, percentage_max_energy):
+    """
+    Tighten signal limits
+
+    Redefine start and stop samples to have "energy_percentage" of the original
+    signal. Returns a list with the new start and stop sample indices.
+    
+    small values of percentage_max_energy -> tighter signal
+
+    """
+    squared_signal = np.square(signal)
+    norm_factor = sum(squared_signal)
+    squared_signal_normalized = squared_signal / norm_factor
+    sort_idx = np.argsort(-squared_signal_normalized)
+    sort_val = squared_signal_normalized[sort_idx]
+    sort_val_cum = np.cumsum(sort_val)
+    id_limit=np.where(sort_val_cum>(percentage_max_energy/100))
+    id_limit=id_limit[0][0]
+    min_idx_limit = np.min(sort_idx[0:id_limit])
+    max_idx_limit = np.max(sort_idx[0:id_limit])
+    chunk = [min_idx_limit, max_idx_limit]
+    
+    return chunk
+
 def resample_1D_array(x, y, resolution, kind='linear'):
     """
     Interpolate values of coordinates x and y with a given resolution.

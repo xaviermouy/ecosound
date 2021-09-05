@@ -622,14 +622,14 @@ def linearized_inversion(d, hydrophones_coords,hydrophone_pairs,inversion_params
                 'y': m_it['y'].values[0],
                 'z': m_it['z'].values[0],
                 #'norm': np.sqrt(np.square(m_it).sum(axis=1)).values[0],
-                'norm': np.linalg.norm(m_it.iloc[0].to_numpy() - iterations_logs.iloc[-1][['x','y','z']].to_numpy()),
+                'norm': np.linalg.norm(m_it.iloc[0].to_numpy() - iterations_logs.iloc[-1][['x','y','z']].to_numpy(),np.inf),
                 'data_misfit': data_misfit_it,
                 }, ignore_index=True)
             # Update m
             m = m_it
             # stopping criteria
             if idx>1:
-                 # norm of model diffreence
+                 # norm of model diference
                 #if (iterations_logs['norm'][idx] - iterations_logs['norm'][idx-1] <= Tdelta_m):
                 if iterations_logs['norm'][idx] <= Tdelta_m:
                     stop = True
@@ -642,6 +642,9 @@ def linearized_inversion(d, hydrophones_coords,hydrophone_pairs,inversion_params
                     stop = True
                     converged=False
                     print('Max iterations reached - inversion hasn''t converged.')
+                elif iterations_logs['norm'][idx] > iterations_logs['norm'][idx-1]: # if norm starts increasing -> then stop there
+                    stop = True
+                    converged=True
                 elif np.isnan(m['x'].values[0]):
                     stop = True
                     converged=False

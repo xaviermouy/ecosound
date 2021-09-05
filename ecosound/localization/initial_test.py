@@ -207,15 +207,41 @@ def cartesian2spherical (x,y,z):
 # infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190920T161248Z.wav'
 # t1 = 1570
 # t2 = 1590
+# #detec_idx_forced= 0 
+
+# Config files XAV array hornby - lingcod
+deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190916T234248Z.wav'
+t1 = 1450#1440
+t2 = 1455#1459
+detec_idx_forced= 2 #26
 
 # # Config files XAV array hornby - lingcod
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
 # hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
 # detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array.yaml'
 # localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
-# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190916T234248Z.wav'
-# t1 = 1440
-# t2 = 1459
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190919T001248Z.wav'
+# #t1 = 352
+# #t2 = 362
+# t1 = 903
+# t2 = 910
+# detec_idx_forced= 10
+
+
+
+# # Config files XAV array Ogden Point - ROV on side of array, in front of fishcam2
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\hydrophones_config_04-OGD.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array_HF.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190617T161307Z.wav'
+# t1 = 1528
+# t2 = 1534
+# #detec_idx_forced = 1
 
 ## ------------------------- MOBILE ARRAY -------------------------------------
 
@@ -315,7 +341,7 @@ def cartesian2spherical (x,y,z):
 # t2 = 876.54835
 # detec_idx_forced = 8
 
-# # Config files mini array - Mill Bay - perch facing fishcam 
+# # Config files mini array - Mill Bay - Shiner Perch facing fishcam 
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\deployment_info.csv'
 # hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL.csv'
 # detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mini_array_HF.yaml'
@@ -326,7 +352,7 @@ def cartesian2spherical (x,y,z):
 # detec_idx_forced = 0
 
 
-# # Config files mini array - Mill Bay - perch facing fishcam 
+# # Config files mini array - Mill Bay - Rockfish - localiuzed behind
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\deployment_info.csv'
 # hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL.csv'
 # detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mini_array.yaml'
@@ -336,15 +362,15 @@ def cartesian2spherical (x,y,z):
 # t2 = 340
 # detec_idx_forced = 9
 
-# Config files mini array - Mill Bay - perch facing fishcam 
-deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\deployment_info.csv'
-hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL.csv'
-detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mini_array.yaml'
-localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mini_array.yaml'
-infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\671404070.190801232502.wav'
-t1 = 696
-t2 = 713
-detec_idx_forced = 2
+# # Config files mini array - Mill Bay - Copper RockFish on top of fishcam 
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mini_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mini_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\671404070.190801232502.wav'
+# t1 = 696
+# t2 = 713
+# detec_idx_forced = 2
 
 
 # load configuration parameters
@@ -371,7 +397,7 @@ detections = run_detector(audio_files['path'][detection_config['AUDIO']['channel
                           chunk = [t1, t2],
                           deployment_file=deployment_info_file)
 #detections.insert_values(frequency_min=20)
-detections.insert_values(frequency_min=50)
+
 print(str(len(detections)) + ' detections')
 
 # plot spectrogram/waveforms of all channels and detections
@@ -405,7 +431,7 @@ if localization_config['METHOD']['grid_search']:
         localization_config['GRIDSEARCH']['radius_m'],
         origin=localization_config['GRIDSEARCH']['origin'])
     #sources = defineCubeVolumeGrid(0.2, 2, origin=[0, 0, 0])
-    sources_tdoa = np.zeros(shape=(3,len(sources)))
+    sources_tdoa = np.zeros(shape=(len(hydrophone_pairs),len(sources)))
     for source_idx, source in sources.iterrows():
         sources_tdoa[:,source_idx] = predict_tdoa(source, sound_speed_mps, hydrophones_config, hydrophone_pairs).T
     theta = np.arctan2(sources['y'].to_numpy(),sources['x'].to_numpy())*(180/np.pi) # azimuth
@@ -435,6 +461,11 @@ for detec_idx, detec in detections.data.iterrows():
     # load data from all channels for that detection
     waveform_stack = stack_waveforms(audio_files, detec, TDOA_max_sec)
 
+    # readjust signal boundaries to only focus on section with most energy 
+    percentage_max_energy = 95
+    chunk = ecosound.core.tools.tighten_signal_limits_peak(waveform_stack[detection_config['AUDIO']['channel']], percentage_max_energy)
+    waveform_stack = [x[chunk[0]:chunk[1]] for x in waveform_stack]
+
     # calculate TDOAs
     tdoa_sec, corr_val = calc_tdoa(waveform_stack,
                                    hydrophone_pairs,
@@ -442,7 +473,7 @@ for detec_idx, detec in detections.data.iterrows():
                                    TDOA_max_sec=TDOA_max_sec,
                                    upsample_res_sec=localization_config['TDOA']['upsample_res_sec'],
                                    normalize=localization_config['TDOA']['normalize'],
-                                   doplot=True,
+                                   doplot=False,
                                    )
     ## TO DO
     # If correlation coef too small =>
@@ -474,7 +505,7 @@ for detec_idx, detec in detections.data.iterrows():
                     sources['y'],
                     sources['z'],
                     c=sources['delta_tdoa'],
-                    s=20,
+                    s=2,
                     alpha=alphas,)
         # Axes labels
         ax.set_xlabel('X (m)', labelpad=10)
