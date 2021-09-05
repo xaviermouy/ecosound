@@ -14,7 +14,7 @@ ENVIRONMENT:
 
 TDOA:
     ref_channel: 3
-    upsample_res_sec: 0.0000001 #null
+    upsample_res_sec: 0.0000001
     normalize: False
 
 METHOD:
@@ -24,11 +24,11 @@ METHOD:
 INVERSION:
     start_model: [0,0,0] 
     start_model_repeats: 5
-    damping_factor: 0.1 #0.2
+    damping_factor: 0.2
     stop_delta_m: 0.01
-    stop_max_iteration: 100
+    stop_max_iteration: 1000
 
 GRIDSEARCH:
     origin: [0,0,0] 
-    spacing_m: 0.2
-    radius_m: 3
+    spacing_m: 0.1
+    radius_m: 2
