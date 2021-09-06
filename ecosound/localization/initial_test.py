@@ -209,6 +209,16 @@ def cartesian2spherical (x,y,z):
 # t2 = 1590
 # #detec_idx_forced= 0 
 
+# Config files XAV array hornby - lingcod - THIS IS THE GOOD ONE!!!
+deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array_lingcod.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190919T204248Z.wav'
+t1 = 697
+t2 = 700
+#detec_idx_forced= 0 
+
 # # Config files XAV array hornby - lingcod
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
 # hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
@@ -241,6 +251,17 @@ def cartesian2spherical (x,y,z):
 # infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190617T161307Z.wav'
 # t1 = 1528
 # t2 = 1534
+# #detec_idx_forced = 1
+
+
+# # Config files XAV array Ogden Point - lingcod
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\hydrophones_config_04-OGD.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190616T154307Z.wav'
+# t1 = 329
+# t2 = 335
 # #detec_idx_forced = 1
 
 ## ------------------------- MOBILE ARRAY -------------------------------------
@@ -462,7 +483,7 @@ for detec_idx, detec in detections.data.iterrows():
     waveform_stack = stack_waveforms(audio_files, detec, TDOA_max_sec)
 
     # readjust signal boundaries to only focus on section with most energy 
-    percentage_max_energy = 95
+    percentage_max_energy = 90
     chunk = ecosound.core.tools.tighten_signal_limits_peak(waveform_stack[detection_config['AUDIO']['channel']], percentage_max_energy)
     waveform_stack = [x[chunk[0]:chunk[1]] for x in waveform_stack]
 

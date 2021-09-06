@@ -644,7 +644,8 @@ def linearized_inversion(d, hydrophones_coords,hydrophone_pairs,inversion_params
                     print('Max iterations reached - inversion hasn''t converged.')
                 elif iterations_logs['norm'][idx] > iterations_logs['norm'][idx-1]: # if norm starts increasing -> then stop there
                     stop = True
-                    converged=True
+                    converged=False
+                    print('Norm increasing - inversion hasn''t converged.')
                 elif np.isnan(m['x'].values[0]):
                     stop = True
                     converged=False
