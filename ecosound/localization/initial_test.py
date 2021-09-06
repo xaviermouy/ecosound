@@ -242,7 +242,6 @@ t2 = 700
 # detec_idx_forced= 10
 
 
-
 # # Config files XAV array Ogden Point - ROV on side of array, in front of fishcam2
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\deployment_info.csv'
 # hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\hydrophones_config_04-OGD.csv'
