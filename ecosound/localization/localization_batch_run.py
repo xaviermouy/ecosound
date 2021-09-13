@@ -50,8 +50,8 @@ def run_detector(infile, channel, config, chunk=None, deployment_file=None):
     sound = Sound(infile)
     # load audio data
     if chunk:
-        sound.read(channel=channel, chunk=[t1, t2], unit='sec', detrend=True)
-        time_offset_sec = t1
+        sound.read(channel=channel, chunk=chunk, unit='sec', detrend=True)
+        time_offset_sec = chunk[0]
     else:
         sound.read(channel=channel, detrend=True)
         time_offset_sec = 0
@@ -196,16 +196,17 @@ def cartesian2spherical (x,y,z):
 # theta = 180 * theta/math.pi
 
 def run_localization(infile, deployment_info_file, detection_config, hydrophones_config,localization_config):
-    
+    t1 = 0
+    t2 = 70   
     # Look up data files for all channels
     audio_files = find_audio_files(infile, hydrophones_config)
-    
+
     # run detector on selected channel
     print('DETECTION')
     detections = run_detector(audio_files['path'][detection_config['AUDIO']['channel']],
                               audio_files['channel'][detection_config['AUDIO']['channel']],
                               detection_config,
-                              #chunk = [t1, t2],
+                              chunk = [t1, t2],
                               deployment_file=deployment_info_file)
     #detections.insert_values(frequency_min=20)
     
@@ -360,14 +361,11 @@ def run_localization(infile, deployment_info_file, detection_config, hydrophones
 ## ############################################################################
 indir = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\test'
 outdir=r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization'
-## ------------------------- LARGE ARRAY --------------------------------------
 
-# Config files XAV array hornby - quilback
 deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
 hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
 detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array_HF2.yaml'
 localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
-#infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190920T161248Z.wav'
 
 
 
@@ -390,11 +388,16 @@ files = ecosound.core.tools.list_files(indir, '.wav',
                                        case_sensitive=True,
                                        )
 
-print('s')    
 nfiles = len(files) 
 for idx, infile in enumerate(files):    
-    print(idx+1, '/', nfiles, infile)                                 
-    loc = run_localization(infile, deployment_info_file, detection_config, hydrophones_config,localization_config)
+    print(idx+1, '/', nfiles, os.path.split(infile)[1])      
+    outfile = os.path.join(outdir, os.path.split(infile)[1] + '.nc')   
+    if os.path.exists(outfile) is False: 
+        loc = run_localization(infile, deployment_info_file, detection_config, hydrophones_config,localization_config)
+        loc.to_netcdf(outfile)
+    else:
+        print('File already processed')
+    print('s')
 
 
 
