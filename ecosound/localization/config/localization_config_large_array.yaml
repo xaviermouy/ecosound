@@ -30,5 +30,5 @@ INVERSION:
 
 GRIDSEARCH:
     origin: [0,0,0] 
-    spacing_m: 0.2
+    spacing_m: 0.1
     radius_m: 3
