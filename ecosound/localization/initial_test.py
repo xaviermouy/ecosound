@@ -207,7 +207,7 @@ detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers
 #detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array.yaml'
 localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
 infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190920T161248Z.wav'
-t1 = 1570
+t1 = 1560#1570
 t2 = 1590
 #detec_idx_forced= 0 
 
