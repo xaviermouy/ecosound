@@ -53,7 +53,7 @@ def plot_spectrogram(audio_file,loc,t1_sec, t2_sec, geometry=(1,1,1)):
     graph_spectros.add_data(spectro)    
     
     #graph_spectros.add_annotation(loc, panel=0, color='burlywood',label='Detections')
-    
+    graph_spectros.add_annotation(loc, panel=0, color='peachpuff')
     
     graph_spectros.colormap = 'binary' #'jet'
     fig, ax = graph_spectros.show()
@@ -86,8 +86,32 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
     frame_alpha = 1
     frame_width = 3
     
-    rectangle = plt.Rectangle((-0.94,-0.94), 1.88, 1.9,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor='none')
+    rectangle = plt.Rectangle((-0.94,-0.94), 1.88, 1.9,
+                              linewidth=frame_width,
+                              ec='mistyrose',
+                              alpha=frame_alpha,
+                              facecolor='none')
+    
     ax.add_patch(rectangle)
+    
+    rectangle2 = plt.Rectangle((-0.15,-0.94), 0.178, 1.9,
+                              linewidth=frame_width,
+                              ec='mistyrose',
+                              alpha=frame_alpha,
+                              facecolor='mistyrose')
+    ax.add_patch(rectangle2)
+    # ax.plot([0.028, 0.028],[-0.94, 0.96],
+    #      linewidth=frame_width ,
+    #      alpha=frame_alpha,
+    #      linestyle= 'solid',
+    #      color='mistyrose',         
+    #      )
+    # ax.plot([-0.15, -0.15],[-0.94, 0.96],
+    #      linewidth=frame_width ,
+    #      alpha=frame_alpha,
+    #      linestyle= 'solid',
+    #      color='mistyrose',
+    #      )
     
     #c=z, cmap=cmap, norm=norm
     # plot localizations
@@ -182,6 +206,26 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
          color=frame_color,
          )
     
+    ax.plot([-0.94, 0.93],[-0.76, -0.76],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color='mistyrose',
+         )
+    
+    # #field of view
+    # ax.plot([-0.10, -1.2],[1.55, 0.75],
+    #       linewidth=1 ,
+    #       alpha=0.4,
+    #       linestyle= 'solid',
+    #       color='red',
+    #       )
+    # ax.plot([0.10, 1.2],[1.55, 0.75],
+    #       linewidth=1 ,
+    #       alpha=0.4,
+    #       linestyle= 'solid',
+    #       color='red',
+    #       )    
     
     # plot localizations
     ax.scatter(loc_data['x'], loc_data['z'],c=loc_data['time_min_offset'],
@@ -248,19 +292,19 @@ def plot_video_frame(video_file,frame_time_sec, ax):
     return ax.imshow(frame)
 ## ###########################################################################
 
-loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\large-array_quillback\AMAR173.4.20190920T161248Z.nc'
-audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.1.20190920T161248Z.wav'
-video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
+loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\large-array_lingcod\AMAR173.4.20190919T204248Z.nc'
+audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190919T204248Z.wav'
+video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3284_FishCam01_20190919T205129.843851Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
 hp_config_file =  r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
-t1_sec = 1570
-t2_sec = 1587#1590
+t1_sec = 697
+t2_sec = 700
 
-filter_x=[-1.5, 1.5]
-filter_y=[-1.5, 1.5]
-filter_z=[-1.5, 1.5]
-filter_x_std=0.5
-filter_y_std=0.5
-filter_z_std=0.5
+filter_x=[-5, 5]
+filter_y=[-3, 3]
+filter_z=[-1.5, 3]
+filter_x_std=1
+filter_y_std=1
+filter_z_std=1
 
 params=pd.DataFrame({
     'loc_color': ['black'],
@@ -271,8 +315,8 @@ params=pd.DataFrame({
     'uncertainty_style': ['-'],
     'uncertainty_alpha': [1], #0.7
     'uncertainty_width': [0.2], #0.2
-    'x_min':[-1.26],
-    'x_max':[1.26],
+    'x_min':[-3],
+    'x_max':[3],
     'y_min':[-1.26],
     'y_max':[1.26],
     'z_min':[-1.5],
@@ -340,7 +384,7 @@ ax_cmap.set_label('Time (s)')
 ax_detec = fig_final.add_subplot(20,1,1)
 det_y = np.asarray(np.ones((1,len(loc_data['time_min_offset']))))[0]
 det_x = np.asarray(loc_data['time_min_offset'])
-ax_detec.scatter(det_x,det_y, c=loc_data['time_min_offset'],cmap=cmap,s=12)
+ax_detec.scatter(det_x,det_y, c=loc_data['time_min_offset'],cmap=cmap,norm=norm,s=12)
 ax_detec.set_xlim(ax_spectro.get_xlim())
 ax_detec.get_xaxis().set_visible(False)
 ax_detec.get_yaxis().set_visible(False)
@@ -375,35 +419,35 @@ plt.subplots_adjust(left=0.08, bottom=0.1, right=0.95, top=0.95, wspace=0, hspac
 gs = fig_final.add_gridspec(3,2)
 
 # plot localization top
-ax_toploc = fig_final.add_subplot(gs[1:,0])
+ax_toploc = fig_final.add_subplot(gs[1:,1])
 plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax_toploc)
-ax_toploc.set_anchor('W')
+ax_toploc.set_anchor('E')
 
 # plot localization side
 #ax_sideloc = fig_final.add_subplot(3,3,7,sharex = ax_toploc)
-ax_sideloc = fig_final.add_subplot(gs[1:,1])
+ax_sideloc = fig_final.add_subplot(gs[1:,0])
 plot_side_view(hydrophones_config,loc_data,params,cmap,norm,ax_sideloc)
-ax_sideloc.set_anchor('E')
+ax_sideloc.set_anchor('W')
 
 # set the spacing between subplots
 plt.subplots_adjust(wspace=0, hspace=0)
 
 
-# plot video frame 1
-fig_video1, ax_video1 = plt.subplots(1,1)
-frame1_sec = 152.8 # second detection -> 16:38:59.8
-#ax_video1 = fig_final.add_subplot(3,3,5)
-plot_video_frame(video_file,frame1_sec, ax_video1)
-ax_video1.get_xaxis().set_visible(False)
-ax_video1.get_yaxis().set_visible(False)
+# # plot video frame 1
+# fig_video1, ax_video1 = plt.subplots(1,1)
+# frame1_sec = 152.8 # second detection -> 16:38:59.8
+# #ax_video1 = fig_final.add_subplot(3,3,5)
+# plot_video_frame(video_file,frame1_sec, ax_video1)
+# ax_video1.get_xaxis().set_visible(False)
+# ax_video1.get_yaxis().set_visible(False)
 
-# plot video frame 2
-fig_video2, ax_video2 = plt.subplots(1,1)
-frame2_sec = 160 # 4th detection -> 16:39:07
-#ax_video2 = fig_final.add_subplot(3,3,6)
-plot_video_frame(video_file,frame2_sec, ax_video2)
-ax_video2.get_xaxis().set_visible(False)
-ax_video2.get_yaxis().set_visible(False)
+# # plot video frame 2
+# fig_video2, ax_video2 = plt.subplots(1,1)
+# frame2_sec = 160 # 4th detection -> 16:39:07
+# #ax_video2 = fig_final.add_subplot(3,3,6)
+# plot_video_frame(video_file,frame2_sec, ax_video2)
+# ax_video2.get_xaxis().set_visible(False)
+# ax_video2.get_yaxis().set_visible(False)
 
 
 fig_final.set_size_inches(8.6,6.72)
