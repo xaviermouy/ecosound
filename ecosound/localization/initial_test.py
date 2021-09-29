@@ -24,7 +24,7 @@ from ecosound.detection.detector_builder import DetectorFactory
 from ecosound.visualization.grapher_builder import GrapherFactory
 import ecosound.core.tools
 from ecosound.core.tools import derivative_1d, envelope, read_yaml
-from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, predict_tdoa, linearized_inversion, solve_iterative_ML, defineCubeVolumeGrid, defineSphereVolumeGrid
+from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdoa, defineReceiverPairs, defineJacobian, predict_tdoa, linearized_inversion, solve_iterative_ML, defineCubeVolumeGrid, defineSphereVolumeGrid,defineSphereSurfaceGrid
 import platform
 
 def find_audio_files(filename, hydrophones_config):
@@ -166,9 +166,12 @@ def calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_
     """ Calculates tdoa measurement errors. Eq. (9) in Mouy et al. 2018"""
     tdoa_m = predict_tdoa(m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
     Q = len(m)
-    M = m.size
-    N = len(tdoa_sec)
-    error_std = np.sqrt((1/(Q*(N-M))) * (sum((tdoa_sec-tdoa_m)**2)))
+    M = m.size # number of dimensions of the model (here: X, Y, and Z)
+    N = len(tdoa_sec) # number of measurements
+    if N > M:
+        error_std = np.sqrt((1/(Q*(N-M))) * (sum((tdoa_sec-tdoa_m)**2)))
+    else:
+        error_std = np.sqrt((sum((tdoa_sec-tdoa_m)**2)))
     return error_std
 
 
@@ -179,7 +182,7 @@ def calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hyd
     err_std = np.sqrt(np.diag(Cm))
     return pd.DataFrame({'x_std': [err_std[0]], 'y_std': [err_std[1]], 'z_std': [err_std[2]]})
 
-def cartesian2spherical (x,y,z):
+def cartesian2spherical(x,y,z):
     # Converting cartesian to polar coordinate
     const = 180/np.pi
     XsqPlusYsq = x**2 + y**2
@@ -244,15 +247,15 @@ outdir=r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization'
 # detec_idx_forced= 10
 
 
-# Config files XAV array Ogden Point - ROV on side of array, in front of fishcam2
-deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\deployment_info.csv'
-hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\hydrophones_config_04-OGD.csv'
-detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array_HF.yaml'
-localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
-infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190617T161307Z.wav'
-t1 = 1528
-t2 = 1534
-#detec_idx_forced = 1
+# # Config files XAV array Ogden Point - ROV on side of array, in front of fishcam2
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\hydrophones_config_04-OGD.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array_HF.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190617T161307Z.wav'
+# t1 = 1528
+# t2 = 1534
+# #detec_idx_forced = 1
 
 
 # # Config files XAV array Ogden Point - lingcod
@@ -276,7 +279,7 @@ t2 = 1534
 # # projector fish signal
 # t1 = 106
 # t2 = 119
-# detec_idx_forced=2
+# #detec_idx_forced=2
 
 # # Config files mobile array - Projector MCauley Point -> fish - 90 degree
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\deployment_info.csv'
@@ -287,7 +290,8 @@ t2 = 1534
 # # projector fish signal
 # t1 = 769 
 # t2 = 782 
-# detec_idx_forced=1
+# #detec_idx_forced=1
+
 
 # # Config files mobile array - Projector MCauley Point -> fish - 180 degree
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\deployment_info.csv'
@@ -298,7 +302,19 @@ t2 = 1534
 # # projector fish signal
 # t1 = 910#928.8
 # t2 = 923#940
-# detec_idx_forced = 0
+# #detec_idx_forced = 0
+
+
+# # Config files mobile array - Projector MCauley Point -> fish - -90 degree
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\hydrophones_config_MCP-20200910.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\5147.200910210736.wav'
+# # projector fish signal
+# t1 = 1060#928.8
+# t2 = 1073#940
+# #detec_idx_forced = 0
 
 # # Config files mobile array - Projector MCauley Point -> fish - 0 degree - source 1 m above
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\deployment_info.csv'
@@ -319,7 +335,7 @@ t2 = 1534
 # infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190916182406.wav'
 # t1 = 138.6
 # t2 = 147.9
-# detec_idx_forced = 10
+# #detec_idx_forced = 10
 
 # # Config files mobile array - Horny Island - Quillback part 1 
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
@@ -341,27 +357,28 @@ t2 = 1534
 # t2 = 262
 # detec_idx_forced = 1
 
-# # Config files mobile array - Horny Island - Copper Rockfish
-# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
-# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
-# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
-# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
-# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
-# t1 = 216
-# t2 = 223
-# detec_idx_forced = 1
+# Config files mobile array - Horny Island - Copper Rockfish
+deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
+outdir = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper'
+t1 = 216
+t2 = 223
+# #detec_idx_forced = 1
 
 ## -------------------------- MINI ARRAY --------------------------------------
 
 # # Config files mini array - Mill Bay - ROV facing fishcam 
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\deployment_info.csv'
 # hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL.csv'
-# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mini_array.yaml'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array_HF.yaml'
 # localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mini_array.yaml'
 # infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\671404070.190801165502.wav'
-# t1 = 869.51653
-# t2 = 876.54835
-# detec_idx_forced = 8
+# t1 = 871.5 -18 #869.51653
+# t2 = 877 #876.54835
+# #detec_idx_forced = 8
 
 # # Config files mini array - Mill Bay - Shiner Perch facing fishcam 
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\deployment_info.csv'
@@ -452,21 +469,51 @@ if localization_config['METHOD']['grid_search']:
         localization_config['GRIDSEARCH']['spacing_m'],
         localization_config['GRIDSEARCH']['radius_m'],
         origin=localization_config['GRIDSEARCH']['origin'])
+    if localization_config['GRIDSEARCH']['min_z']:
+        sources = sources.loc[sources['z']>=localization_config['GRIDSEARCH']['min_z']]
+    # sources = defineCubeVolumeGrid(0.2, 2, origin=[0, 0, 0])
+    # sources = defineSphereSurfaceGrid(
+    #     10000,
+    #     localization_config['GRIDSEARCH']['radius_m'],
+    #     origin=localization_config['GRIDSEARCH']['origin'])
     #sources = defineCubeVolumeGrid(0.2, 2, origin=[0, 0, 0])
-    sources_tdoa = np.zeros(shape=(len(hydrophone_pairs),len(sources)))
-    for source_idx, source in sources.iterrows():
-        sources_tdoa[:,source_idx] = predict_tdoa(source, sound_speed_mps, hydrophones_config, hydrophone_pairs).T
-    theta = np.arctan2(sources['y'].to_numpy(),sources['x'].to_numpy())*(180/np.pi) # azimuth
-    phi = np.arctan2(sources['y'].to_numpy()**2+sources['x'].to_numpy()**2,sources['z'].to_numpy())*(180/np.pi)
-    sources['theta'] = theta
-    sources['phi'] = phi
+    try:
+        sources_tdoa = np.load(localization_config['GRIDSEARCH']['stored_tdoas'])
+        print('Succesully loaded precomputed grid TDOAs from file.')
+    except:
+        print("Couln't read precomputed TDOAs from file, computing grid TDOAs...")    
+        sources_tdoa = np.zeros(shape=(len(hydrophone_pairs),len(sources)))
+        for source_idx, source in sources.iterrows():
+            sources_tdoa[:,source_idx] = predict_tdoa(source, sound_speed_mps, hydrophones_config, hydrophone_pairs).T
+        np.save(os.path.join(outdir,'tdoa_grid.'))    
+    # # Azimuth:
+    # theta = np.arctan2(sources['y'].to_numpy(),sources['x'].to_numpy())*(180/np.pi)
+    # theta = (((theta+90) % 360)-180) *(-1)        
+    # # Elevation:
+    # phi = np.arctan2(sources['y'].to_numpy()**2+sources['x'].to_numpy()**2,sources['z'].to_numpy())*(180/np.pi)
+    # phi = phi - 90
+    # sources['theta'] = theta
+    # sources['phi'] = phi
 
 # Define Measurement object for the localization results
-if localization_config['METHOD']['linearized_inversion']:
-    localizations = Measurement()
-    localizations.metadata['measurer_name'] = localization_method_name
-    localizations.metadata['measurer_version'] = '0.1'
-    localizations.metadata['measurements_name'] = [['x', 'y', 'z', 'x_std', 'y_std', 'z_std', 'tdoa_errors_std']]
+# if localization_config['METHOD']['linearized_inversion']:
+#     localizations = Measurement()
+#     localizations.metadata['measurer_name'] = localization_method_name
+#     localizations.metadata['measurer_version'] = '0.1'
+#     localizations.metadata['measurements_name'] = [['x', 'y', 'z', 'x_std', 'y_std', 'z_std', 'tdoa_errors_std']]
+
+# if localization_config['METHOD']['grid_search']:
+#     localizations = Measurement()
+#     localizations.metadata['measurer_name'] = localization_method_name
+#     localizations.metadata['measurer_version'] = '0.1'
+#     localizations.metadata['measurements_name'] = [['theta', 'phi', 'theta_std', 'phi_std', 'tdoa_errors_std']]
+
+localizations = Measurement()
+localizations.metadata['measurer_name'] = localization_method_name
+localizations.metadata['measurer_version'] = '0.1'
+localizations.metadata['measurements_name'] = [['x', 'y', 'z', 'x_std', 'y_std', 'z_std', 'tdoa_errors_std','tdoa_sec_1','tdoa_sec_2','tdoa_sec_3','tdoa_sec_4','tdoa_sec_5']]
+
+
 # need to define what output is for grid search
 
 
@@ -497,54 +544,90 @@ for detec_idx, detec in detections.data.iterrows():
                                    normalize=localization_config['TDOA']['normalize'],
                                    doplot=False,
                                    )
-    ## TO DO
-    # If correlation coef too small =>
-    # 1 - calc TDOA on sliding window
-    # 2 - calc TDOA on narrow frequency bands
-    # 3 - Use less Hp to localize
 
     if localization_config['METHOD']['grid_search']:    
         delta_tdoa = sources_tdoa - tdoa_sec
         delta_tdoa_norm = np.linalg.norm(delta_tdoa, axis=0)
-        sources['delta_tdoa'] = delta_tdoa_norm
+        min_idx = np.argmin(delta_tdoa_norm)
+        #sources['delta_tdoa'] = delta_tdoa_norm
+        #m = sources.loc[sources['delta_tdoa'] == sources['delta_tdoa'].min()]
+        m = pd.DataFrame({'x': sources.loc[min_idx]['x'],
+                          'y': sources.loc[min_idx]['y'],
+                          'z': sources.loc[min_idx]['z']}, index=[0]
+                          )
+        # # 3D scatter plot
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection='3d')
+        # colors = matplotlib.cm.tab10(hydrophones_config.index.values)      
+        # alphas = 0.5
+        # for index, hp in hydrophones_config.iterrows():
+        #     point = ax.scatter(hp['x'],hp['y'],hp['z'],
+        #                     s=40,
+        #                     color=colors[index],
+        #                     label=hp['name'],
+        #                     )
+        # ax.scatter(sources['x'],
+        #             sources['y'],
+        #             sources['z'],
+        #             c=sources['delta_tdoa'],
+        #             s=2,
+        #             alpha=alphas,)
+        # # Axes labels
+        # ax.set_xlabel('X (m)', labelpad=10)
+        # ax.set_ylabel('Y (m)', labelpad=10)
+        # ax.set_zlabel('Z (m)', labelpad=10)
+        # # legend
+        # ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
+        # plt.tight_layout()
+        # plt.show()
     
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        colors = matplotlib.cm.tab10(hydrophones_config.index.values)
-        #alphas = delta_tdoa_norm - min(delta_tdoa_norm)
-        #alphas = alphas/max(alphas)
-        #alphas = alphas - 1
-        #alphas = abs(alphas)
-        #alphas = np.array(alphas)
-        alphas = 0.5
-        for index, hp in hydrophones_config.iterrows():
-            point = ax.scatter(hp['x'],hp['y'],hp['z'],
-                            s=40,
-                            color=colors[index],
-                            label=hp['name'],
-                            )
-        ax.scatter(sources['x'],
-                    sources['y'],
-                    sources['z'],
-                    c=sources['delta_tdoa'],
-                    s=2,
-                    alpha=alphas,)
-        # Axes labels
-        ax.set_xlabel('X (m)', labelpad=10)
-        ax.set_ylabel('Y (m)', labelpad=10)
-        ax.set_zlabel('Z (m)', labelpad=10)
-        # legend
-        ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
-        plt.tight_layout()
-        plt.show()
-    
-        plt.figure()
-        sources.plot.hexbin(x="theta",
-                            y="phi",
-                            C="delta_tdoa",
-                            reduce_C_function=np.mean,
-                            gridsize=40,
-                            cmap="viridis")
+        # # # 2D scatter plot
+        # fig2 = plt.figure()
+        # ax2 = fig2.add_subplot(111)
+        # ax2.scatter(sources.theta, sources.phi, c=sources.delta_tdoa)
+        # ax2.set_xlabel('Azimuth angle theta (degree)', labelpad=10)
+        # ax2.set_ylabel('Elevation angle phi (degree)', labelpad=10)
+        # # sources.plot.hexbin(x="theta",
+        # #                     y="phi",
+        # #                     C="delta_tdoa",
+        # #                     #reduce_C_function=np.mean,
+        # #                     reduce_C_function=np.min,
+        # #                     gridsize=80,
+        # #                     cmap="viridis")
+        
+        # # # from scipy.stats import binned_statistic_2d
+        # # # import numpy as np
+        
+        # # # x = sources.theta.values
+        # # # y = sources.phi.values
+        # # # z = sources.delta_tdoa.values
+        
+        # # # x_bins = np.linspace(-180, 180, 360)
+        # # # y_bins = np.linspace(-90, 90, 180)
+        
+        # # # ret = binned_statistic_2d(x, y, z, statistic=np.mean, bins=[x_bins, y_bins])
+        # # # fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 4))
+        # # #ax0.scatter(x, y, c=z)
+        # # # #ax1.imshow(ret.statistic.T, origin='bottom', extent=(0, 10, 10, 20))
+        # # # ax1.imshow(ret.statistic.T)    
+        
+        # # # plt.figure()
+        # # # xbins = np.arange(-180,185,5)
+        # # # ybins = np.arange(-90,95,5)
+        # # # hist = sources.delta_tdoa.groupby([pd.cut(sources.theta, bins=xbins), pd.cut(sources.phi, bins=ybins)]).mean().unstack(fill_value=0)
+        # # # im = plt.imshow(hist.values)
+        # # # plt.xticks(range(len(hist.index)), hist.index)
+        # # # plt.yticks(range(len(hist.columns)), hist.columns)
+        # # # plt.colorbar(im)
+        # # # plt.show()
+
+
+        # # Bring all detection and localization informations together
+        # detec.loc['theta'] = m['theta'].values[0]
+        # detec.loc['phi'] = m['phi'].values[0]        
+        # detec.loc['theta_std'] = 0
+        # detec.loc['phi_std'] = 0        
+        # detec.loc['tdoa_errors_std'] = 0
     
     # Lineralized inversion
     if localization_config['METHOD']['linearized_inversion']:
@@ -555,9 +638,9 @@ for detec_idx, detec in detections.data.iterrows():
                                                     sound_speed_mps,
                                                     doplot=False)
     
-        # Estimate uncertainty
-        tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
-        loc_errors_std = calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
+    # Estimate uncertainty
+    tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
+    loc_errors_std = calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
 
     # Bring all detection and localization informations together
     detec.loc['x'] = m['x'].values[0]
@@ -567,6 +650,13 @@ for detec_idx, detec in detections.data.iterrows():
     detec.loc['y_std'] = loc_errors_std['y_std'].values[0]
     detec.loc['z_std'] = loc_errors_std['z_std'].values[0]
     detec.loc['tdoa_errors_std'] = tdoa_errors_std[0]
+    if len(tdoa_sec) >= 3:
+        detec.loc['tdoa_sec_1'] = tdoa_sec[0][0]
+        detec.loc['tdoa_sec_2'] = tdoa_sec[1][0]
+        detec.loc['tdoa_sec_3'] = tdoa_sec[2][0]
+    if len(tdoa_sec) > 3:
+        detec.loc['tdoa_sec_4'] = tdoa_sec[3][0]
+        detec.loc['tdoa_sec_5'] = tdoa_sec[4][0]
 
     # stack to results into localization object
     localizations.data = localizations.data.append(detec, ignore_index=True)
