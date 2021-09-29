@@ -316,11 +316,11 @@ def calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hyd
 
 def plot_full_figure(time_sec=None):
     
-    #loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations.nc'
-    loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\loc3.nc'
+    loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations.nc'    
     audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
     video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
     hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
+    localization_config_file =r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
     t1_sec = 216
     t2_sec = 223#1590
     
@@ -349,18 +349,38 @@ def plot_full_figure(time_sec=None):
         })
         
     ## ###########################################################################
+    localization_config = read_yaml(localization_config_file)
+    hydrophones_config = pd.read_csv(hp_config_file)
+    sound_speed_mps = localization_config['ENVIRONMENT']['sound_speed_mps']
+    ref_channel = localization_config['TDOA']['ref_channel']
+    hydrophone_pairs = defineReceiverPairs(len(hydrophones_config), ref_receiver=ref_channel)
     
     ## load localization results
     loc = Measurement()
     loc.from_netcdf(loc_file)
     loc_data = loc.data
     
-    ## load hydrophone locations
-    hydrophones_config = pd.read_csv(hp_config_file)
-    
-    
+
     ## recalculate data errors
-    tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
+    diff=[]
+    idx = 0
+    for idx in range(len(loc_data)):
+        m = loc_data.loc[[idx],['x','y','z']]        
+        tdoa_m = predict_tdoa(m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
+        tdoa_measured = loc_data.loc[[idx],['tdoa_sec_1','tdoa_sec_2','tdoa_sec_3']].to_numpy()    
+        #diff_temp = (tdoa_m-tdoa_measured.T)**2
+        if idx==0:
+            diff = (tdoa_m-tdoa_measured.T)**2
+        else:
+            diff = np.vstack((diff,(tdoa_m-tdoa_measured.T)**2))
+    
+    Q = len(loc_data)
+    #M = m.size # number of dimensions of the model (here: X, Y, and Z)
+    #N = len(tdoa_sec) # number of measurements    
+    #error_std = np.sqrt((1/(Q*(N-M))) * (sum((tdoa_sec-tdoa_m)**2)))    
+    tdoa_errors_std = np.sqrt( (1/Q)*(sum(diff)))
+    
+    #tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
     loc_errors_std = calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
 
     

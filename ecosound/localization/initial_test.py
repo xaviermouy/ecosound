@@ -471,6 +471,7 @@ if localization_config['METHOD']['grid_search']:
         origin=localization_config['GRIDSEARCH']['origin'])
     if localization_config['GRIDSEARCH']['min_z']:
         sources = sources.loc[sources['z']>=localization_config['GRIDSEARCH']['min_z']]
+        sources = sources.reset_index(drop=True)
     # sources = defineCubeVolumeGrid(0.2, 2, origin=[0, 0, 0])
     # sources = defineSphereSurfaceGrid(
     #     10000,
@@ -478,14 +479,19 @@ if localization_config['METHOD']['grid_search']:
     #     origin=localization_config['GRIDSEARCH']['origin'])
     #sources = defineCubeVolumeGrid(0.2, 2, origin=[0, 0, 0])
     try:
-        sources_tdoa = np.load(localization_config['GRIDSEARCH']['stored_tdoas'])
+        npzfile = np.load(localization_config['GRIDSEARCH']['stored_tdoas'])
+        sources_tdoa = npzfile['sources_tdoa']
+        sources_array = npzfile['sources']
+        sources['x'] = sources_array[:,0]
+        sources['y'] = sources_array[:,1]
+        sources['z'] = sources_array[:,2]
         print('Succesully loaded precomputed grid TDOAs from file.')
     except:
         print("Couln't read precomputed TDOAs from file, computing grid TDOAs...")    
         sources_tdoa = np.zeros(shape=(len(hydrophone_pairs),len(sources)))
         for source_idx, source in sources.iterrows():
             sources_tdoa[:,source_idx] = predict_tdoa(source, sound_speed_mps, hydrophones_config, hydrophone_pairs).T
-        np.save(os.path.join(outdir,'tdoa_grid.'))    
+        np.savez(os.path.join(outdir,'tdoa_grid'),sources_tdoa=sources_tdoa,sources=sources)    
     # # Azimuth:
     # theta = np.arctan2(sources['y'].to_numpy(),sources['x'].to_numpy())*(180/np.pi)
     # theta = (((theta+90) % 360)-180) *(-1)        
@@ -549,37 +555,37 @@ for detec_idx, detec in detections.data.iterrows():
         delta_tdoa = sources_tdoa - tdoa_sec
         delta_tdoa_norm = np.linalg.norm(delta_tdoa, axis=0)
         min_idx = np.argmin(delta_tdoa_norm)
-        #sources['delta_tdoa'] = delta_tdoa_norm
+        sources['delta_tdoa'] = delta_tdoa_norm
         #m = sources.loc[sources['delta_tdoa'] == sources['delta_tdoa'].min()]
         m = pd.DataFrame({'x': sources.loc[min_idx]['x'],
                           'y': sources.loc[min_idx]['y'],
                           'z': sources.loc[min_idx]['z']}, index=[0]
                           )
-        # # 3D scatter plot
-        # fig = plt.figure()
-        # ax = fig.add_subplot(111, projection='3d')
-        # colors = matplotlib.cm.tab10(hydrophones_config.index.values)      
-        # alphas = 0.5
-        # for index, hp in hydrophones_config.iterrows():
-        #     point = ax.scatter(hp['x'],hp['y'],hp['z'],
-        #                     s=40,
-        #                     color=colors[index],
-        #                     label=hp['name'],
-        #                     )
-        # ax.scatter(sources['x'],
-        #             sources['y'],
-        #             sources['z'],
-        #             c=sources['delta_tdoa'],
-        #             s=2,
-        #             alpha=alphas,)
-        # # Axes labels
-        # ax.set_xlabel('X (m)', labelpad=10)
-        # ax.set_ylabel('Y (m)', labelpad=10)
-        # ax.set_zlabel('Z (m)', labelpad=10)
-        # # legend
-        # ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
-        # plt.tight_layout()
-        # plt.show()
+        # 3D scatter plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        colors = matplotlib.cm.tab10(hydrophones_config.index.values)      
+        alphas = 0.5
+        for index, hp in hydrophones_config.iterrows():
+            point = ax.scatter(hp['x'],hp['y'],hp['z'],
+                            s=40,
+                            color=colors[index],
+                            label=hp['name'],
+                            )
+        ax.scatter(sources['x'],
+                    sources['y'],
+                    sources['z'],
+                    c=sources['delta_tdoa'],
+                    s=2,
+                    alpha=alphas,)
+        # Axes labels
+        ax.set_xlabel('X (m)', labelpad=10)
+        ax.set_ylabel('Y (m)', labelpad=10)
+        ax.set_zlabel('Z (m)', labelpad=10)
+        # legend
+        ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
+        plt.tight_layout()
+        plt.show()
     
         # # # 2D scatter plot
         # fig2 = plt.figure()
