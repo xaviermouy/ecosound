@@ -95,18 +95,6 @@ def plot_top_view(hydrophones_config,loc_data,params, ax, color='black',frame_on
         
         ax.add_patch(rectangle)
         
-        # rectangle2 = plt.Rectangle((-0.15,-0.94), 0.178, 1.9,
-        #                           linewidth=frame_width,
-        #                           ec=frame_color,
-        #                           alpha=frame_alpha,
-        #                           facecolor=frame_color)
-        # ax.add_patch(rectangle2)
-        # ax.plot([0.028, 0.028],[-0.94, 0.96],
-        #      linewidth=frame_width ,
-        #      alpha=frame_alpha,
-        #      linestyle= 'solid',
-        #      color='mistyrose',         
-        #      )
         ax.plot([-0.46, 0.48],[0,0],
               linewidth=1 ,
               alpha=frame_alpha,
@@ -209,39 +197,6 @@ def plot_side_view(hydrophones_config,loc_data,params,ax, color='black',frame_on
       linestyle= 'solid',
       color='dimgray',
       )
-    # rectangle1 = plt.Rectangle((-0.94,-0.76), 1.87, 1.5,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor='none')
-    # rectangle2 = plt.Rectangle((-0.94, 0.74), 1.87, 1,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor='none')
-    # rectangle3 = plt.Rectangle((-0.1, 1.55), 0.2, 0.4,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor=frame_color)
-    # ax.add_patch(rectangle1)
-    # ax.add_patch(rectangle2)
-    # ax.add_patch(rectangle3)
-    # ax.plot([-0.94, -0.94],[-0.76, -1.06],
-    #      linewidth=frame_width ,
-    #      alpha=frame_alpha,
-    #      linestyle= 'solid',
-    #      color=frame_color,
-    #      )
-    # ax.plot([0.93, 0.93],[-0.76, -1.06],
-    #      linewidth=frame_width ,
-    #      alpha=frame_alpha,
-    #      linestyle= 'solid',
-    #      color=frame_color,
-    #      )
-    # ax.plot([0.028, 0.028],[0, -0.76],
-    #      linewidth=frame_width ,
-    #      alpha=frame_alpha,
-    #      linestyle= 'solid',
-    #      color=frame_color,
-    #      )
-    
-    # ax.plot([-0.94, 0.93],[-0.76, -0.76],
-    #      linewidth=frame_width ,
-    #      alpha=frame_alpha,
-    #      linestyle= 'solid',
-    #      color='mistyrose',
-    #      )
-    
-
     
     # plot localizations
     ax.scatter(loc_data['x'], loc_data['z'],#c=loc_data['time_min_offset'],

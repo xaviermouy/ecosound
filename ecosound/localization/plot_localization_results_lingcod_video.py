@@ -82,32 +82,64 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                            zorder=3
                            )
 
-        # plot frame
-        frame_color = 'whitesmoke'
-        frame_alpha = 1
-        frame_width = 3
-        
-        rectangle = plt.Rectangle((-0.1,-0.3), 0.2, 0.4,
-                                  linewidth=1,
-                                  ec='dimgray',
-                                  alpha=frame_alpha,
-                                  facecolor='lightgrey')
-        
-        ax.add_patch(rectangle)
-        
-        ax.plot([-0.46, 0.48],[0,0],
-              linewidth=1 ,
-              alpha=frame_alpha,
-              linestyle= 'solid',
-              color='dimgray',
-              )
-        ax.plot([0, 0],[0,0.49],
-              linewidth=1 ,
-              alpha=frame_alpha,
-              linestyle= 'solid',
-              color='dimgray',
-              )
-
+    # plot frame
+    frame_color = 'whitesmoke'
+    frame_alpha = 1
+    frame_width = 3
+    
+    rectangle = plt.Rectangle((-0.94,-0.94), 1.88, 1.9,
+                              linewidth=frame_width,
+                              ec='mistyrose',
+                              alpha=frame_alpha,
+                              facecolor='none')
+    
+    ax.add_patch(rectangle)
+    
+    rectangle2 = plt.Rectangle((-0.15,-0.94), 0.178, 1.9,
+                              linewidth=frame_width,
+                              ec='mistyrose',
+                              alpha=frame_alpha,
+                              facecolor='mistyrose')
+    ax.add_patch(rectangle2)
+    # ax.plot([0.028, 0.028],[-0.94, 0.96],
+    #      linewidth=frame_width ,
+    #      alpha=frame_alpha,
+    #      linestyle= 'solid',
+    #      color='mistyrose',         
+    #      )
+    # ax.plot([-0.15, -0.15],[-0.94, 0.96],
+    #      linewidth=frame_width ,
+    #      alpha=frame_alpha,
+    #      linestyle= 'solid',
+    #      color='mistyrose',
+    #      )
+    
+    #c=z, cmap=cmap, norm=norm
+    
+    # plot fishcam 02
+    rectangle4 = plt.Rectangle((1.3,-0.1), 0.4, 0.2,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor=frame_color)
+    ax.add_patch(rectangle4)
+    
+    ax.plot([0.93, 2],[0.5, 0.5],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color=frame_color,
+         )
+    ax.plot([0.93, 2],[-0.5, -0.5],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color=frame_color,
+         )
+    ax.plot([1.5, 1.5],[0.5, -0.5],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color=frame_color,
+         )
+    
+    
     # plot localizations
     ax.scatter(loc_data['x'], loc_data['y'],c=loc_data['time_min_offset'],
                         s=params['loc_size'].values[0],
@@ -175,27 +207,67 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
     frame_alpha = 1
     frame_width = 3
     
-    rectangle = plt.Rectangle((-0.1,-0.1), 0.2, 0.1,
-                          linewidth=1,
-                          ec='dimgray',
-                          alpha=frame_alpha,
-                          facecolor='lightgrey')
-        
-    ax.add_patch(rectangle)
-        
-    ax.plot([-0.46, 0.48],[0,0],
-      linewidth=1 ,
-      alpha=frame_alpha,
-      linestyle= 'solid',
-      color='dimgray',
-      )
+    rectangle1 = plt.Rectangle((-0.94,-0.76), 1.87, 1.5,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor='none')
+    rectangle2 = plt.Rectangle((-0.94, 0.74), 1.87, 1,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor='none')
+    rectangle3 = plt.Rectangle((-0.1, 1.55), 0.2, 0.4,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor=frame_color)
+    ax.add_patch(rectangle1)
+    ax.add_patch(rectangle2)
+    ax.add_patch(rectangle3)
+    ax.plot([-0.94, -0.94],[-0.76, -1.06],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color=frame_color,
+         )
+    ax.plot([0.93, 0.93],[-0.76, -1.06],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color=frame_color,
+         )
+    ax.plot([0.028, 0.028],[0, -0.76],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color=frame_color,
+         )
     
-    ax.plot([0, 0],[0,0.54],
-      linewidth=1 ,
-      alpha=frame_alpha,
-      linestyle= 'solid',
-      color='dimgray',
-      )
+    ax.plot([-0.94, 0.93],[-0.76, -0.76],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color='mistyrose',
+         )
+    
+    # #field of view
+    # ax.plot([-0.10, -1.2],[1.55, 0.75],
+    #       linewidth=1 ,
+    #       alpha=0.4,
+    #       linestyle= 'solid',
+    #       color='red',
+    #       )
+    # ax.plot([0.10, 1.2],[1.55, 0.75],
+    #       linewidth=1 ,
+    #       alpha=0.4,
+    #       linestyle= 'solid',
+    #       color='red',
+    #       )    
+    
+    # plot fishcam 02
+    rectangle4 = plt.Rectangle((1.3, -0.22), 0.4, 0.2,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor=frame_color)
+    ax.add_patch(rectangle4)
+    ax.plot([0.93, 1.5],[-0.76, -0.2],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color=frame_color,
+         )
+    ax.plot([1.5, 2],[-0.1, -1.06],
+         linewidth=frame_width ,
+         alpha=frame_alpha,
+         linestyle= 'solid',
+         color=frame_color,
+         )    
     
     # plot localizations
     ax.scatter(loc_data['x'], loc_data['z'],c=loc_data['time_min_offset'],
@@ -260,46 +332,32 @@ def plot_video_frame(video_file,frame_time_sec, ax):
         cap.release()
         #cv2.destroyAllWindows()
     return ax.imshow(frame)
-
-def calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs):
-    """ Calculates tdoa measurement errors. Eq. (9) in Mouy et al. 2018"""
-    tdoa_m = predict_tdoa(m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
-    Q = len(m)
-    M = m.size # number of dimensions of the model (here: X, Y, and Z)
-    N = len(tdoa_sec) # number of measurements
-    if N > M:
-        error_std = np.sqrt((1/(Q*(N-M))) * (sum((tdoa_sec-tdoa_m)**2)))
-    else:
-        error_std = np.sqrt((sum((tdoa_sec-tdoa_m)**2)))
-    return error_std
-
-
-def calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hydrophone_pairs):
-    """ Calculates localization errors. Eq. (8) in Mouy et al. 2018."""
-    A = defineJacobian(hydrophones_config, m, sound_speed_mps, hydrophone_pairs)
-    Cm = (tdoa_errors_std**2) * np.linalg.inv(np.dot(A.transpose(),A)) # Model covariance matrix for IID
-    err_std = np.sqrt(np.diag(Cm))
-    return pd.DataFrame({'x_std': [err_std[0]], 'y_std': [err_std[1]], 'z_std': [err_std[2]]})
-
 ## ###########################################################################
 
 def plot_full_figure(time_sec=None):
     
-    #loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_1m_5cm.nc'    
-    loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_2cm_3m.nc'
-    audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
-    video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
-    hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
-    localization_config_file =r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
-    t1_sec = 214 #216
-    t2_sec = 224#223
+    # loc_file1 = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\large-array_lingcod2\locs_part1.nc'
+    # loc_file2 = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\large-array_lingcod2\locs_part2.nc'
+    # audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190916T204248Z.wav'
+    # video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
+    # hp_config_file =  r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
+    # t1_sec = 589
+    # t2_sec = 635#604
     
-    filter_x=[-5, 5]
-    filter_y=[-5, 5]
-    filter_z=[-2, 5]
-    filter_x_std=6
-    filter_y_std=9
-    filter_z_std=6
+    loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\large-array_lingcod3\locs.nc'
+    audio_file = infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190617T151307Z.wav'
+    video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
+    hp_config_file =  r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\hydrophones_config_04-OGD.csv'
+    t1_sec = 217
+    t2_sec = 227
+
+
+    filter_x=[-2.5, 2]
+    filter_y=[-1, 1]
+    filter_z=[-2.1, 2.5]
+    filter_x_std=0.3
+    filter_y_std=0.3
+    filter_z_std=0.3
     
     params=pd.DataFrame({
         'loc_color': ['black'],
@@ -310,50 +368,31 @@ def plot_full_figure(time_sec=None):
         'uncertainty_style': ['-'],
         'uncertainty_alpha': [1], #0.7
         'uncertainty_width': [0.2], #0.2
-        'x_min':[-3],
-        'x_max':[3],
-        'y_min':[-3],
-        'y_max':[3],
-        'z_min':[-3],
-        'z_max':[3],    
+        'x_min':[-2.5],
+        'x_max':[2],
+        'y_min':[-1.6],
+        'y_max':[1.5],
+        'z_min':[-1.5],
+        'z_max':[2],    
         })
         
     ## ###########################################################################
-    localization_config = read_yaml(localization_config_file)
-    hydrophones_config = pd.read_csv(hp_config_file)
-    sound_speed_mps = localization_config['ENVIRONMENT']['sound_speed_mps']
-    ref_channel = localization_config['TDOA']['ref_channel']
-    hydrophone_pairs = defineReceiverPairs(len(hydrophones_config), ref_receiver=ref_channel)
     
     ## load localization results
     loc = Measurement()
     loc.from_netcdf(loc_file)
-    loc_data = loc.data
+    loc_data = loc.data    
     
-
-    # ## recalculate data errors
-    # diff=[]
-    # idx = 0
-    # for idx in range(len(loc_data)):
-    #     m = loc_data.loc[[idx],['x','y','z']]        
-    #     tdoa_m = predict_tdoa(m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
-    #     tdoa_measured = loc_data.loc[[idx],['tdoa_sec_1','tdoa_sec_2','tdoa_sec_3']].to_numpy()    
-    #     #diff_temp = (tdoa_m-tdoa_measured.T)**2
-    #     if idx==0:
-    #         diff = (tdoa_m-tdoa_measured.T)**2
-    #     else:
-    #         diff = np.vstack((diff,(tdoa_m-tdoa_measured.T)**2))
+    # loc = Measurement()
+    # loc.from_netcdf(loc_file1)
+    # loc_data = loc.data    
+    # loc2 = Measurement()
+    # loc2.from_netcdf(loc_file2)
+    # loc_data2 = loc2.data    
+    # loc_data = loc_data.append(loc_data2, ignore_index = True)
     
-    # Q = len(loc_data)
-    # #M = m.size # number of dimensions of the model (here: X, Y, and Z)
-    # #N = len(tdoa_sec) # number of measurements    
-    # #error_std = np.sqrt((1/(Q*(N-M))) * (sum((tdoa_sec-tdoa_m)**2)))    
-    # tdoa_errors_std = np.sqrt( (1/Q)*(sum(diff)))
-    
-    # #tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
-    # for idx in range(len(loc_data)):
-    #     loc_errors_std = calc_loc_errors(tdoa_errors_std, loc_data.loc[[idx],['x','y','z']] , sound_speed_mps, hydrophones_config, hydrophone_pairs)
-    #     print('m')
+    ## load hydrophone locations
+    hydrophones_config = pd.read_csv(hp_config_file)
     
     # Filter
     loc_data = loc_data.dropna(subset=['x', 'y','z']) # remove NaN
@@ -481,7 +520,7 @@ def plot_full_figure(time_sec=None):
     # ax_video2.get_yaxis().set_visible(False)
     
     
-    fig_final.set_size_inches(9.47, 6.72)
+    fig_final.set_size_inches(13.66,  6.81)
 
     box = ax_spectro.get_position()
     box.y0 = box.y0 - 0.03
@@ -492,12 +531,12 @@ def plot_full_figure(time_sec=None):
 
 def main():
     
-    # # static
+    # # # static
     # fig = plot_full_figure()
-    # size = fig.get_size_inches()
+    # #print('s')
     
     # movie
-    outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper\animation'
+    outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\LargeArray_lingcod\animation'
     fps=20
     duration_sec = 10
     

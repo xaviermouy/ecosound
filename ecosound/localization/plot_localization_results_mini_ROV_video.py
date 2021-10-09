@@ -34,7 +34,7 @@ import cv2
 def plot_spectrogram(audio_file,loc,t1_sec, t2_sec, geometry=(1,1,1)):
     
     fmin=0
-    fmax=1000
+    fmax=4000
     frame= 0.0625
     window_type= 'hann'
     nfft=0.0853
@@ -83,30 +83,55 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                            )
 
         # plot frame
+        # plot frame
         frame_color = 'whitesmoke'
         frame_alpha = 1
-        frame_width = 3
+        frame_width = 3        
+        # plot frame
+        # plot fishcam 02
+
+        ax.plot([-0.3,0.4],[-0.1,-0.1],
+              linewidth=frame_width ,
+              alpha=frame_alpha,
+              linestyle= 'solid',
+              color=frame_color,
+              )
+
+        rectangle3 = plt.Rectangle((-0.3, -0.7), 0.7, 0.9,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor='white')        
+        ax.add_patch(rectangle3)
         
-        rectangle = plt.Rectangle((-0.1,-0.3), 0.2, 0.4,
-                                  linewidth=1,
-                                  ec='dimgray',
-                                  alpha=frame_alpha,
-                                  facecolor='lightgrey')
+        rectangle4 = plt.Rectangle((-0.04, -0.4), 0.22, 0.5,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor=frame_color)
+        ax.add_patch(rectangle4)
         
-        ax.add_patch(rectangle)
-        
-        ax.plot([-0.46, 0.48],[0,0],
+        ax.plot([-0.5,0.49],[0, 0],
               linewidth=1 ,
               alpha=frame_alpha,
               linestyle= 'solid',
               color='dimgray',
               )
-        ax.plot([0, 0],[0,0.49],
+        ax.plot([0.13, 0.13],[0,0.57],
               linewidth=1 ,
               alpha=frame_alpha,
               linestyle= 'solid',
               color='dimgray',
-              )
+              )      
+
+
+        
+        
+        # ax.plot([0.93, 1.5],[-0.76, -0.2],
+        #      linewidth=frame_width ,
+        #      alpha=frame_alpha,
+        #      linestyle= 'solid',
+        #      color=frame_color,
+        #      )
+        # ax.plot([1.5, 2],[-0.1, -1.06],
+        #      linewidth=frame_width ,
+        #      alpha=frame_alpha,
+        #      linestyle= 'solid',
+        #      color=frame_color,
+        #      )
+        
 
     # plot localizations
     ax.scatter(loc_data['x'], loc_data['y'],c=loc_data['time_min_offset'],
@@ -174,14 +199,31 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
     frame_color = 'whitesmoke'
     frame_alpha = 1
     frame_width = 3
-    
-    rectangle = plt.Rectangle((-0.1,-0.1), 0.2, 0.1,
-                          linewidth=1,
-                          ec='dimgray',
+
+
+    rectangle0 = plt.Rectangle((-0.3,-0.7), 0.7, 0.58,
+                          linewidth=frame_width,                          
+                          ec=frame_color,
                           alpha=frame_alpha,
-                          facecolor='lightgrey')
+                          facecolor='white')
+    ax.add_patch(rectangle0)
+
+    circ = plt.Circle((0.05,-0.11), 0.11,
+                      linewidth=frame_width,                          
+                      ec=frame_color,
+                      alpha=frame_alpha,
+                      facecolor=frame_color)
+    ax.add_patch(circ)
+    
+    # rectangle = plt.Rectangle((-0.04,-0.22), 0.22, 0.22,
+    #                       linewidth=frame_width,
+    #                       ec=frame_color,
+    #                       alpha=frame_alpha,
+    #                       facecolor=frame_color)
+    
+
         
-    ax.add_patch(rectangle)
+    # ax.add_patch(rectangle)
         
     ax.plot([-0.46, 0.48],[0,0],
       linewidth=1 ,
@@ -196,6 +238,13 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
       linestyle= 'solid',
       color='dimgray',
       )
+
+    ax.plot([0.13, 0.13],[0,0.14],
+      linewidth=1 ,
+      alpha=frame_alpha,
+      linestyle= 'solid',
+      color='dimgray',
+      )    
     
     # plot localizations
     ax.scatter(loc_data['x'], loc_data['z'],c=loc_data['time_min_offset'],
@@ -284,22 +333,29 @@ def calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hyd
 ## ###########################################################################
 
 def plot_full_figure(time_sec=None):
-    
-    #loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_1m_5cm.nc'    
-    loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_2cm_3m.nc'
-    audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
+        
+    loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mini-array_ROV\localizations_2cm_3m.nc'
+    audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\671404070.190801165502.wav'
     video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
-    hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
-    localization_config_file =r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
-    t1_sec = 214 #216
-    t2_sec = 224#223
+    hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL.csv'
+    localization_config_file =r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mini_array.yaml'    
+    t1_sec =853+17 #853
+    t2_sec = 877-1#877
+
+    # loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mini-array_ROV\localizations_2cm_3m_rightside.nc'
+    # audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\671404070.190801165502.wav'
+    # video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
+    # hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL.csv'
+    # localization_config_file =r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mini_array.yaml'    
+    # t1_sec = 882
+    # t2_sec = 886#900
     
-    filter_x=[-5, 5]
-    filter_y=[-5, 5]
-    filter_z=[-2, 5]
-    filter_x_std=6
-    filter_y_std=9
-    filter_z_std=6
+    filter_x=[-10, 10]
+    filter_y=[-10, 10]
+    filter_z=[-2, 10]
+    filter_x_std=5
+    filter_y_std=5
+    filter_z_std=5
     
     params=pd.DataFrame({
         'loc_color': ['black'],
@@ -310,12 +366,12 @@ def plot_full_figure(time_sec=None):
         'uncertainty_style': ['-'],
         'uncertainty_alpha': [1], #0.7
         'uncertainty_width': [0.2], #0.2
-        'x_min':[-3],
-        'x_max':[3],
-        'y_min':[-3],
-        'y_max':[3],
-        'z_min':[-3],
-        'z_max':[3],    
+        'x_min':[-2],
+        'x_max':[2],
+        'y_min':[-1.5],
+        'y_max':[3.5],
+        'z_min':[-1.5],
+        'z_max':[2.5],    
         })
         
     ## ###########################################################################
@@ -365,7 +421,9 @@ def plot_full_figure(time_sec=None):
                             (loc_data['z']<=max(filter_z)) &
                             (loc_data['x_std']<= filter_x_std) & 
                             (loc_data['y_std']<= filter_y_std) &
-                            (loc_data['z_std']<= filter_z_std)
+                            (loc_data['z_std']<= filter_z_std) &
+                            (loc_data['time_min_offset']>= t1_sec) &
+                            (loc_data['time_max_offset']<= t2_sec)
                             ]
     # Adjust detection times
     loc_data['time_min_offset'] = loc_data['time_min_offset'] - t1_sec
@@ -492,34 +550,34 @@ def plot_full_figure(time_sec=None):
 
 def main():
     
-    # # static
-    # fig = plot_full_figure()
-    # size = fig.get_size_inches()
+    # static
+    fig = plot_full_figure()
+    size = fig.get_size_inches()
     
-    # movie
-    outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper\animation'
-    fps=20
-    duration_sec = 10
+    # # movie
+    # outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper2\animation'
+    # fps=20
+    # duration_sec = 10
     
-    # create individual frames
-    times = np.arange(0,duration_sec,1/fps)
-    for idx, t in enumerate(times):
-        plot_full_figure(time_sec=t)
-        plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
-        plt.close()
+    # # create individual frames
+    # times = np.arange(0,duration_sec,1/fps)
+    # for idx, t in enumerate(times):
+    #     plot_full_figure(time_sec=t)
+    #     plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
+    #     plt.close()
     
-    # stack all frames
-    img_array = []
-    for filename in range(0,idx):
-        img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
-        height, width, layers = img.shape
-        size = (width,height)
-        img_array.append(img)
-    # write videos
-    out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
-    for i in range(len(img_array)):
-        out.write(img_array[i])
-    out.release()
+    # # stack all frames
+    # img_array = []
+    # for filename in range(0,idx):
+    #     img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
+    #     height, width, layers = img.shape
+    #     size = (width,height)
+    #     img_array.append(img)
+    # # write videos
+    # out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
+    # for i in range(len(img_array)):
+    #     out.write(img_array[i])
+    # out.release()
     
 if __name__ == "__main__":
     main()

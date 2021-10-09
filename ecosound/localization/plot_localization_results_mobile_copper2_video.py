@@ -284,22 +284,24 @@ def calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hyd
 ## ###########################################################################
 
 def plot_full_figure(time_sec=None):
-    
-    #loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_1m_5cm.nc'    
-    loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_2cm_3m.nc'
+        
+    loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper2\localizations_2cm_3m.nc'
     audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
     video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
     hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
     localization_config_file =r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
-    t1_sec = 214 #216
-    t2_sec = 224#223
+    
+    #t1_sec = 844
+    #t2_sec = 895
+    t1_sec = 846
+    t2_sec = 854
     
     filter_x=[-5, 5]
     filter_y=[-5, 5]
     filter_z=[-2, 5]
-    filter_x_std=6
-    filter_y_std=9
-    filter_z_std=6
+    filter_x_std=3
+    filter_y_std=3
+    filter_z_std=3
     
     params=pd.DataFrame({
         'loc_color': ['black'],
@@ -365,7 +367,9 @@ def plot_full_figure(time_sec=None):
                             (loc_data['z']<=max(filter_z)) &
                             (loc_data['x_std']<= filter_x_std) & 
                             (loc_data['y_std']<= filter_y_std) &
-                            (loc_data['z_std']<= filter_z_std)
+                            (loc_data['z_std']<= filter_z_std) &
+                            (loc_data['time_min_offset']>= t1_sec) &
+                            (loc_data['time_max_offset']<= t2_sec)
                             ]
     # Adjust detection times
     loc_data['time_min_offset'] = loc_data['time_min_offset'] - t1_sec
@@ -492,34 +496,34 @@ def plot_full_figure(time_sec=None):
 
 def main():
     
-    # # static
-    # fig = plot_full_figure()
-    # size = fig.get_size_inches()
+    # static
+    fig = plot_full_figure()
+    size = fig.get_size_inches()
     
-    # movie
-    outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper\animation'
-    fps=20
-    duration_sec = 10
+    # # movie
+    # outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper2\animation'
+    # fps=20
+    # duration_sec = 10
     
-    # create individual frames
-    times = np.arange(0,duration_sec,1/fps)
-    for idx, t in enumerate(times):
-        plot_full_figure(time_sec=t)
-        plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
-        plt.close()
+    # # create individual frames
+    # times = np.arange(0,duration_sec,1/fps)
+    # for idx, t in enumerate(times):
+    #     plot_full_figure(time_sec=t)
+    #     plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
+    #     plt.close()
     
-    # stack all frames
-    img_array = []
-    for filename in range(0,idx):
-        img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
-        height, width, layers = img.shape
-        size = (width,height)
-        img_array.append(img)
-    # write videos
-    out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
-    for i in range(len(img_array)):
-        out.write(img_array[i])
-    out.release()
+    # # stack all frames
+    # img_array = []
+    # for filename in range(0,idx):
+    #     img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
+    #     height, width, layers = img.shape
+    #     size = (width,height)
+    #     img_array.append(img)
+    # # write videos
+    # out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
+    # for i in range(len(img_array)):
+    #     out.write(img_array[i])
+    # out.release()
     
 if __name__ == "__main__":
     main()

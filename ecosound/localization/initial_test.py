@@ -200,7 +200,7 @@ def cartesian2spherical(x,y,z):
 
 ## ############################################################################
 
-outdir=r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization'
+#outdir=r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization'
 ## ------------------------- LARGE ARRAY --------------------------------------
 
 # # Config files XAV array hornby - quilback
@@ -224,15 +224,46 @@ outdir=r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization'
 # t2 = 700
 # #detec_idx_forced= 0 
 
-# # Config files XAV array hornby - lingcod
+# # Config files XAV array hornby - lingcod - Sep 17
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array_lingcod.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190917T011248Z.wav'
+# #t1 = 318
+# #t2 = 342
+# #t1 = 322
+# #t2 = 325
+
+# t1 = 335
+# t2 = 337
+#detec_idx_forced= 0 
+
+
+
+# Config files XAV array hornby - lingcod
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
 # hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
 # detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array.yaml'
 # localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
-# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190916T234248Z.wav'
-# t1 = 1450#1440
-# t2 = 1455#1459
-# detec_idx_forced= 2 #26
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190916T204248Z.wav'
+# # t1 = 589#1440
+# # t2 = 604#1459
+
+# #also try
+# t1 = 631
+# t2 = 635
+# #detec_idx_forced= 6 #26
+
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.4.20190919T194248Z.wav'
+# t1 =1119 #944# 1052
+# t2 =1121 #950# 1056
+
+
 
 # # Config files XAV array hornby - lingcod
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\deployment_info.csv'
@@ -256,6 +287,31 @@ outdir=r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization'
 # t1 = 1528
 # t2 = 1534
 # #detec_idx_forced = 1
+
+# # Config files XAV array Ogden Point - Lingcod
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\hydrophones_config_04-OGD.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_large_array.yaml'
+
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190616T154307Z.wav'
+# t1 = 274#330
+# t2 = 276#334
+
+# # maybe good one.
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190616T131307Z.wav'
+# t1 = 1489
+# t2 = 1492
+
+# # good one (the one used in thesis)
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190617T151307Z.wav'
+# t1 = 222
+# t2 = 227
+
+# #ok one
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-06-15_OgdenPoint_AMAR_04-OGD\AMAR173.4.20190616T171307Z.wav'
+# t1 = 999
+# t2 = 1005
 
 
 # # Config files XAV array Ogden Point - lingcod
@@ -327,15 +383,18 @@ outdir=r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization'
 # t2 = 906.5
 # detec_idx_forced = 0
 
-# # Config files mobile array - Horny Island - Black eye goby 
-# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
-# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
-# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
-# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
-# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190916182406.wav'
-# t1 = 138.6
-# t2 = 147.9
-# #detec_idx_forced = 10
+# Config files mobile array - Horny Island - Black eye goby 
+deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
+hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
+detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190916182406.wav'
+t1 = 138.6
+t2 = 147.9
+
+# t1 = 205
+# t2 = 214
+#detec_idx_forced = 10
 
 # # Config files mobile array - Horny Island - Quillback part 1 
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
@@ -357,16 +416,20 @@ outdir=r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\ecosound\localization'
 # t2 = 262
 # detec_idx_forced = 1
 
-# Config files mobile array - Horny Island - Copper Rockfish
-deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
-hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
-detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
-localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
-infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
-outdir = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper'
-t1 = 216
-t2 = 223
-# #detec_idx_forced = 1
+# # Config files mobile array - Horny Island - Copper Rockfish
+# deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\deployment_info.csv'
+# hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mobile_array.yaml'
+# localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
+# infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
+# outdir = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper'
+# # t1 = 216
+# # t2 = 223
+
+# t1 = 844
+# t2 = 895
+
+#detec_idx_forced = 1
 
 ## -------------------------- MINI ARRAY --------------------------------------
 
@@ -376,9 +439,19 @@ t2 = 223
 # detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_large_array_HF.yaml'
 # localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mini_array.yaml'
 # infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\671404070.190801165502.wav'
-# t1 = 871.5 -18 #869.51653
-# t2 = 877 #876.54835
-# #detec_idx_forced = 8
+# # # ROV in front of camera
+# # t1 = 853.5
+# # t2 = 877
+
+# # ROV in front of camera
+# t1 = 880
+# t2 = 900
+# # infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\671404070.190801181002.wav'
+# # # ROV on left side of camera
+# # t1 = 10
+# # t2 = 30
+
+#detec_idx_forced = 8
 
 # # Config files mini array - Mill Bay - Shiner Perch facing fishcam 
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\deployment_info.csv'
@@ -404,12 +477,12 @@ t2 = 223
 # # Config files mini array - Mill Bay - Copper RockFish on top of fishcam 
 # deployment_info_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\deployment_info.csv'
 # hydrophones_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL.csv'
-# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mini_array.yaml'
+# detection_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\detection_config_mini_array_copper.yaml'
 # localization_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mini_array.yaml'
 # infile = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\671404070.190801232502.wav'
 # t1 = 696
 # t2 = 713
-# detec_idx_forced = 2
+# #detec_idx_forced = 2
 
 
 # load configuration parameters
@@ -435,7 +508,7 @@ detections = run_detector(audio_files['path'][detection_config['AUDIO']['channel
                           detection_config,
                           chunk = [t1, t2],
                           deployment_file=deployment_info_file)
-#detections.insert_values(frequency_min=20)
+#detections.insert_values(frequency_min=60)
 
 print(str(len(detections)) + ' detections')
 
@@ -561,31 +634,31 @@ for detec_idx, detec in detections.data.iterrows():
                           'y': sources.loc[min_idx]['y'],
                           'z': sources.loc[min_idx]['z']}, index=[0]
                           )
-        # 3D scatter plot
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        colors = matplotlib.cm.tab10(hydrophones_config.index.values)      
-        alphas = 0.5
-        for index, hp in hydrophones_config.iterrows():
-            point = ax.scatter(hp['x'],hp['y'],hp['z'],
-                            s=40,
-                            color=colors[index],
-                            label=hp['name'],
-                            )
-        ax.scatter(sources['x'],
-                    sources['y'],
-                    sources['z'],
-                    c=sources['delta_tdoa'],
-                    s=2,
-                    alpha=alphas,)
-        # Axes labels
-        ax.set_xlabel('X (m)', labelpad=10)
-        ax.set_ylabel('Y (m)', labelpad=10)
-        ax.set_zlabel('Z (m)', labelpad=10)
-        # legend
-        ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
-        plt.tight_layout()
-        plt.show()
+        # # 3D scatter plot
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection='3d')
+        # colors = matplotlib.cm.tab10(hydrophones_config.index.values)      
+        # alphas = 0.5
+        # for index, hp in hydrophones_config.iterrows():
+        #     point = ax.scatter(hp['x'],hp['y'],hp['z'],
+        #                     s=40,
+        #                     color=colors[index],
+        #                     label=hp['name'],
+        #                     )
+        # ax.scatter(sources['x'],
+        #             sources['y'],
+        #             sources['z'],
+        #             c=sources['delta_tdoa'],
+        #             s=2,
+        #             alpha=alphas,)
+        # # Axes labels
+        # ax.set_xlabel('X (m)', labelpad=10)
+        # ax.set_ylabel('Y (m)', labelpad=10)
+        # ax.set_zlabel('Z (m)', labelpad=10)
+        # # legend
+        # ax.legend(bbox_to_anchor=(1.07, 0.7, 0.3, 0.2), loc='upper left')
+        # plt.tight_layout()
+        # plt.show()
     
         # # # 2D scatter plot
         # fig2 = plt.figure()
