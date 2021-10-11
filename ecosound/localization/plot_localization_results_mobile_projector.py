@@ -121,7 +121,7 @@ def plot_top_view(hydrophones_config,loc_data,params, ax, color='black',frame_on
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x']-loc_point['x_std'],loc_point['x']+loc_point['x_std']],
+        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
                 [loc_point['y'],loc_point['y']],
                 #c=loc_point['time_min_offset'],
                 linewidth=params['uncertainty_width'].values[0],
@@ -134,7 +134,7 @@ def plot_top_view(hydrophones_config,loc_data,params, ax, color='black',frame_on
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['y']-loc_point['y_std'],loc_point['y']+loc_point['y_std']],
+                [loc_point['y_min_CI99'],loc_point['y_max_CI99']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 color=color,
@@ -210,7 +210,7 @@ def plot_side_view(hydrophones_config,loc_data,params,ax, color='black',frame_on
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x']-loc_point['x_std'],loc_point['x']+loc_point['x_std']],
+        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
                 [loc_point['z'],loc_point['z']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
@@ -221,7 +221,7 @@ def plot_side_view(hydrophones_config,loc_data,params,ax, color='black',frame_on
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['z']-loc_point['z_std'],loc_point['z']+loc_point['z_std']],
+                [loc_point['z_min_CI99'],loc_point['z_max_CI99']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 #color=params['uncertainty_color'].values[0],
@@ -269,8 +269,8 @@ def plot_video_frame(video_file,frame_time_sec, ax):
 hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
 indir=r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_ROV'
 audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\5147.200910210736.wav'
-t1_sec = 106
-t2_sec = 119
+t1_sec = 108#106
+t2_sec = 113.5#119
 
 
 # loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\large-array_quillback\AMAR173.4.20190920T161248Z.nc'
@@ -307,89 +307,95 @@ params=pd.DataFrame({
 ## ###########################################################################
 
 ## load localization results 0 degrees
-file1 = '0_degrees.nc'
+file1 = '0_deg.nc'
 loc1 = Measurement()
 loc1.from_netcdf(os.path.join(indir,file1))
-loc1_data = loc1.data
-# Filter
-loc1_data = loc1_data.dropna(subset=['x', 'y','z']) # remove NaN
-loc1_data = loc1_data.loc[(loc1_data['x']>=min(filter_x)) & 
-                        (loc1_data['x']<=max(filter_x)) &
-                        (loc1_data['y']>=min(filter_y)) & 
-                        (loc1_data['y']<=max(filter_y)) &
-                        (loc1_data['z']>=min(filter_z)) & 
-                        (loc1_data['z']<=max(filter_z)) &
-                        (loc1_data['x_std']<= filter_x_std) & 
-                        (loc1_data['y_std']<= filter_y_std) &
-                        (loc1_data['z_std']<= filter_z_std)
-                        ]
+# loc1_data = loc1.data
+# # Filter
+# loc1_data = loc1_data.dropna(subset=['x', 'y','z']) # remove NaN
+# loc1_data = loc1_data.loc[(loc1_data['x']>=min(filter_x)) & 
+#                         (loc1_data['x']<=max(filter_x)) &
+#                         (loc1_data['y']>=min(filter_y)) & 
+#                         (loc1_data['y']<=max(filter_y)) &
+#                         (loc1_data['z']>=min(filter_z)) & 
+#                         (loc1_data['z']<=max(filter_z)) &
+#                         (loc1_data['x_std']<= filter_x_std) & 
+#                         (loc1_data['y_std']<= filter_y_std) &
+#                         (loc1_data['z_std']<= filter_z_std)
+#                         ]
 
-# Adjust detection times
-loc1_data['time_min_offset'] = loc1_data['time_min_offset'] - t1_sec
-loc1_data['time_max_offset'] = loc1_data['time_max_offset'] - t1_sec
+# # Adjust detection times
+# loc1_data['time_min_offset'] = loc1_data['time_min_offset'] - t1_sec
+# loc1_data['time_max_offset'] = loc1_data['time_max_offset'] - t1_sec
 
-# update loc object
-loc1.data = loc1_data
+# # update loc object
+# loc1.data = loc1_data
 
-## load localization results 90 degrees
-file2 = '90_degrees.nc'
-loc2 = Measurement()
-loc2.from_netcdf(os.path.join(indir,file2))
-loc2_data = loc2.data
-# Filter
-loc2_data = loc2_data.dropna(subset=['x', 'y','z']) # remove NaN
-loc2_data = loc2_data.loc[(loc2_data['x']>=min(filter_x)) & 
-                        (loc2_data['x']<=max(filter_x)) &
-                        (loc2_data['y']>=min(filter_y)) & 
-                        (loc2_data['y']<=max(filter_y)) &
-                        (loc2_data['z']>=min(filter_z)) & 
-                        (loc2_data['z']<=max(filter_z)) &
-                        (loc2_data['x_std']<= filter_x_std) & 
-                        (loc2_data['y_std']<= filter_y_std) &
-                        (loc2_data['z_std']<= filter_z_std)
-                        ]
-# update loc object
-loc2.data = loc2_data
+# ## load localization results 90 degrees
+# file2 = '90_degrees.nc'
+# loc2 = Measurement()
+# loc2.from_netcdf(os.path.join(indir,file2))
+# loc2_data = loc2.data
+# # Filter
+# loc2_data = loc2_data.dropna(subset=['x', 'y','z']) # remove NaN
+# loc2_data = loc2_data.loc[(loc2_data['x']>=min(filter_x)) & 
+#                         (loc2_data['x']<=max(filter_x)) &
+#                         (loc2_data['y']>=min(filter_y)) & 
+#                         (loc2_data['y']<=max(filter_y)) &
+#                         (loc2_data['z']>=min(filter_z)) & 
+#                         (loc2_data['z']<=max(filter_z)) &
+#                         (loc2_data['x_std']<= filter_x_std) & 
+#                         (loc2_data['y_std']<= filter_y_std) &
+#                         (loc2_data['z_std']<= filter_z_std)
+#                         ]
+# # update loc object
+# loc2.data = loc2_data
 
-## load localization results 90 degrees
-file3 = '180_degrees.nc'
-loc3 = Measurement()
-loc3.from_netcdf(os.path.join(indir,file3))
-loc3_data = loc3.data
-# Filter
-loc3_data = loc3_data.dropna(subset=['x', 'y','z']) # remove NaN
-loc3_data = loc3_data.loc[(loc3_data['x']>=min(filter_x)) & 
-                        (loc3_data['x']<=max(filter_x)) &
-                        (loc3_data['y']>=min(filter_y)) & 
-                        (loc3_data['y']<=max(filter_y)) &
-                        (loc3_data['z']>=min(filter_z)) & 
-                        (loc3_data['z']<=max(filter_z)) &
-                        (loc3_data['x_std']<= filter_x_std) & 
-                        (loc3_data['y_std']<= filter_y_std) &
-                        (loc3_data['z_std']<= filter_z_std)
-                        ]
-# update loc object
-loc3.data = loc3_data
+# ## load localization results 90 degrees
+# file3 = '180_degrees.nc'
+# loc3 = Measurement()
+# loc3.from_netcdf(os.path.join(indir,file3))
+# loc3_data = loc3.data
+# # Filter
+# loc3_data = loc3_data.dropna(subset=['x', 'y','z']) # remove NaN
+# loc3_data = loc3_data.loc[(loc3_data['x']>=min(filter_x)) & 
+#                         (loc3_data['x']<=max(filter_x)) &
+#                         (loc3_data['y']>=min(filter_y)) & 
+#                         (loc3_data['y']<=max(filter_y)) &
+#                         (loc3_data['z']>=min(filter_z)) & 
+#                         (loc3_data['z']<=max(filter_z)) &
+#                         (loc3_data['x_std']<= filter_x_std) & 
+#                         (loc3_data['y_std']<= filter_y_std) &
+#                         (loc3_data['z_std']<= filter_z_std)
+#                         ]
+# # update loc object
+# loc3.data = loc3_data
 
-## load localization results -90 degrees
-file4 = 'minus90_degrees.nc'
-loc4 = Measurement()
-loc4.from_netcdf(os.path.join(indir,file4))
-loc4_data = loc4.data
-# Filter
-loc4_data = loc4_data.dropna(subset=['x', 'y','z']) # remove NaN
-loc4_data = loc4_data.loc[(loc4_data['x']>=min(filter_x)) & 
-                        (loc4_data['x']<=max(filter_x)) &
-                        (loc4_data['y']>=min(filter_y)) & 
-                        (loc4_data['y']<=max(filter_y)) &
-                        (loc4_data['z']>=min(filter_z)) & 
-                        (loc4_data['z']<=max(filter_z)) &
-                        (loc4_data['x_std']<= filter_x_std) & 
-                        (loc4_data['y_std']<= filter_y_std) &
-                        (loc4_data['z_std']<= filter_z_std)
-                        ]
-# update loc object
-loc4.data = loc4_data
+# ## load localization results -90 degrees
+# file4 = 'minus90_degrees.nc'
+# loc4 = Measurement()
+# loc4.from_netcdf(os.path.join(indir,file4))
+# loc4_data = loc4.data
+# # Filter
+# loc4_data = loc4_data.dropna(subset=['x', 'y','z']) # remove NaN
+# loc4_data = loc4_data.loc[(loc4_data['x']>=min(filter_x)) & 
+#                         (loc4_data['x']<=max(filter_x)) &
+#                         (loc4_data['y']>=min(filter_y)) & 
+#                         (loc4_data['y']<=max(filter_y)) &
+#                         (loc4_data['z']>=min(filter_z)) & 
+#                         (loc4_data['z']<=max(filter_z)) &
+#                         (loc4_data['x_std']<= filter_x_std) & 
+#                         (loc4_data['y_std']<= filter_y_std) &
+#                         (loc4_data['z_std']<= filter_z_std)
+#                         ]
+# # update loc object
+# loc4.data = loc4_data
+
+df = pd.read_csv(r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_ROV\localizations_matlab_with_CI.csv')
+loc1_data = df.loc[0:7] # 0 degrees
+loc3_data = df.loc[8:14]
+loc2_data = df.loc[15:19]
+loc4_data = df.loc[20:27]
 
 ## load hydrophone locations
 hydrophones_config = pd.read_csv(hp_config_file)

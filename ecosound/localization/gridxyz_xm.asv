@@ -20,7 +20,6 @@ xh(4,:) = [  0.48, 0.00, 0.00 ];
 
 % mobile Array:
 % sdev  = 1.2576e-05 % Projector Mcauley POint
-% sdev  = 3.3665e-05; % Copper exemple #1 (with blackeye goby)
 
 doplot=1;
 %dobs=[-0.0006334, -0.000232, -4.2e-05]';
@@ -40,38 +39,38 @@ channels = 1:Nhyd;
 channels(ref_hyd)=[];
 Ndat = Nhyd-1;          % Number of data
 
-% %% estimate Estimate std dev from residuals
-% res=[];
-% for ii = 1:height(table)    
-%     r1 = sqrt((table.x(ii)-xh(ref_hyd,1)).^2+(table.y(ii)-xh(ref_hyd,2))^2+(table.z(ii)-xh(ref_hyd,3)).^2)';
-%     idx=0;
-%     dobs = [table.tdoa_sec_1(ii), table.tdoa_sec_2(ii), table.tdoa_sec_3(ii)]';
-%     for i=channels
-%         idx=idx+1;
-%         r = sqrt( (table.x(ii)-xh(i,1)).^2+(table.y(ii)-xh(i,2))^2+(table.z(ii)-xh(i,3)).^2)';        
-%         %res = res+((r-r1)/v-dobs(idx)).^2;
-%         res = [res,((r-r1)/v-dobs(idx)).^2];
-%     end %for i=channels
-% end %for i = 1:height(table)
-% %sdev = sqrt(res/(height(table)*(Ndat-1))); 
-% sdev = sqrt(sum(res)/(height(table)*(Ndat-1))) 
+%% estimate Estimate std dev from residuals
+res=[];
+for ii = 1:height(table)    
+    r1 = sqrt((table.x(ii)-xh(ref_hyd,1)).^2+(table.y(ii)-xh(ref_hyd,2))^2+(table.z(ii)-xh(ref_hyd,3)).^2)';
+    idx=0;
+    dobs = [table.tdoa_sec_1(ii), table.tdoa_sec_2(ii), table.tdoa_sec_3(ii)]';
+    for i=channels
+        idx=idx+1;
+        r = sqrt( (table.x(ii)-xh(i,1)).^2+(table.y(ii)-xh(i,2))^2+(table.z(ii)-xh(i,3)).^2)';        
+        %res = res+((r-r1)/v-dobs(idx)).^2;
+        res = [res,((r-r1)/v-dobs(idx)).^2];
+    end %for i=channels
+end %for i = 1:height(table)
+%sdev = sqrt(res/(height(table)*(Ndat-1))); 
+sdev = sqrt(sum(res)/(height(table)*(Ndat-1))) 
 
 
-%% add std err that was used to the table (for book keeping)
-table.tdoa_errors_std(:) = sdev;
-for i = 1:height(table) 
-    dobs = [table.tdoa_sec_1(i), table.tdoa_sec_2(i), table.tdoa_sec_3(i)]';
-    [x,y,z,x_min, x_max,y_min, y_max,z_min, z_max]=solve_gridsearch(dobs,sdev, Nhyd, ref_hyd,xh,v,B,Ndat, channels,doplot);
-    table.x_min_CI99(i) = x_min;
-    table.x_max_CI99(i) = x_max;
-    table.y_min_CI99(i) = y_min;
-    table.y_max_CI99(i) = y_max;
-    table.z_min_CI99(i) = z_min;
-    table.z_max_CI99(i) = z_max;
-    disp(i)
-    close all
-end
-writetable(table,[indir,'localizations_matlab_with_CI.csv'])
+% %% add std err that was used to the table (for book keeping)
+% table.tdoa_errors_std(:) = sdev;
+% for i = 1:height(table) 
+%     dobs = [table.tdoa_sec_1(i), table.tdoa_sec_2(i), table.tdoa_sec_3(i)]';
+%     [x,y,z,x_min, x_max,y_min, y_max,z_min, z_max]=solve_gridsearch(dobs,sdev, Nhyd, ref_hyd,xh,v,B,Ndat, channels,doplot);
+%     table.x_min_CI99(i) = x_min;
+%     table.x_max_CI99(i) = x_max;
+%     table.y_min_CI99(i) = y_min;
+%     table.y_max_CI99(i) = y_max;
+%     table.z_min_CI99(i) = z_min;
+%     table.z_max_CI99(i) = z_max;
+%     disp(i)
+%     close all
+% end
+% writetable(table,[indir,'localizations_matlab_with_CI.csv'])
 
 % %% plot single observation
 % doplot=1;
