@@ -365,9 +365,9 @@ t2_sec = 1534
 filter_x=[-5, 5]
 filter_y=[-5, 5]
 filter_z=[-1.5, 3]
-filter_x_std=1
-filter_y_std=1
-filter_z_std=1
+filter_x_std=0
+filter_y_std=0
+filter_z_std=0
 
 params=pd.DataFrame({
     'loc_color': ['black'],

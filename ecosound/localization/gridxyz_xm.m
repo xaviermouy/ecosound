@@ -8,25 +8,43 @@ close all
 clc
 
 %isdev = 0;                 % 0=use knowledge of data stdev; 1=estimate data stdev
-B     = 0.99 ;               % Percent for CIs
-sdev  = 3.3665e-05;         % data std dev (puts errors on dobs) 
-v     = 1485;               % water sound velocity
+B     = 0.99 ;              % Percent for CIs
+sdev  = 1.8893e-05;         % data std dev (puts errors on dobs) 
+v     = 1484;               % water sound velocity
 Nhyd = 4;      % Number of hydrophones
 ref_hyd = 3;   % reference hydrophone
-xh(1,:) = [ -0.46, 0.00, 0.00 ];
-xh(2,:) = [  0.00, 0.19, 0.54 ];
-xh(3,:) = [  0.00, 0.49, 0.00 ];
-xh(4,:) = [  0.48, 0.00, 0.00 ];
+
+% %original  mobile array
+% xh(1,:) = [ -0.46, 0.00, 0.00 ];
+% xh(2,:) = [  0.00, 0.19, 0.54 ];
+% xh(3,:) = [  0.00, 0.49, 0.00 ];
+% xh(4,:) = [  0.48, 0.00, 0.00 ];
+
+%original mini array
+xh(1,:) = [  0.63, 0.00, 0.00 ];
+xh(2,:) = [  0.13, 0.57, 0.14 ];
+xh(3,:) = [  0.00, 0.00, 0.54 ];
+xh(4,:) = [  -0.50, 0.00, 0.00 ];
 
 % mobile Array:
 % sdev  = 1.2576e-05 % Projector Mcauley POint
-% sdev  = 3.3665e-05; % Copper exemple #1 (with blackeye goby)
+% sdev  = 3.3665e-05;% Copper exemple #1 (with blackeye goby in front)
+% sdev  = 1.2418e-04 % Copper exemple #2 (on top of rock)
+% sdev  = 1.1126e-04 % Goby
+
+% mini array:
+% sdev = 3.5460e-06 % ROV
+% sdev = 1.8893e-05 % Copper
 
 doplot=1;
 %dobs=[-0.0006334, -0.000232, -4.2e-05]';
 
-indir = 'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\';
+indir = 'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mini-array_copper\';
+%indir = 'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mini-array_ROV\';
 infile = 'localizations_python.csv';
+%infile = 'localizations_python_corrected.csv';
+%infile = 'localizations_matlab_with_CI.csv';
+
 
 table = readtable([indir infile]);
 table.x_min_CI99 = zeros(height(table),1);
@@ -36,11 +54,13 @@ table.y_max_CI99 = zeros(height(table),1);
 table.z_min_CI99 = zeros(height(table),1);
 table.z_max_CI99 = zeros(height(table),1);
 
+%table = table(1:15,:);
+
 channels = 1:Nhyd;
 channels(ref_hyd)=[];
 Ndat = Nhyd-1;          % Number of data
 
-% %% estimate Estimate std dev from residuals
+% % estimate Estimate std dev from residuals
 % res=[];
 % for ii = 1:height(table)    
 %     r1 = sqrt((table.x(ii)-xh(ref_hyd,1)).^2+(table.y(ii)-xh(ref_hyd,2))^2+(table.z(ii)-xh(ref_hyd,3)).^2)';
@@ -57,7 +77,7 @@ Ndat = Nhyd-1;          % Number of data
 % sdev = sqrt(sum(res)/(height(table)*(Ndat-1))) 
 
 
-%% add std err that was used to the table (for book keeping)
+% add std err that was used to the table (for book keeping)
 table.tdoa_errors_std(:) = sdev;
 for i = 1:height(table) 
     dobs = [table.tdoa_sec_1(i), table.tdoa_sec_2(i), table.tdoa_sec_3(i)]';
@@ -68,8 +88,14 @@ for i = 1:height(table)
     table.y_max_CI99(i) = y_max;
     table.z_min_CI99(i) = z_min;
     table.z_max_CI99(i) = z_max;
+    table.x(i) = x;
+    table.y(i) = y;
+    table.z(i) = z;
     disp(i)
     close all
+    x
+    y
+    z    
 end
 writetable(table,[indir,'localizations_matlab_with_CI.csv'])
 
@@ -92,20 +118,37 @@ function [x,y,z,x_min, x_max,y_min, y_max,z_min, z_max] = solve_gridsearch(dobs,
 %  Set up search grid in x, y, z
 %------------------------------------------------------------------------------
 
-x0 = -8;   % -8 to 8 by .02 m
+%% -3 to 3 by .02m
+x0 = -3;   % -8 to 8 by .02 m
 dx = 0.02;
-Nx = 801;
+Nx = 301;
 xgrid = x0+(0:Nx-1)*dx;
 
-y0 = -8;      % -8 to 8 by .02 m
+y0 = -3;      % -3 to 3 by .02 m
 dy = 0.02;
-Ny = 801;
+Ny = 301;
 ygrid = y0+(0:Ny-1)*dy;
 
-z0 = -1;      % -1 to 8 by .01 m
+z0 = -0.2;      % -1 to 3 by .02 m
 dz = 0.02;
-Nz = 451;
+Nz = 161;
 zgrid = z0+(0:Nz-1)*dz;
+
+% %% -8 to 8 by .02m
+% x0 = -8;   % -8 to 8 by .02 m
+% dx = 0.02;
+% Nx = 801;
+% xgrid = x0+(0:Nx-1)*dx;
+% 
+% y0 = -8;      % -8 to 8 by .02 m
+% dy = 0.02;
+% Ny = 801;
+% ygrid = y0+(0:Ny-1)*dy;
+% 
+% z0 = -2;      % -1 to 8 by .02 m
+% dz = 0.02;
+% Nz = 501;
+% zgrid = z0+(0:Nz-1)*dz;
 
 %------------------------------------------------------------------------------
 %  Compute sum-of-squared-misft (ssq) on grid (vectorized over x)

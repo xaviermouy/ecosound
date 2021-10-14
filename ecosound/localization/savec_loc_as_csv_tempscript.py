@@ -11,7 +11,7 @@ sys.path.append(r'C:\Users\xavier.mouy\Documents\GitHub\ecosound') # Adds higher
 import pandas as pd
 from ecosound.core.measurement import Measurement
 
-indir = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper'
+indir = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mini-array_copper'
 
 # load data
 print('')

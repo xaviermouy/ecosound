@@ -87,7 +87,7 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
         frame_alpha = 1
         frame_width = 3
         
-        rectangle = plt.Rectangle((-0.1,-0.3), 0.2, 0.4,
+        rectangle = plt.Rectangle((-0.1,-0.2), 0.2, 0.4,
                                   linewidth=1,
                                   ec='dimgray',
                                   alpha=frame_alpha,
@@ -120,7 +120,7 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x']-loc_point['x_std'],loc_point['x']+loc_point['x_std']],
+        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
                 [loc_point['y'],loc_point['y']],
                 #c=loc_point['time_min_offset'],
                 linewidth=params['uncertainty_width'].values[0],
@@ -133,7 +133,7 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['y']-loc_point['y_std'],loc_point['y']+loc_point['y_std']],
+                [loc_point['y_min_CI99'],loc_point['y_max_CI99']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 #color=params['uncertainty_color'].values[0],
@@ -209,7 +209,7 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x']-loc_point['x_std'],loc_point['x']+loc_point['x_std']],
+        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
                 [loc_point['z'],loc_point['z']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
@@ -219,7 +219,7 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['z']-loc_point['z_std'],loc_point['z']+loc_point['z_std']],
+                [loc_point['z_min_CI99'],loc_point['z_max_CI99']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 #color=params['uncertainty_color'].values[0],
@@ -287,6 +287,7 @@ def plot_full_figure(time_sec=None):
     
     #loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_1m_5cm.nc'    
     loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_2cm_3m.nc'
+    loc_file_matlab = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_matlab_with_CI.csv'
     audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
     video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
     hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
@@ -310,12 +311,12 @@ def plot_full_figure(time_sec=None):
         'uncertainty_style': ['-'],
         'uncertainty_alpha': [1], #0.7
         'uncertainty_width': [0.2], #0.2
-        'x_min':[-3],
-        'x_max':[3],
-        'y_min':[-3],
+        'x_min':[-1.5],
+        'x_max':[1.5],
+        'y_min':[-0.5],
         'y_max':[3],
-        'z_min':[-3],
-        'z_max':[3],    
+        'z_min':[-1.5],
+        'z_max':[1.5],    
         })
         
     ## ###########################################################################
@@ -329,7 +330,9 @@ def plot_full_figure(time_sec=None):
     loc = Measurement()
     loc.from_netcdf(loc_file)
     loc_data = loc.data
-    
+
+    # used matlab CI
+    loc_data = pd.read_csv(loc_file_matlab)
 
     # ## recalculate data errors
     # diff=[]
@@ -481,7 +484,7 @@ def plot_full_figure(time_sec=None):
     # ax_video2.get_yaxis().set_visible(False)
     
     
-    fig_final.set_size_inches(9.47, 6.72)
+    fig_final.set_size_inches(9.08, 6.72)
 
     box = ax_spectro.get_position()
     box.y0 = box.y0 - 0.03
@@ -492,34 +495,34 @@ def plot_full_figure(time_sec=None):
 
 def main():
     
-    # # static
-    # fig = plot_full_figure()
-    # size = fig.get_size_inches()
+    # static
+    fig = plot_full_figure()
+    size = fig.get_size_inches()
     
-    # movie
-    outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper\animation'
-    fps=20
-    duration_sec = 10
+    # # movie
+    # outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper\animation'
+    # fps=20
+    # duration_sec = 10
     
-    # create individual frames
-    times = np.arange(0,duration_sec,1/fps)
-    for idx, t in enumerate(times):
-        plot_full_figure(time_sec=t)
-        plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
-        plt.close()
+    # # create individual frames
+    # times = np.arange(0,duration_sec,1/fps)
+    # for idx, t in enumerate(times):
+    #     plot_full_figure(time_sec=t)
+    #     plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
+    #     plt.close()
     
-    # stack all frames
-    img_array = []
-    for filename in range(0,idx):
-        img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
-        height, width, layers = img.shape
-        size = (width,height)
-        img_array.append(img)
-    # write videos
-    out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
-    for i in range(len(img_array)):
-        out.write(img_array[i])
-    out.release()
+    # # stack all frames
+    # img_array = []
+    # for filename in range(0,idx):
+    #     img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
+    #     height, width, layers = img.shape
+    #     size = (width,height)
+    #     img_array.append(img)
+    # # write videos
+    # out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
+    # for i in range(len(img_array)):
+    #     out.write(img_array[i])
+    # out.release()
     
 if __name__ == "__main__":
     main()

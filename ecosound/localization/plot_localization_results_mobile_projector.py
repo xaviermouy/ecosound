@@ -87,7 +87,7 @@ def plot_top_view(hydrophones_config,loc_data,params, ax, color='black',frame_on
         frame_alpha = 1
         frame_width = 3
         
-        rectangle = plt.Rectangle((-0.1,-0.3), 0.2, 0.4,
+        rectangle = plt.Rectangle((-0.1,-0.2), 0.2, 0.4,
                                   linewidth=1,
                                   ec='dimgray',
                                   alpha=frame_alpha,

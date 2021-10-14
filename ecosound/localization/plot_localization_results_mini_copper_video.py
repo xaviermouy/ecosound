@@ -103,7 +103,7 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
         rectangle4 = plt.Rectangle((-0.04, -0.4), 0.22, 0.5,linewidth=frame_width,ec=frame_color,alpha=frame_alpha, facecolor=frame_color)
         ax.add_patch(rectangle4)
         
-        ax.plot([-0.5,0.49],[0, 0],
+        ax.plot([-0.5,0.63],[0, 0],
               linewidth=1 ,
               alpha=frame_alpha,
               linestyle= 'solid',
@@ -145,7 +145,7 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x']-loc_point['x_std'],loc_point['x']+loc_point['x_std']],
+        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
                 [loc_point['y'],loc_point['y']],
                 #c=loc_point['time_min_offset'],
                 linewidth=params['uncertainty_width'].values[0],
@@ -158,7 +158,7 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['y']-loc_point['y_std'],loc_point['y']+loc_point['y_std']],
+                [loc_point['y_min_CI99'],loc_point['y_max_CI99']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 #color=params['uncertainty_color'].values[0],
@@ -225,7 +225,7 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
         
     # ax.add_patch(rectangle)
         
-    ax.plot([-0.5, 0.48],[0,0],
+    ax.plot([-0.5, 0.63],[0,0],
       linewidth=1 ,
       alpha=frame_alpha,
       linestyle= 'solid',
@@ -258,7 +258,7 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x']-loc_point['x_std'],loc_point['x']+loc_point['x_std']],
+        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
                 [loc_point['z'],loc_point['z']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
@@ -268,7 +268,7 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['z']-loc_point['z_std'],loc_point['z']+loc_point['z_std']],
+                [loc_point['z_min_CI99'],loc_point['z_max_CI99']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 #color=params['uncertainty_color'].values[0],
@@ -335,9 +335,10 @@ def calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hyd
 def plot_full_figure(time_sec=None):
         
     loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mini-array_copper\localizations_2cm_3m_v5.nc'
+    loc_file_matlab = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mini-array_copper\localizations_matlab_with_CI.csv'
     audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\671404070.190801232502.wav'
     video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
-    hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL.csv'
+    hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array\hydrophones_config_05-MILL_corrected.csv'
     localization_config_file =r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mini_array.yaml'    
     t1_sec = 696+15 #696
     #t1_sec = 696+14 #696
@@ -347,9 +348,9 @@ def plot_full_figure(time_sec=None):
     filter_x=[-10, 10]
     filter_y=[-10, 10]
     filter_z=[-2, 10]
-    filter_x_std=5
-    filter_y_std=5
-    filter_z_std=5
+    filter_x_std=10
+    filter_y_std=10
+    filter_z_std=10
     
     params=pd.DataFrame({
         'loc_color': ['black'],
@@ -380,7 +381,9 @@ def plot_full_figure(time_sec=None):
     loc.from_netcdf(loc_file)
     loc_data = loc.data
     
-
+    # used matlab CI
+    loc_data = pd.read_csv(loc_file_matlab)
+    
     # ## recalculate data errors
     # diff=[]
     # idx = 0
