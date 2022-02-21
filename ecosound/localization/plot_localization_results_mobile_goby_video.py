@@ -496,34 +496,34 @@ def plot_full_figure(time_sec=None):
 
 def main():
     
-    # static
-    fig = plot_full_figure()
-    size = fig.get_size_inches()
+    # # static
+    # fig = plot_full_figure()
+    # size = fig.get_size_inches()
     
-    # # movie
-    # outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Goby\animation'
-    # fps=20
-    # duration_sec = 10
+    # movie
+    outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Goby\animation'
+    fps=20
+    duration_sec = 10
     
-    # # create individual frames
-    # times = np.arange(0,duration_sec,1/fps)
-    # for idx, t in enumerate(times):
-    #     plot_full_figure(time_sec=t)
-    #     plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
-    #     plt.close()
+    # create individual frames
+    times = np.arange(0,duration_sec,1/fps)
+    for idx, t in enumerate(times):
+        plot_full_figure(time_sec=t)
+        plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
+        plt.close()
     
-    # # stack all frames
-    # img_array = []
-    # for filename in range(0,idx):
-    #     img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
-    #     height, width, layers = img.shape
-    #     size = (width,height)
-    #     img_array.append(img)
-    # # write videos
-    # out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
-    # for i in range(len(img_array)):
-    #     out.write(img_array[i])
-    # out.release()
+    # stack all frames
+    img_array = []
+    for filename in range(0,idx):
+        img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
+        height, width, layers = img.shape
+        size = (width,height)
+        img_array.append(img)
+    # write videos
+    out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
+    for i in range(len(img_array)):
+        out.write(img_array[i])
+    out.release()
     
 if __name__ == "__main__":
     main()

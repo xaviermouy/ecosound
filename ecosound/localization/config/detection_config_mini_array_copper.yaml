@@ -17,7 +17,7 @@ SPECTROGRAM:
     nfft_sec: 0.0853
     step_sec: 0.01
     fmin_hz: 0
-    fmax_hz: 5000
+    fmax_hz: 600
     window_type: 'hann'
     dB: True
     use_dask: True
@@ -33,8 +33,8 @@ DETECTOR:
     detector_name: 'BlobDetector'
     kernel_duration_sec: 0.05
     kernel_bandwidth_hz: 300
-    threshold: 20
-    duration_min_sec: 0.05
+    threshold: 10
+    duration_min_sec: 0.1
     bandwidth_min_hz: 40
     use_dask: True
     dask_chunks: [2048,2000]

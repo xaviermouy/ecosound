@@ -311,9 +311,9 @@ def plot_full_figure(time_sec=None):
     filter_x=[-500, 500]
     filter_y=[-500, 500]
     filter_z=[-200, 500]
-    filter_x_std=0#300
-    filter_y_std=0#300
-    filter_z_std=0#300
+    filter_x_std=300
+    filter_y_std=300
+    filter_z_std=300
     
     params=pd.DataFrame({
         'loc_color': ['black'],
@@ -510,34 +510,34 @@ def plot_full_figure(time_sec=None):
 
 def main():
     
-    # static
-    fig = plot_full_figure()
-    size = fig.get_size_inches()
+    # # static
+    # fig = plot_full_figure()
+    # size = fig.get_size_inches()
     
-    # # movie
-    # outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper2\animation'
-    # fps=20
-    # duration_sec = 10
+    # movie
+    outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper3\animation'
+    fps=20
+    duration_sec = 12
     
-    # # create individual frames
-    # times = np.arange(0,duration_sec,1/fps)
-    # for idx, t in enumerate(times):
-    #     plot_full_figure(time_sec=t)
-    #     plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
-    #     plt.close()
+    # create individual frames
+    times = np.arange(0,duration_sec,1/fps)
+    for idx, t in enumerate(times):
+        plot_full_figure(time_sec=t)
+        plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
+        plt.close()
     
-    # # stack all frames
-    # img_array = []
-    # for filename in range(0,idx):
-    #     img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
-    #     height, width, layers = img.shape
-    #     size = (width,height)
-    #     img_array.append(img)
-    # # write videos
-    # out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
-    # for i in range(len(img_array)):
-    #     out.write(img_array[i])
-    # out.release()
+    # stack all frames
+    img_array = []
+    for filename in range(0,idx):
+        img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
+        height, width, layers = img.shape
+        size = (width,height)
+        img_array.append(img)
+    # write videos
+    out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
+    for i in range(len(img_array)):
+        out.write(img_array[i])
+    out.release()
     
 if __name__ == "__main__":
     main()

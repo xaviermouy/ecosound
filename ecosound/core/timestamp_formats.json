@@ -16,6 +16,11 @@
   "string_pattern":".([0-9]{12}).",
   "time_format": ".%y%m%d%H%M%S."
  }
-
+ ,
+{
+  "name": "MARU",
+  "string_pattern":"_[0-9]{8}_[0-9]{6}.",
+  "time_format": "_%Y%m%d_%H%M%S."
+ }
  
 ]

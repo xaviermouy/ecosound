@@ -551,7 +551,7 @@ def solve_iterative_ML(d, hydrophones_coords, hydrophone_pairs, m, V, damping_fa
     # Predicted TDOA at m (forward problem): Eq. (1) in Mouy et al. (2018)
     d0 = predict_tdoa(m, V, hydrophones_coords, hydrophone_pairs)
     # Reformulation of the problem
-    delta_d = d-d0 # Delta d: original data - predicted data
+    delta_d = d-d0 # Delta d: measured data - predicted data
     try:
         # Resolving by creeping approach(ML inverse for delta m): Eq. (6) in Mouy et al. (2018)
         delta_m = np.dot(np.dot(np.linalg.inv(np.dot(A.transpose(),A)),A.transpose()),delta_d) #general inverse

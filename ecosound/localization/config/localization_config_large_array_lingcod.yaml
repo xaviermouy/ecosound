@@ -13,24 +13,22 @@ ENVIRONMENT:
     sound_speed_mps: 1484
 
 TDOA:
-    ref_channel: 2
-    upsample_res_sec: 0.0000001
+    ref_channel: 3
+    upsample_res_sec: 0.0000001 #null
     normalize: False
 
 METHOD:
-    linearized_inversion: False
-    grid_search: True
+    linearized_inversion: True
+    grid_search: False
 
 INVERSION:
-    start_model: [0,0,0] 
+    start_model: [-1,-0.5,-0.5] 
     start_model_repeats: 5
-    damping_factor: 0.2
+    damping_factor: 0.05 #0.2
     stop_delta_m: 0.01
-    stop_max_iteration: 50
+    stop_max_iteration: 200
 
 GRIDSEARCH:
     origin: [0,0,0] 
-    spacing_m: 0.02
+    spacing_m: 0.1
     radius_m: 3
-    min_z: -0.2 
-    stored_tdoas: C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mini-array_ROV\tdoa_grid_2cm_3m.npz
