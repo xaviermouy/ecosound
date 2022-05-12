@@ -1,0 +1,5 @@
+name,x,y,z,array_channel,audio_file_channel,data_path,file_name_root
+Hydrophone 0,-0.46,0,0,0,0,C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident,671404070
+Hydrophone 1,0,0.19,0.54,1,1,C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident,671404070
+Hydrophone 2,0,0.49,0,2,2,C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident,671404070
+Hydrophone 3,0.48,0,0,3,3,C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident,671404070

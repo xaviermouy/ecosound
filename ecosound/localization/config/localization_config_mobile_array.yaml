@@ -1,0 +1,42 @@
+# ####################################################
+# Configuration file for the fish detector
+
+# Parameter values after the semi-columns can be
+# modified as needed but section names and indentation
+# shoud be kept as is.
+# 
+# Make sure there is a space between the : and the
+# parameter value.
+# ####################################################
+
+ENVIRONMENT:
+    sound_speed_mps: 1484
+
+TDOA:
+    ref_channel: 2
+    upsample_res_sec: 0.0000001
+    normalize: False
+
+METHOD:
+    linearized_inversion: False
+    grid_search: True
+
+INVERSION:
+    start_model: [0,-1,0] 
+    start_model_repeats: 7
+    damping_factor: 0.1
+    stop_delta_m: 0.05
+    stop_max_iteration: 200
+
+GRIDSEARCH:
+    origin: [0,0,0] 
+    spacing_m: 0.02
+    radius_m: 3
+    min_z: -0.2 
+    stored_tdoas: C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\tdoa_grid_2cm_3m.npz
+
+#GRIDSEARCH:
+#    origin: [0,0,0] 
+#    spacing_m: 0.05
+#    radius_m: 3
+#    stored_tdoas: C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_ROV\grid_tdoas.npy

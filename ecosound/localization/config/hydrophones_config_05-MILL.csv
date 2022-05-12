@@ -1,0 +1,5 @@
+name,x,y,z,array_channel,audio_file_channel,data_path,file_name_root
+Hydrophone 0, 0.50, 0.00, 0.00 ,0,0,C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array,671404070
+Hydrophone 1, 0.13, 0.57, 0.14 ,1,1,C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array,671404070
+Hydrophone 2, 0.00, 0.00, 0.54 ,2,2,C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array,671404070
+Hydrophone 3,-0.50, 0.00, 0.00 ,3,3,C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mini_array,671404070

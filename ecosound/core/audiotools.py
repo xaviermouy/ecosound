@@ -23,7 +23,7 @@ class Sound:
     A class to load and manipulate a sound file
 
     This class can load data from an entire, or part of a, sound file, filter
-    the loaded data, select subsections, and plotteh waveform. Currently a
+    the loaded data, select subsections, and plot the waveform. Currently a
     Sound object can only load data from one channel at a time.
 
     Attributes
@@ -155,7 +155,7 @@ class Sound:
         ------
         ValueError
             If the chunk list has only 1 value.
-            If the first value in the chunk list is greater or equal to the 
+            If the first value in the chunk list is greater or equal to the
                second one.
             If values in the chunk list exceed the audio file limits.
             If the channel selected does not exist.
@@ -221,13 +221,13 @@ class Sound:
         Filter the audio signal.
 
         Applies low-pass, high-pass, or band-pass scientific filter to the
-        audio signal. The attribute waveform is updated with the filtered 
+        audio signal. The attribute waveform is updated with the filtered
         signal. The same data can only be filtered once.
 
         Parameters
         ----------
         filter_type : str
-            Type of filter. Can be set to 'bandpass', 'lowpass' or 'highpass'.            
+            Type of filter. Can be set to 'bandpass', 'lowpass' or 'highpass'.
         cutoff_frequencies : list
             Cutoff frequencies of the filter, in Hz (float). Must be a list with a
             single float if the filter_type is set to 'lowpass' or 'highpass'.
@@ -252,6 +252,17 @@ class Sound:
         None. Filtered signal in the 'waveform' attribute of the Sound object.
         """
         if self._filter_applied is False:
+
+            # check bandpass cuttoff freq and switch to lowpass.highpass if necessary
+            if (filter_type == 'bandpass') and (min(cutoff_frequencies) <=0):
+                cutoff_frequencies = [max(cutoff_frequencies)]
+                filter_type = 'lowpass'
+                print('Warning: filter type was changed from "bandpass" to "lowpass".')
+            if (filter_type == 'bandpass') and (max(cutoff_frequencies) >=self._waveform_sampling_frequency/2):
+                cutoff_frequencies = [min(cutoff_frequencies)]
+                filter_type = 'highpass'
+                print('Warning: filter type was changed from "bandpass" to "highpass".')
+            # Instantiate filter object
             my_filter = Filter(filter_type, cutoff_frequencies, order)
             self._waveform = my_filter.apply(self._waveform,
                                              self._waveform_sampling_frequency)
@@ -261,12 +272,38 @@ class Sound:
             raise ValueError('This signal has been filtered already. Cannot'
                              + ' filter twice.')
 
-    def plot_waveform(self, unit='sec', newfig=False, title=''):
+    def upsample(self, resolution_sec):
+        """
+        Upsample  waveform
+
+        Increase the number of samples in the waveform and interpolate.
+
+        Parameters
+        ----------
+        resolution_sec : float
+            Sample resolution of the upsampled waveform, in second. The new
+            sampling frequency will be 1/resolution_sec.
+
+        Returns
+        -------
+        None. Updates the waveform of the Sound object.
+
+        """
+        self._waveform, self._waveform_sampling_frequency = upsample(
+            self._waveform,
+            1/ self._waveform_sampling_frequency,
+            resolution_sec)
+
+    def normalize(self, method='amplitude'):
+        if method == 'amplitude':
+            self._waveform = self._waveform / np.max(self._waveform)
+
+    def plot(self, unit='sec', newfig=False, label=[],linestyle='-', marker='',color='black', title=''):
         """
         Plot waveform of the audio signal.
 
         PLots the waveform of the audio signal. Both the plot title and time
-        units can be asjusted. The plot can be displayed on a new or an 
+        units can be asjusted. The plot can be displayed on a new or an
         existing figure.
 
         Parameters
@@ -278,6 +315,10 @@ class Sound:
             PLots on a new figure if set to True. The default is False.
         title : str, optional
             Title of the plot. The default is ''.
+        linestyle : str, optional
+            Linestyle of the plot. The default is '-'.
+        marker : str, optional
+            Marker of the plot. The default is '-'.
 
         Raises
         ------
@@ -303,7 +344,12 @@ class Sound:
         if newfig:
             plt.figure()
         axis_t = axis_t[0:len(self._waveform)]
-        plt.plot(axis_t, self._waveform, color='black')
+        plt.plot(axis_t, self._waveform,
+                           color=color,
+                           marker = marker,
+                           linestyle = linestyle,
+                           label=label,
+                           )
         plt.xlabel(xlabel)
         plt.ylabel('Amplitude')
         plt.title(title)
@@ -313,7 +359,7 @@ class Sound:
         plt.grid()
         plt.show()
 
-    def select_snippet(self, chunk):
+    def select_snippet(self, chunk, unit='samp'):
         """
         Select section of the loaded waveform.
 
@@ -323,8 +369,11 @@ class Sound:
         ----------
         chunk : list
             List of two int values representing the [start time, stop time] of
-            the sound data to select, in samples. Start time must be smaller 
-            than stop time.
+            the sound data to select. Start time must be smaller than stop
+            time.
+        unit : str, optional
+            Time unit of the 'chunk' parameter. Can be set to 'sec' for seconds
+            or 'samp', for samples. The default is 'samp'.
 
         Raises
         ------
@@ -342,14 +391,23 @@ class Sound:
         if len(chunk) != 2:
             raise ValueError('Chunk should be a list of with 2 values: '
                              + 'chunk=[t1, t2].')
+        elif unit not in ('samp','sec'):
+           raise ValueError('Invalid unit. Should be set to "sec" or "samp".')
         elif chunk[0] >= chunk[1]:
             raise ValueError('Chunk[0] should be greater than chunk[1].')
-        elif (chunk[0] < 0) | (chunk[0] > self.file_duration_sample):
-            raise ValueError('Invalid chunk start value. The sample value '
+
+        if unit == 'sec':
+            chunk[0] = int(np.floor(chunk[0] * self.waveform_sampling_frequency))
+            chunk[1] = int(np.ceil(chunk[1] * self.waveform_sampling_frequency))
+
+        if (chunk[0] < 0) | (chunk[0] > self.file_duration_sample):
+            raise ValueError('Invalid chunk start value. The start value '
                              + 'chunk[0] is outside of file limit.')
         elif (chunk[1] < 0) | (chunk[1] > self.file_duration_sample):
-            raise ValueError('Invalid chunk stop value. The sample value '
+            raise ValueError('Invalid chunk stop value. The stop value '
                              + 'chunk[1] is outside of file limit.')
+
+
         snippet = copy.deepcopy(self)
         snippet._waveform = self._waveform[chunk[0]:chunk[1]]
         snippet._waveform_stop_sample = snippet._waveform_start_sample + chunk[1]
@@ -374,7 +432,7 @@ class Sound:
 
         Returns
         -------
-        None. Updates the 'waveform' attribute alomg with all the waveform 
+        None. Updates the 'waveform' attribute alomg with all the waveform
         -related attributes.
 
         """
@@ -502,16 +560,16 @@ class Filter:
     def __init__(self, type, cutoff_frequencies, order=4):
         """
         Initialize the filter.
-        
+
         Parameters
         ----------
         type : {'bandpass', 'lowpass', 'highpass'}
             Type of filter
         cutoff_frequencies : list of float
             Cut-off frequencies of the filter sorted in increasing order (i.e.
-            [lowcut, highcut]). If the filter type is 'bandpass' then 
-            cutoff_frequencies must be a list of 2 floats 
-            cutoff_frequencies=[lowcut, highcut], where lowcut < highcut. 
+            [lowcut, highcut]). If the filter type is 'bandpass' then
+            cutoff_frequencies must be a list of 2 floats
+            cutoff_frequencies=[lowcut, highcut], where lowcut < highcut.
             If the filter type is 'lowpass' or 'highpass' then cutoff_frequencies
             is a list with a single float.
         order : int, optional
@@ -528,10 +586,10 @@ class Filter:
         -------
         None. Filter object.
 
-        """ 
+        """
         # chech filter type
         if (type == 'bandpass') | (type == 'lowpass') | (type == 'highpass') == 0:
-            raise ValueError('Wrong filter type. Must be "bandpass", "lowpass"' 
+            raise ValueError('Wrong filter type. Must be "bandpass", "lowpass"'
                              +', or "highpass".')
         # chech freq values
         if (type == 'bandpass'):
@@ -546,7 +604,7 @@ class Filter:
         elif (type == 'lowpass') | (type == 'highpass'):
             if len(cutoff_frequencies) != 1:
                 raise ValueError('The type "lowpass" and "highpass" require '
-                                 + 'one frepuency values cutoff_frequencies='
+                                 + 'one frequency value cutoff_frequencies='
                                  + '[cutfreq].')
         self.type = type
         self.cutoff_frequencies = cutoff_frequencies
@@ -569,8 +627,10 @@ class Filter:
             Filtered time series.
 
         """
-        b, a = self.coefficients(sampling_frequency)
-        return spsig.lfilter(b, a, waveform)
+        #b, a = self.coefficients(sampling_frequency)
+        #return spsig.sosfiltfilt (b, a, waveform)
+        sos = self.coefficients(sampling_frequency)
+        return spsig.sosfiltfilt (sos, waveform)
 
     def coefficients(self, sampling_frequency):
         """
@@ -593,11 +653,49 @@ class Filter:
         if self.type == 'bandpass':
             low = self.cutoff_frequencies[0] / nyquist
             high = self.cutoff_frequencies[1] / nyquist
-            b, a = spsig.butter(self.order, [low, high], btype='band')
+            #b, a = spsig.butter(self.order, [low, high], btype='band')
+            sos = spsig.butter(self.order, [low, high], btype='band', output='sos')
         elif self.type == 'lowpass':
-            b, a = spsig.butter(self.order,
-                                self.cutoff_frequencies[0]/nyquist, 'low')
+            # b, a = spsig.butter(self.order,
+            #                     self.cutoff_frequencies[0]/nyquist, 'low')
+            sos = spsig.butter(self.order,
+                                self.cutoff_frequencies[0]/nyquist, 'low',output='sos')
         elif self.type == 'highpass':
-            b, a = spsig.butter(self.order,
-                                self.cutoff_frequencies[0]/nyquist, 'high')
-        return b, a
+            # b, a = spsig.butter(self.order,
+            #                     self.cutoff_frequencies[0]/nyquist, 'high')
+            sos = spsig.butter(self.order,
+                                self.cutoff_frequencies[0]/nyquist, 'high',output='sos')
+        return sos
+
+
+def upsample(waveform, current_res_sec, new_res_sec):
+        """
+        Upsample  waveform
+
+        Increase the number of samples in the waveform and interpolate.
+
+        Parameters
+        ----------
+        waveform: 1D array
+            Waveform to upsample
+        current_res_sec : float
+            Time resolution of waveform in seconds. It is the inverse of the
+            sampling frequency.
+        new_res_sec : float
+            New time resolution of waveform after interpolation (in seconds).
+
+        Returns
+        -------
+        waveform: 1D array
+            waveform upsampled to have a time resolution of "new_res_sec".
+
+        """
+        axis_t = np.arange(0, len(waveform)*current_res_sec, current_res_sec)
+        new_fs = round(1/new_res_sec)
+        nb_samp = round(axis_t[-1]*new_fs)
+        new_waveform, new_axis_t = spsig.resample(waveform,
+                                                  nb_samp,
+                                                  t=axis_t,
+                                                  window='hann',
+                                                  )
+        return new_waveform, new_fs

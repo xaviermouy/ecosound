@@ -65,7 +65,7 @@ class Spectrogram:
     crop(frequency_min, frequency_max)
         Crop frequencies from the spectrogram.
     denoise(method, **kwargs)
-        Denoise the spectrogram using various methods. 
+        Denoise the spectrogram using various methods.
         Methods implemented:
         METHODS           :    INPUT ARGUMENTS
         'median_equalizer':    window_duration in seconds.
@@ -93,7 +93,7 @@ class Spectrogram:
             Size of the Fast Fourier Transform, in seconds or samples,
             depending on 'unit'.
         step : float
-            Time step between conscutive spectrogram frames. In samples or 
+            Time step between conscutive spectrogram frames. In samples or
             seconds depending on 'unit'.
         sampling_frequency : float
             Sampling frequency of the signal, in Hz.
@@ -146,6 +146,7 @@ class Spectrogram:
             frame_sec = frame/sampling_frequency
             fft_sec = fft_samp/sampling_frequency
             step_sec = step/sampling_frequency
+
         overlap_samp = frame_samp-step_samp
         overlap_perc = (overlap_samp/frame_samp)*100
         return frame_samp, fft_samp, step_samp, frame_sec, fft_sec, step_sec, overlap_perc,overlap_samp
@@ -338,18 +339,18 @@ class Spectrogram:
         if inplace:
             # self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx]
             # self._axis_times = np.arange(0,(max_col_idx - min_col_idx)*self._time_resolution,self._time_resolution)
-            # self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]   
+            # self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]
             # out_object = None
             self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx+1]
             self._axis_times = self._axis_times[min_col_idx:max_col_idx+1]-self._axis_times[min_col_idx]
-            self._spectrogram = self._spectrogram[min_row_idx:max_row_idx+1, min_col_idx:max_col_idx+1]   
+            self._spectrogram = self._spectrogram[min_row_idx:max_row_idx+1, min_col_idx:max_col_idx+1]
             out_object = None
         else:
             out_object = copy.copy(self)
             out_object._axis_frequencies = out_object._axis_frequencies[min_row_idx:max_row_idx+1]
             #out_object._axis_times = np.arange(0,(max_col_idx - min_col_idx)*out_object._time_resolution,out_object._time_resolution)
             out_object._axis_times = out_object._axis_times[min_col_idx:max_col_idx+1]-out_object._axis_times[min_col_idx]
-            #out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]   
+            #out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]
             out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx+1, min_col_idx:max_col_idx+1]
             if out_object._spectrogram.shape[1] != len(out_object._axis_times):
                 raise ValueError("Spectrogram axes don't match spectrogram matrix.")
@@ -363,7 +364,7 @@ class Spectrogram:
         are:
             METHODS           :    INPUT ARGUMENTS
             'median_equalizer':    window_duration in seconds.
-                                   inplace 
+                                   inplace
 
         Parameters
         ----------
@@ -433,7 +434,7 @@ class Spectrogram:
         else:
             out_object = copy.copy(self)
             out_object._spectrogram = out_object._spectrogram-Smed
-            out_object._spectrogram[out_object._spectrogram < 0] = 0  # floor            
+            out_object._spectrogram[out_object._spectrogram < 0] = 0  # floor
         return out_object
 
     @property
