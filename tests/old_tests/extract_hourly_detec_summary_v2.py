@@ -9,6 +9,7 @@ import numpy as np
 import os
 import time
 import datetime as dt
+import argparse
 
 def xr_sort(ds):
     #return ds.sortby(ds.time_min_date,ascending=True)
@@ -46,13 +47,32 @@ def preprocess_func(ds):
     return shift_max_dates(xr_sort(fix_duplicates(ds.drop(to_drop_vars(ds)))),files_dur_sec) 
 
 
-#_, index = np.unique(f['time'], return_index=True)
 
-indir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run\RCA_Out_Jan_April2019_67391492'
-#indir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run\test_dataset'
+parser = argparse.ArgumentParser(description="Create detections hourly summary")
+
+# define command line arguments
+parser.add_argument('--detec_folder', type=str, default=None,
+                        help='path to the folder containing the .nc files')
+parser.add_argument('--confidence_step', type=float, default=None,
+                        help='Confidence steps between >0 and <1 ')
+
+args = parser.parse_args()
+
+
+if args.detec_folder:
+    indir = args.detec_folder
+else:
+    #indir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run\RCA_Out_Jan_April2019_67391492'
+    indir=r'C:\Users\xavier.mouy\Documents\Projects\2021_Minke_detector\results\NEFSC_CARIBBEAN_201612_MTQ'
+    #indir=r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\DFO_RCA_run\test_dataset'
+
+if args.confidence_step:
+       confidence_step = args.confidence_step
+else:
+    confidence_step = 0.10
+
 outfile ='hourly_summary.nc'
-#confidence_step = 0.02
-confidence_step = 0.24
+
 
 # Start timer
 tic = time.perf_counter()
@@ -61,14 +81,21 @@ tic = time.perf_counter()
 print('')
 print('Loading dataset')
 tic1 = time.perf_counter()
-ds = xarray.open_mfdataset(indir + "/*.nc" ,
-                            parallel=True,
-                            preprocess=preprocess_func,
-                            data_vars=['time_min_date','audio_file_start_date','label_class','label_subclass','confidence'],
-                            coords=['date'],
-                            #combine='nested',
-                            #join='outer',
-                            )
+# ds = xarray.open_mfdataset(indir + "/*.nc" ,
+#                             parallel=True,
+#                             #preprocess=preprocess_func,
+#                             data_vars=['time_min_date','audio_file_start_date','label_class','label_subclass','confidence'],
+#                             coords=['date'],
+#                             #combine='nested',
+#                             #join='outer',
+#                             )
+ds = xarray.open_mfdataset(indir + "/*.nc",                           
+                           chunks=10,
+                           #concat_dim='date',
+                           data_vars=['time_min_date','audio_file_start_date','label_class','label_subclass','confidence'],
+                           coords='minimal',#['date'],
+                           parallel=False,
+                           )
 toc1 = time.perf_counter()
 print(f"Executed in {toc1 - tic1:0.4f} seconds")
 
@@ -80,7 +107,11 @@ print('')
 print('Calculating hourly detections')
 tic2 = time.perf_counter()
 class_groups = ds.groupby('label_class')
-confidence_thresholds = np.arange(1/len(class_groups),1,confidence_step)
+if len(class_groups)==1:
+    threshold_min = 0.5
+else:
+    threshold_min = 1/len(class_groups)
+confidence_thresholds = np.arange(threshold_min,1,confidence_step)
 class_names = []
 Xarrays = []
 for name, group in class_groups:
