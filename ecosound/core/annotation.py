@@ -12,6 +12,7 @@ import uuid
 import warnings
 import ecosound.core.tools
 import ecosound.core.decorators
+import sqlite3
 from ecosound.core.metadata import DeploymentInfo
 import copy
 
@@ -420,6 +421,73 @@ class Annotation():
                          columns=cols,
                          index=False)
 
+    def to_sqlite(self, file):
+        """
+        Write data to a sqlite database file.
+
+        Write annotations as .sqlite file.         
+
+        Parameters
+        ----------
+        file : str
+            Path of the output file (.sqlite) to be written.
+
+        Returns
+        -------
+        None.
+
+        """
+        if file.endswith('.sqlite') is False:
+            file = file + '.sqlite'
+        self._enforce_dtypes()
+        
+        conn = sqlite3.connect(file)
+        self.data.to_sql(name='detections', con=conn, if_exists='append', index=False)
+        conn.close()
+
+    def from_sqlite(self, files, table_name='detections', verbose=False):
+        """
+        Import data from 1 or several sqlite files.
+
+        Load annotation or detection tables from .sqlite files created by the
+        method annotation.to_sqlite
+
+        Parameters
+        ----------
+        files : str, list
+            Path of the sqlite file(s) to import. Can be a str if importing a
+            single file. Needs to be a list if importing multiple files. If 
+            'files' is a folder, all files in that folder ending with '.sqlite'
+            will be imported.
+        table_name : str, optional
+            Name of the sql table name containing the annotations. The default
+            is 'detections'.        
+        verbose : bool, optional
+            If set to True, print the summary of the annatation integrity test.
+            The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
+        assert type(files) in (str, list), "Input must be of type str (single \
+            file or directory) or list (multiple files)"
+        files = Annotation._make_list_from_input(files, '.sqlite', verbose=verbose)         
+        """Import one or several sqlite files to a Panda datafrane."""        
+        tmp = []
+        for idx, file in enumerate(files):
+            conn = sqlite3.connect(file)                        
+            tmp2 = pd.read_sql_query("SELECT * FROM " + table_name, conn, parse_dates=['entry_date','audio_file_start_date', 'time_min_date', 'time_max_date'])
+            conn.close()
+            tmp.append(tmp2)
+        data = pd.concat(tmp, ignore_index=True, sort=False)
+        data.reset_index(inplace=True, drop=True)
+        self.data = data
+        self.check_integrity(verbose=verbose, ignore_frequency_duplicates=True)
+        if verbose:
+                print(len(self), 'annotations imported.')
+
     def from_pamlab(self, files, verbose=False):
         """
         Import data from 1 or several PAMlab files.
@@ -637,7 +705,7 @@ class Annotation():
                              coerce_timestamps='ms',
                              allow_truncated_timestamps=True)
 
-    def from_netcdf(self, file, verbose=False):
+    def from_netcdf(self, files, verbose=False):
         """
         Import data from a netcdf file.
 
@@ -646,7 +714,7 @@ class Annotation():
 
         Parameters
         ----------
-        file : str
+        files : str
             Path of the nc file to import. Can be a str if importing a single
             file or entire folder. Needs to be a list if importing multiple
             files. If 'files' is a folder, all files in that folder ending with
@@ -660,19 +728,29 @@ class Annotation():
         None.
 
         """
-        if type(file) is str:
-            if os.path.isdir(file):
-                file = ecosound.core.tools.list_files(
-                    file,
-                    '.nc',
-                    recursive=False,
-                    case_sensitive=True,)
-                if verbose:
-                    print(len(file), 'files found.')
+        assert type(files) in (str, list), "Input must be of type str (single \
+            file or directory) or list (multiple files)"
+        files = Annotation._make_list_from_input(files, '.nc', verbose=verbose)    
+        # Import all files to a dataframe
+        tmp = []
+        for idx, file in enumerate(files):
+            dxr = xr.open_dataset(file)
+            if dxr.attrs['datatype'] == 'Annotation':
+                tmp2 = dxr.to_dataframe()
+                tmp2.reset_index(inplace=True)
+            elif dxr.attrs['datatype'] == 'Measurement':
+                tmp2 = dxr.to_dataframe()
+                tmp2.reset_index(inplace=True)
+                tmp2 = tmp2[self.get_fields()]
+                warnings.warn('Importing Measurement data as Annotation >> Not all Measurement data are loaded.')
             else:
-                file = [file]
-        self.data = self._import_netcdf_files(file)
-        self.check_integrity(verbose=verbose)
+                raise ValueError(file + 'Not an Annotation file.')
+            tmp.append(tmp2)
+
+        data = pd.concat(tmp, ignore_index=True, sort=False)
+        data.reset_index(inplace=True, drop=True)
+        self.data = data
+        self.check_integrity(verbose=verbose)                
         if verbose:
             print(len(self), 'annotations imported.')
 
@@ -1053,30 +1131,21 @@ class Annotation():
             else:
                 data = pd.concat([data, tmp], ignore_index=True, sort=False)
         return data
-
-    def _import_netcdf_files(self, files):
-        """Import one or several netcdf files to a Panda datafrane."""
-        assert type(files) in (str, list), "Input must be of type str (single \
-            file or directory) or list (multiple files)"
-        # Import all files to a dataframe
-        tmp = []
-        for idx, file in enumerate(files):
-            dxr = xr.open_dataset(file)
-            if dxr.attrs['datatype'] == 'Annotation':
-                tmp2 = dxr.to_dataframe()
-                tmp2.reset_index(inplace=True)
-            elif dxr.attrs['datatype'] == 'Measurement':
-                tmp2 = dxr.to_dataframe()
-                tmp2.reset_index(inplace=True)
-                tmp2 = tmp2[self.get_fields()]
-                warnings.warn('Importing Measurement data as Annotation >> Not all Measurement data are loaded.')
+    
+    @staticmethod
+    def _make_list_from_input(files, file_ext, verbose=True):        
+        if type(files) is str:            
+            if os.path.isdir(files):
+                files = ecosound.core.tools.list_files(
+                    files,
+                    file_ext,
+                    recursive=False,
+                    case_sensitive=True,)
+                if verbose:
+                    print(len(files), 'files found.')
             else:
-                raise ValueError(file + 'Not an Annotation file.')
-            tmp.append(tmp2)
-
-        data = pd.concat(tmp, ignore_index=True, sort=False)
-        data.reset_index(inplace=True, drop=True)
-        return data
+                files = [files]
+        return files
 
     def __add__(self, other):
         """Concatenate data from several annotation objects."""
