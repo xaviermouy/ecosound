@@ -7,6 +7,7 @@ Created on Tue Jan 21 13:04:58 2020
 
 import pandas as pd
 import xarray as xr
+import numpy as np
 import os
 import uuid
 import warnings
@@ -987,6 +988,31 @@ class Annotation():
             out_object.check_integrity()
         return out_object
 
+    def calc_time_aggregate_1D(self, integration_time='1H', resampler='count', is_binary=False):
+        # calulate 1D aggreagate
+        data = copy.copy(self.data)
+        data.set_index("time_min_date", inplace=True)
+        data_resamp = Annotation._resample(data, integration_time=integration_time, resampler=resampler)
+        data_resamp.set_index("datetime", inplace=True)
+        if is_binary:
+            data_resamp[data_resamp>0]=1
+        return data_resamp
+
+    def calc_time_aggregate_2D(self, integration_time='1H', resampler='count', is_binary=False):
+        # calulate 1D aggreagate
+        data_resamp = self.calc_time_aggregate_1D(integration_time=integration_time, is_binary=is_binary)
+        data_resamp.reset_index(inplace=True)
+        data_resamp['date'] = data_resamp['datetime'].dt.date
+        data_resamp['time'] = data_resamp['datetime'].dt.time
+        # Create 2D matrix
+        axis_date = sorted(data_resamp['date'].unique())
+        data_grid = pd.pivot_table(data_resamp, values='value', index='time',columns='date', aggfunc=np.sum)
+        data_grid = data_grid.fillna(0) # replaces NaNs by zeros
+        if is_binary:
+            data_grid[data_grid>0]=1
+        return data_grid
+        
+        
     def get_labels_class(self):
         """
         Get all the unique class labels of the annotations.
@@ -1064,6 +1090,15 @@ class Annotation():
         summary['Total'] = summary.sum(axis=1)
         return summary
 
+    @staticmethod
+    def _resample(data, integration_time='1H', resampler='count'):
+        if resampler == 'count':
+            #Lmean = data.resample(integration_time, loffset=None, label='left').apply(count)
+            data_new = data.resample(integration_time, loffset=None, origin='start_day', label='left').count()        
+        data_out = pd.DataFrame({'datetime':data_new.index, 'value': data_new['uuid']})
+        data_out.reset_index(drop=True,inplace=True)
+        return data_out
+    
     def _enforce_dtypes(self):
         self.data = self.data.astype({
             'uuid': 'str',

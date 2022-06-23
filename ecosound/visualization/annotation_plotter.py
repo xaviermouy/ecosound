@@ -17,13 +17,13 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import datetime as dt
 
 # import matplotlib.pyplot as plt
-# from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 # from matplotlib.figure import Figure
-# import matplotlib
+import matplotlib
 # import numpy as np
 
 
-class HeatmapPlotter(BaseClass):
+class AnnotHeatmap(BaseClass):
     """A Grapher class to visualize annotation data.
 
     Display heatmap of a annotations (date vs time-of-day).
@@ -62,7 +62,7 @@ class HeatmapPlotter(BaseClass):
                           'is_binary',
                           'norm_value',
                           'fig_size',
-                          'grid',
+                          'share_xaxis',
                           'title',
                           'colormap',
                           )
@@ -120,14 +120,15 @@ class HeatmapPlotter(BaseClass):
                                       [None]*len(self.grapher_parameters))))
         # Define default values:        
         self.date_format = '%d-%b-%Y'
-        self.colormap_label = None
+        self.colormap_label = 'auto'
+        self.share_xaxis = False
         self.integration_time = '1H'
         self.is_binary = False
         self.norm_value = None
         self.fig_size = (16, 4)        
         self.title = None
         self.colormap = 'viridis'
- 
+        self.data = [ ]
         # Unpack kwargs as grapher parameters if provided on instantiation
         self.__dict__.update(**kwargs)
 
@@ -135,7 +136,7 @@ class HeatmapPlotter(BaseClass):
     @property
     def name(self):
         """Return name of the grapher."""
-        grapher_name = 'HeatmapPlotter'
+        grapher_name = 'AnnotHeatmap'
         return grapher_name
 
     @property
@@ -144,7 +145,7 @@ class HeatmapPlotter(BaseClass):
         version = '0.1'
         return version
 
-    def add_data(self, *args, time_offset_sec=0):
+    def add_data(self, *args):
         """
         Define annotation data to plot.
 
@@ -174,7 +175,7 @@ class HeatmapPlotter(BaseClass):
         if len(args) < 1:
             raise ValueError('There must be at least one input argument')
         # Check  type of each input arguments
-        self._stack_data(args, time_offset_sec=time_offset_sec)
+        self._stack_data(args)
 
 
     def show(self, display=True):
@@ -230,6 +231,17 @@ class HeatmapPlotter(BaseClass):
                 raise ValueError("More titles than subplots")
             else:
                 titles[0:len(self.title)-1] = self.title
+        # normalization values
+        norm_values = [None]*nb_plots
+        if self.norm_value is None:  # no titles
+            pass
+        if type(self.norm_value) is str:
+            titles = [self.norm_value]*nb_plots
+        if type(self.norm_value) is list:
+            if len(self.norm_value) > nb_plots:
+                raise ValueError("More norm_value than subplots")
+            else:
+                norm_values[0:len(self.norm_value)-1] = self.norm_value
         # Plot data
         for idx, data in enumerate(self.data):
             if nb_plots == 1:
@@ -237,10 +249,11 @@ class HeatmapPlotter(BaseClass):
             else:
                 current_ax = ax[idx]
             if data['type'] == 'annotation':
-                self._plot_heatmap(data['data'], current_ax, time_offset_sec=data['time_offset_sec'], title=titles[idx])            
+                self._plot_heatmap(data['data'], current_ax, title=titles[idx], norm_value=norm_values[idx])
             # only dipslay x label of bottom plot if shared axes
             if self.share_xaxis and (idx != nb_plots-1):
                 current_ax.set_xlabel('')
+        plt.tight_layout()
         return fig, ax
 
     def to_file(self, filename):
@@ -261,7 +274,7 @@ class HeatmapPlotter(BaseClass):
         fig.savefig(filename, transparent=False, bbox_inches='tight',)
 
 
-    def _stack_data(self, args, time_offset_sec=0):
+    def _stack_data(self, args):
         """Stack data to be plotted."""
         for idx, arg in enumerate(args):
             if isinstance(arg, Annotation):
@@ -270,33 +283,37 @@ class HeatmapPlotter(BaseClass):
                 raise ValueError('Type of input argument not recognized.'
                                  'Accepted object types: Annotation')
 
-    def _plot_heatmap(self, annot, current_ax, title=None):
+    def _plot_heatmap(self, annot, current_ax, title=None, norm_value = None):
         """Plot heatmap on the current axis"""
-        
-        # add time offset if defined
-        spectro._axis_times = spectro.axis_times + time_offset_sec
-
-        if self.time_max is None:
-            self.time_max = spectro.axis_times[-1]
-        current_ax.pcolormesh(spectro.axis_times,
-                              spectro.axis_frequencies,
-                              spectro.spectrogram,
-                              cmap=self.colormap,
-                              vmin=np.percentile(spectro.spectrogram, 50),
-                              vmax=np.percentile(spectro.spectrogram, 99.9),
-								  shading='nearest',
-                              )
-        xlabel = 'Time (sec)'  
-
-
-        current_ax.axis([self.time_min,
-                         self.time_max,
-                         self.frequency_min,
-                         self.frequency_max]
-                        )
-        current_ax.set_ylabel('Frequency (Hz)')
-        current_ax.set_xlabel(xlabel)
+        # calulate 1D aggreagate
+        data_grid = annot.calc_time_aggregate_2D(integration_time=self.integration_time,is_binary=self.is_binary)
+        axis_date = data_grid.columns.to_list()
+        # Plot matrix
+        x_lims = mdates.date2num([axis_date[0],axis_date[-1]+dt.timedelta(1)])
+        y_lims = mdates.date2num([dt.datetime.combine(axis_date[0], dt.time(0,0)),dt.datetime.combine(axis_date[0], dt.time(23,59,59))])
+        if self.is_binary:
+            norm_value = 1
+        im = current_ax.imshow(data_grid, extent = [x_lims[0], x_lims[1],  y_lims[0], y_lims[1]], vmin=0, vmax=norm_value,aspect='auto',origin='lower',cmap=self.colormap)
+        current_ax.xaxis_date()
+        current_ax.yaxis_date()
+        current_ax.xaxis.set_major_formatter(mdates.DateFormatter(self.date_format))
+        current_ax.yaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        divider = make_axes_locatable(current_ax)
+        cax = divider.append_axes("right", size="2%", pad=0.05)
+        cbar = plt.colorbar(im, cax=cax)
         current_ax.set_title(title)
-        # if self.grid:
-        #    current_ax.grid()
+        current_ax.set_ylabel('Time of day')
+        if self.colormap_label == 'auto':
+            if bool(annot.data.from_detector[0]):
+                if self.is_binary:
+                    cbar.set_label('Detections \n(presence)')
+                else:
+                    cbar.set_label('Detections \n(count)')
+            else:
+                if self.is_binary:
+                    cbar.set_label('Annotations \n(presence)')
+                else:
+                    cbar.set_label('Annotations \n(count)')
+        else:
+            cbar.set_label(self.colormap_label)
         return
