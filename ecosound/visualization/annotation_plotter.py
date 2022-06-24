@@ -6,10 +6,16 @@ Created on Fri Feb 21 16:43:47 2020
 """
 
 from .grapher_builder import BaseClass
-from ecosound.core.annotation import Annotation
+
+try:
+    from ecosound.core.annotation import Annotation
+except ImportError:
+    pass
+
 
 import numpy as np
 import pandas as pd
+import ecosound
 import matplotlib.pyplot as plt
 import matplotlib.colors as mc # For the legend
 import matplotlib.dates as mdates
@@ -83,7 +89,7 @@ class AnnotHeatmap(BaseClass):
 
     def __init__(self, *args, **kwargs):
         """
-        Initialize graher object.
+        Initialize grapher object.
 
         Initialize the grapher object to display sound data.
 
@@ -294,7 +300,7 @@ class AnnotHeatmap(BaseClass):
     def _stack_data(self, args):
         """Stack data to be plotted."""
         for idx, arg in enumerate(args):
-            if isinstance(arg, Annotation):
+            if isinstance(arg, ecosound.core.annotation.Annotation):
                 self.data.append({'data': arg, 'type': 'annotation'})           
             else:
                 raise ValueError('Type of input argument not recognized.'

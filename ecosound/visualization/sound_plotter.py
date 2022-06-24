@@ -8,7 +8,10 @@ Created on Fri Feb 21 16:43:47 2020
 from .grapher_builder import BaseClass
 from ecosound.core.audiotools import Sound
 from ecosound.core.spectrogram import Spectrogram
-from ecosound.core.annotation import Annotation
+try:
+    from ecosound.core.annotation import Annotation
+except ImportError:
+    pass
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas

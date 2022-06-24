@@ -15,6 +15,7 @@ import ecosound.core.tools
 import ecosound.core.decorators
 import sqlite3
 from ecosound.core.metadata import DeploymentInfo
+from ecosound.visualization.grapher_builder import GrapherFactory
 import copy
 
 
@@ -1065,8 +1066,25 @@ class Annotation():
         if is_binary:
             data_grid[data_grid>0]=1
         return data_grid
-        
-        
+
+    def heatmap(self, **kwargs):
+        """
+        Display heatmap of annotations (date vs time-of-day).
+
+        Parameters
+        ----------
+        **kwargs :
+            see documentation of ecosound.visualization.annotation_plotter.AnnotHeatmap
+
+        Returns
+        -------
+        None.
+
+        """
+        graph = GrapherFactory('AnnotHeatmap', **kwargs)
+        graph.add_data(self)
+        graph.show()
+
     def get_labels_class(self):
         """
         Get all the unique class labels of the annotations.
