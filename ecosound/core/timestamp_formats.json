@@ -17,6 +17,12 @@
   "time_format": ".%y%m%d%H%M%S."
  }
  ,
+ {
+  "name": "SOUNDTRAPS_UAberdeen",
+  "string_pattern":"_([0-9]{12}).",
+  "time_format": "_%y%m%d%H%M%S."
+ }
+ ,
 {
   "name": "MARU",
   "string_pattern":"_[0-9]{8}_[0-9]{6}.",
