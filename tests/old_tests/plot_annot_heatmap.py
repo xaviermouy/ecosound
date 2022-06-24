@@ -25,6 +25,7 @@ graph.title='My title'
 graph.integration_time='60Min'
 graph.colormap='viridis'
 graph.is_binary=False
+graph.date_format = '%d-%b-%Y' #'%d-%b-%Y'
 graph.show()
 
-graph.to_file(r'C:\Users\xavier.mouy\Desktop\2Daggregate')
+#graph.to_file(r'C:\Users\xavier.mouy\Desktop\2Daggregate')

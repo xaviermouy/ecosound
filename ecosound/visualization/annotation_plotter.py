@@ -26,7 +26,7 @@ import matplotlib
 class AnnotHeatmap(BaseClass):
     """A Grapher class to visualize annotation data.
 
-    Display heatmap of a annotations (date vs time-of-day).
+    Display heatmap of annotations (date vs time-of-day).
 
     The HeatmapPlotter grapher must be instantiated using the GrapherFactory
     with the positional argument 'HeatmapPlotter':
@@ -47,9 +47,23 @@ class AnnotHeatmap(BaseClass):
     colormap : str
         Color map palette spectrogram. Uses names from Matplotlib. The default
         is 'viridis'
+    colorbar_label: str
+        Label to use for the clolorbar.
+    integration_time: str
+        Integration time for the time aggregates.
+    date_format: str
+        Date format to use for the x-axis tick labels.
+    is_binary: bool
+        Makes binary aggreagates rather than counts.
+    norm_value: int
+        Maximum value to use for the colomap.
+    share_xaxis: bool
+        Share xaxis in case of subplots (not implememnted yet)
 
     Methods
     -------
+    add_data(Annotation obj)
+        Add Annotation object to plot.
     show(display=True)
         Display graph.
     to_file(filename)
@@ -57,7 +71,7 @@ class AnnotHeatmap(BaseClass):
     """
 
     grapher_parameters = ('date_format',
-                          'colormap_label'
+                          'colorbar_label'
                           'integration_time',
                           'is_binary',
                           'norm_value',
@@ -77,26 +91,17 @@ class AnnotHeatmap(BaseClass):
         ----------
         *args : str
             Do not use. Only used by the GrapherFactory.
-        frequency_min : float, optional
-            Minimum frequency of the spectrograms, in Hz. The default is 0.
-        frequency_max : float, optional
-            Maximum frequency of the spectrograms, in Hz. The default is half
-            of the Nyquist frequency.
-        time_min : float, optional
-            Start time to graphs,in seconds. The default is 0.
-        time_max : float, optional
-            End time to graphs,in seconds. The default is the end of the sound
-            data.
-        unit : str, optional
-            Unit of the time axis: 'sec' for seconds; 'samp' for discrete (i.e.
-            samples or bins for waveform and spectrogram, respectively). The
-            default is 'sec'.
+        integration_time: str, optional
+            Integration time for the aggregate. Uses the pandas offset aliases
+            (i.e. '2H'-> 2 hours, '15min'=> 15 minutes, '1D'-> 1 day) see pandas
+            documnentation here:https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
         fig_size : (float, float), optional
             Width, height of the figure, in inches. The default is (16, 4).
         share_xaxis : bool, optional
-            Share x axis for all subplots. The default is True.
-        grid : bool, optional
-            Display grid in waveform plots. The default is True.
+            Share x axis for all subplots. The default is False.
+        is_binary: bool, optional
+            If set to True, calculates the aggregates in term on presence (1)
+            or absence (0). The default is False.
         title : [str, str, ...], str, None,  optional
             Title(s) of the figure/subplots. If a str, a single title is set
             for the entire figure at the top. If a list of str, each element i
@@ -105,10 +110,22 @@ class AnnotHeatmap(BaseClass):
             of subplots in the graph. A number of elements in teh list greater
             than the number of subplot will return an error. If set to None, no
             title will be displayed. The default is None.
-
-        colormap : str
-            Color map for the spectrogram. Uses names from Matplotlib (e.g.
-            'jet', 'binary', 'gray', etc.). The default is 'jet'
+        colormap : str, optional
+            Color map for the spectrogram. Uses names from Matplotlib (see
+            https://matplotlib.org/stable/tutorials/colors/colormaps.html). The
+            default is 'viridis'
+        colorbar_label: str, optional
+            Label for the color bar. If set to 'auto', the colorbar label is
+            automatically defined as "Annotations" or "Detections" based on
+            the field "is_detector" of the Annotation object, and "(count)" or
+            "(presence/absence)" based on the grapher attribute 'is_binary'.
+            The default is 'auto'.
+        norm_value: flaat, None
+            Maximum value to use for the colobar. The default is None.
+        date_format: str, optional
+            Date format to use for the x-axis tick labels. Uses standard python
+            datetime format codes (see https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes)
+            The default is '%d-%b-%Y'.
 
         Returns
         -------
@@ -118,17 +135,17 @@ class AnnotHeatmap(BaseClass):
         # Initialize all grapher parameters to None
         self.__dict__.update(dict(zip(self.grapher_parameters,
                                       [None]*len(self.grapher_parameters))))
-        # Define default values:        
+        # Define default values:
         self.date_format = '%d-%b-%Y'
-        self.colormap_label = 'auto'
+        self.colorbar_label = 'auto'
         self.share_xaxis = False
         self.integration_time = '1H'
         self.is_binary = False
         self.norm_value = None
-        self.fig_size = (16, 4)        
+        self.fig_size = (16, 4)
         self.title = None
         self.colormap = 'viridis'
-        self.data = [ ]
+        self.data = []
         # Unpack kwargs as grapher parameters if provided on instantiation
         self.__dict__.update(**kwargs)
 
@@ -149,7 +166,7 @@ class AnnotHeatmap(BaseClass):
         """
         Define annotation data to plot.
 
-        Add Annotation objects to plot. There is no restriction on the number 
+        Add Annotation objects to plot. There is no restriction on the number
         of object to add. Each object will be displayed on a different subplot
         of the same figure. The order in which the objects are passed to this
         method defines the order in which they are displayed (i.e. subplots).
@@ -182,10 +199,10 @@ class AnnotHeatmap(BaseClass):
         """
         Display graph on screen.
 
-        Display graph made of vertical subplots for each of the Annotation 
+        Display graph made of vertical subplots for each of the Annotation
         objects defined by the add_data method. The order in which the objects
-        have been defined by add_data defines the order in which subplot are 
-        displayed. 
+        have been defined by add_data defines the order in which subplot are
+        displayed.
 
         Parameters
         ----------
@@ -303,7 +320,7 @@ class AnnotHeatmap(BaseClass):
         cbar = plt.colorbar(im, cax=cax)
         current_ax.set_title(title)
         current_ax.set_ylabel('Time of day')
-        if self.colormap_label == 'auto':
+        if self.colorbar_label == 'auto':
             if bool(annot.data.from_detector[0]):
                 if self.is_binary:
                     cbar.set_label('Detections \n(presence)')
@@ -315,5 +332,5 @@ class AnnotHeatmap(BaseClass):
                 else:
                     cbar.set_label('Annotations \n(count)')
         else:
-            cbar.set_label(self.colormap_label)
+            cbar.set_label(self.colorbar_label)
         return

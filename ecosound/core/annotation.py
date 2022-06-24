@@ -988,17 +988,71 @@ class Annotation():
             out_object.check_integrity()
         return out_object
 
+
     def calc_time_aggregate_1D(self, integration_time='1H', resampler='count', is_binary=False):
+        """
+        Calculate the 1D time aggregate of annotations.
+
+        Calculate the time aggregate of annotations over the defined
+        integration time.
+        
+        Parameters
+        ----------
+        integration_time : str, optional
+            Integration time for the aggregate. Uses the pandas offset aliases
+            (i.e. '2H'-> 2 hours, '15min'=> 15 minutes, '1D'-> 1 day) see pandas
+            documnentation here:https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+            The default is '1H'.
+        resampler : str, optional
+            Defines method to combine aggregates. Currently only 'count' is
+            implemented. The default is 'count'.
+        is_binary : bool, optional
+            If set to True, calculates the aggregates in term on presence (1)
+            or absence (0). The default is False.
+
+        Returns
+        -------
+        data_resamp : Pandas DataFrame
+            1D DataFrame with datetime as the index and a 'value' column with the
+            result of the aggregates for each time frane.
+        """
         # calulate 1D aggreagate
         data = copy.copy(self.data)
         data.set_index("time_min_date", inplace=True)
         data_resamp = Annotation._resample(data, integration_time=integration_time, resampler=resampler)
         data_resamp.set_index("datetime", inplace=True)
         if is_binary:
-            data_resamp[data_resamp>0]=1
+            data_resamp[data_resamp > 0] = 1
         return data_resamp
 
     def calc_time_aggregate_2D(self, integration_time='1H', resampler='count', is_binary=False):
+        """
+        Calculate the 2D time aggregate of annotations.
+
+        Calculate the time aggregate of annotations for each day and over each
+        time of day defined by the integration time (i.e. Time of day vs Date).
+
+        Parameters
+        ----------
+        integration_time : str, optional
+            Integration time for the aggregate. Uses the pandas offset aliases
+            (i.e. '2H'-> 2 hours, '15min'=> 15 minutes, '1D'-> 1 day) see pandas
+            documnentation here:https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+            The default is '1H'.
+        resampler : str, optional
+            Defines method to combine aggregates. Currently only 'count' is
+            implemented. The default is 'count'.
+        is_binary : bool, optional
+            If set to True, calculates the aggregates in term on presence (1)
+            or absence (0). The default is False.
+
+        Returns
+        -------
+        data_resamp : Pandas DataFrame
+            2D DataFrame with the time od day as the index and the date as
+            columns. The resulting table contains the aggregate of annotations
+            for each time of day and date.
+        """
         # calulate 1D aggreagate
         data_resamp = self.calc_time_aggregate_1D(integration_time=integration_time, is_binary=is_binary)
         data_resamp.reset_index(inplace=True)
