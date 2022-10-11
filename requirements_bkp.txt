@@ -7,7 +7,7 @@ dask_image
 matplotlib
 ipympl
 scipy
-numpy
+numpy>=1.18,<1.22
 scikit_learn
 toolz
 opencv-python
