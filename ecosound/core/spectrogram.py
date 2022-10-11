@@ -73,7 +73,7 @@ class Spectrogram:
 
     _valid_units = ('samp', 'sec')
     _valid_windows = ('hann',)
-    def __init__(self, frame, window_type, fft, step, sampling_frequency, unit='sec'):
+    def __init__(self, frame, window_type, fft, step, sampling_frequency, unit='sec', verbose=True):
         """
         Initialize Spectrogram object.
 
@@ -100,6 +100,8 @@ class Spectrogram:
         unit : str, optional
             Unit used when defining the 'frame' and 'fft' parameters. For
             seconds, use 'sec'. For samples, use 'samp'. The default is 'sec'.
+        verbose : bool
+            if True, prints all notification messages. The default is True.
 
         Returns
         -------
@@ -117,7 +119,7 @@ class Spectrogram:
         # Convert units in seconds/samples
         self._frame_samp, self._fft_samp, self._step_samp, self._frame_sec,\
         self._fft_sec, self._step_sec, self._overlap_perc, self._overlap_samp =\
-        Spectrogram._convert_units(frame, fft, step, sampling_frequency, unit)
+        Spectrogram._convert_units(frame, fft, step, sampling_frequency, unit, verbose=verbose)
 
         # Time and frequency resolution
         self._sampling_frequency = sampling_frequency
@@ -130,18 +132,18 @@ class Spectrogram:
         self._axis_frequencies = []
         self._axis_times = []
 
-    def _convert_units(frame, fft, step, sampling_frequency, unit):
+    def _convert_units(frame, fft, step, sampling_frequency, unit, verbose=True):
         """Convert frame, fft, and step values to samples/seconds"""
         if unit == 'sec':
             frame_samp = round(frame*sampling_frequency)
-            fft_samp = adjust_FFT_size(round(fft*sampling_frequency))
+            fft_samp = adjust_FFT_size(round(fft*sampling_frequency),verbose=verbose)
             step_samp = round(step*sampling_frequency)
             frame_sec = frame
             fft_sec = fft_samp*sampling_frequency
             step_sec = step
         elif unit == 'samp':
             frame_samp = frame
-            fft_samp = adjust_FFT_size(fft)
+            fft_samp = adjust_FFT_size(fft,verbose=verbose)
             step_samp = step
             frame_sec = frame/sampling_frequency
             fft_sec = fft_samp/sampling_frequency
@@ -512,11 +514,12 @@ class Spectrogram:
         """Return the spectrogram attribute."""
         return self._spectrogram
 
-def adjust_FFT_size(nfft):
+def adjust_FFT_size(nfft, verbose=True):
         """ Adjust nfft to the next power of two if necessary."""
         nfft_adjusted = next_power_of_2(nfft)
         if nfft_adjusted != nfft:
-            print('Warning: FFT size automatically adjusted to', nfft_adjusted, 'samples (original size:', nfft,')')
+            if verbose:
+                print('Warning: FFT size automatically adjusted to', nfft_adjusted, 'samples (original size:', nfft,')')
         return nfft_adjusted
 
 def next_power_of_2(x):

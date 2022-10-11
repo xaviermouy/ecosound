@@ -258,8 +258,8 @@ class AnnotHeatmap(BaseClass):
         norm_values = [None]*nb_plots
         if self.norm_value is None:  # no titles
             pass
-        if type(self.norm_value) is str:
-            titles = [self.norm_value]*nb_plots
+        if (type(self.norm_value) is float) or (type(self.norm_value) is int):
+            norm_values = [self.norm_value]*nb_plots
         if type(self.norm_value) is list:
             if len(self.norm_value) > nb_plots:
                 raise ValueError("More norm_value than subplots")

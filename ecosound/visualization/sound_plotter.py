@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib
+import ipympl
 import numpy as np
 
 
@@ -238,6 +239,7 @@ class SoundPlotter(BaseClass):
         None. Updated grapher object.
 
         """
+        from ecosound.core.annotation import Annotation
         if isinstance(annotation, Annotation):
             self.annotations.append({'data': annotation,
                                      'panel': panel,
@@ -250,7 +252,7 @@ class SoundPlotter(BaseClass):
             raise ValueError('Type of input argument not recognized.'
                              'Accepted object type: Annotation')
 
-    def show(self, display=True):
+    def show(self, display=True, is_in_notebook=False):
         """
         Display graph on screen.
 

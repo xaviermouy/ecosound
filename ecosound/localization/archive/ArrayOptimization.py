@@ -4,6 +4,7 @@ Created on Tue Aug 29 09:35:38 2017
 
 @author: xavier
 """
+
 import numpy as np
 import pandas as pd
 import pickle
@@ -334,14 +335,15 @@ import localizationlib as loclib
 # input parameters --------------------------------------
 
 # Results directory
-outroot = r'C:\Users\xavier.mouy\Documents\Workspace\GitHub\Fish-localization\results\ArrayOptimization'
+#outroot = r'C:\Users\xavier.mouy\Documents\Workspace\GitHub\Fish-localization\results\ArrayOptimization'
+outroot = r'C:\Users\xavier.mouy\Documents\Projects\2022_DFO_fish_catalog\Mini_array_design'
 
 # Number of iterations (nb of time the process is repeated to ensure stability of the solution)
 nIter = 1
 
 ## Spherical grid (sources location)
 nsources = 500 #300
-radius = 2
+radius = 1
 origin = [0, 0, 0]
 spacing = 0.5
 
@@ -357,7 +359,7 @@ NoiseSTD = 5.0714e-04  # standard deviation of TDOAs
 V = 1488
 
 # number of receivers (for optimization)
-nReceivers = 6
+nReceivers = 4 #6
 
 # Optimization
 ReceiverBoundValue = 1
@@ -371,7 +373,7 @@ ReceiverBounds = pd.DataFrame({'x': tmp, 'y': tmp, 'z': tmp})
 
 AnnealingSchedule = ({          # defines annealing schedule
     'Start': 200, #200
-    'ReducFactor': 0.9, # before was 0.9
+    'ReducFactor': 0.95, # before was 0.9
     'nPerturb': 100, # 30
     'PerturbSTD': 1/8,  #  1/8
     'StartAcceptanceRate': 0.8, # 0.8

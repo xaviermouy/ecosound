@@ -30,7 +30,7 @@ from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdo
 import platform
 import cv2
 
-def plot_spectrogram(audio_file,loc,t1_sec, t2_sec, geometry=(1,1,1)):
+def plot_spectrogram(audio_file,loc, geometry=(1,1,1)):
     
     fmin=0
     fmax=1000
@@ -39,11 +39,12 @@ def plot_spectrogram(audio_file,loc,t1_sec, t2_sec, geometry=(1,1,1)):
     nfft=0.0853
     step=0.01
     channel=0
-    chunk=[t1_sec,t2_sec]
-    
+
     graph_spectros = GrapherFactory('SoundPlotter', title='Spectrograms', frequency_max=fmax)
     sound = Sound(audio_file)
-    sound.read(channel=channel, chunk=chunk, unit='sec', detrend=True)
+    sound.read(channel=channel, unit='sec', detrend=True)
+    t1_sec = 0
+    t2_sec = sound.file_duration_sec
     # Calculates  spectrogram
     spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='sec')
     spectro.compute(sound, dB=True, use_dask=False)
@@ -60,7 +61,7 @@ def plot_spectrogram(audio_file,loc,t1_sec, t2_sec, geometry=(1,1,1)):
 
     if ax.get_geometry() != geometry :
         ax.change_geometry(*geometry)        
-    return fig, ax
+    return t1_sec,t2_sec,fig, ax
 
 def plot_top_view(hydrophones_config,loc_data,params, ax, color='black',frame_on=True):
     
@@ -121,7 +122,7 @@ def plot_top_view(hydrophones_config,loc_data,params, ax, color='black',frame_on
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
+        ax.plot([loc_point['x_err_low'],loc_point['x_err_high']],
                 [loc_point['y'],loc_point['y']],
                 #c=loc_point['time_min_offset'],
                 linewidth=params['uncertainty_width'].values[0],
@@ -134,7 +135,7 @@ def plot_top_view(hydrophones_config,loc_data,params, ax, color='black',frame_on
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['y_min_CI99'],loc_point['y_max_CI99']],
+                [loc_point['y_err_low'],loc_point['y_err_high']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 color=color,
@@ -210,7 +211,7 @@ def plot_side_view(hydrophones_config,loc_data,params,ax, color='black',frame_on
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
+        ax.plot([loc_point['x_err_low'],loc_point['x_err_high']],
                 [loc_point['z'],loc_point['z']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
@@ -221,7 +222,7 @@ def plot_side_view(hydrophones_config,loc_data,params,ax, color='black',frame_on
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['z_min_CI99'],loc_point['z_max_CI99']],
+                [loc_point['z_err_low'],loc_point['z_err_high']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 #color=params['uncertainty_color'].values[0],
@@ -266,26 +267,10 @@ def plot_video_frame(video_file,frame_time_sec, ax):
 ## ###########################################################################
 
 
-hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
-indir=r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_ROV'
-audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2020-09-10_Localization_experiment_projector\5147.200910210736.wav'
-t1_sec = 108#106
-t2_sec = 113.5#119
+hp_config_file = r'C:\Users\xavier.mouy\Documents\Publications\Mouy.etal_2022_XAV-Arrays\manuscript\data\mobile_projector\hydrophones_config_MCP-20200910.csv'
+indir=r'C:\Users\xavier.mouy\Documents\Publications\Mouy.etal_2022_XAV-Arrays\manuscript\data\mobile_projector'
+audio_file = r'C:\Users\xavier.mouy\Documents\Publications\Mouy.etal_2022_XAV-Arrays\manuscript\data\mobile_projector\5147.200910210925.wav'
 
-
-# loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\large-array_quillback\AMAR173.4.20190920T161248Z.nc'
-# audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\AMAR173.1.20190920T161248Z.wav'
-# video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
-# hp_config_file =  r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\hydrophones_config_07-HI.csv'
-# t1_sec = 1570
-# t2_sec = 1587#1590
-
-filter_x=[-5, 5]
-filter_y=[-5, 5]
-filter_z=[-2, 5]
-filter_x_std=5
-filter_y_std=5
-filter_z_std=5
 
 params=pd.DataFrame({
     'loc_color': ['black'],
@@ -307,102 +292,34 @@ params=pd.DataFrame({
 ## ###########################################################################
 
 ## load localization results 0 degrees
-file1 = '0_deg.nc'
+
 loc1 = Measurement()
-loc1.from_netcdf(os.path.join(indir,file1))
-# loc1_data = loc1.data
-# # Filter
-# loc1_data = loc1_data.dropna(subset=['x', 'y','z']) # remove NaN
-# loc1_data = loc1_data.loc[(loc1_data['x']>=min(filter_x)) & 
-#                         (loc1_data['x']<=max(filter_x)) &
-#                         (loc1_data['y']>=min(filter_y)) & 
-#                         (loc1_data['y']<=max(filter_y)) &
-#                         (loc1_data['z']>=min(filter_z)) & 
-#                         (loc1_data['z']<=max(filter_z)) &
-#                         (loc1_data['x_std']<= filter_x_std) & 
-#                         (loc1_data['y_std']<= filter_y_std) &
-#                         (loc1_data['z_std']<= filter_z_std)
-#                         ]
+loc1.from_netcdf(r'C:\Users\xavier.mouy\Documents\Publications\Mouy.etal_2022_XAV-Arrays\manuscript\data\mobile_projector\localization_results_0deg.nc')
+loc1_data = loc1.data
 
-# # Adjust detection times
-# loc1_data['time_min_offset'] = loc1_data['time_min_offset'] - t1_sec
-# loc1_data['time_max_offset'] = loc1_data['time_max_offset'] - t1_sec
+loc2 = Measurement()
+loc2.from_netcdf(r'C:\Users\xavier.mouy\Documents\Publications\Mouy.etal_2022_XAV-Arrays\manuscript\data\mobile_projector\localization_results_90deg.nc')
+loc2_data = loc2.data
 
-# # update loc object
-# loc1.data = loc1_data
+loc3 = Measurement()
+loc3.from_netcdf(r'C:\Users\xavier.mouy\Documents\Publications\Mouy.etal_2022_XAV-Arrays\manuscript\data\mobile_projector\localization_results_180deg.nc')
+loc3_data = loc3.data
 
-# ## load localization results 90 degrees
-# file2 = '90_degrees.nc'
-# loc2 = Measurement()
-# loc2.from_netcdf(os.path.join(indir,file2))
-# loc2_data = loc2.data
-# # Filter
-# loc2_data = loc2_data.dropna(subset=['x', 'y','z']) # remove NaN
-# loc2_data = loc2_data.loc[(loc2_data['x']>=min(filter_x)) & 
-#                         (loc2_data['x']<=max(filter_x)) &
-#                         (loc2_data['y']>=min(filter_y)) & 
-#                         (loc2_data['y']<=max(filter_y)) &
-#                         (loc2_data['z']>=min(filter_z)) & 
-#                         (loc2_data['z']<=max(filter_z)) &
-#                         (loc2_data['x_std']<= filter_x_std) & 
-#                         (loc2_data['y_std']<= filter_y_std) &
-#                         (loc2_data['z_std']<= filter_z_std)
-#                         ]
-# # update loc object
-# loc2.data = loc2_data
-
-# ## load localization results 90 degrees
-# file3 = '180_degrees.nc'
-# loc3 = Measurement()
-# loc3.from_netcdf(os.path.join(indir,file3))
-# loc3_data = loc3.data
-# # Filter
-# loc3_data = loc3_data.dropna(subset=['x', 'y','z']) # remove NaN
-# loc3_data = loc3_data.loc[(loc3_data['x']>=min(filter_x)) & 
-#                         (loc3_data['x']<=max(filter_x)) &
-#                         (loc3_data['y']>=min(filter_y)) & 
-#                         (loc3_data['y']<=max(filter_y)) &
-#                         (loc3_data['z']>=min(filter_z)) & 
-#                         (loc3_data['z']<=max(filter_z)) &
-#                         (loc3_data['x_std']<= filter_x_std) & 
-#                         (loc3_data['y_std']<= filter_y_std) &
-#                         (loc3_data['z_std']<= filter_z_std)
-#                         ]
-# # update loc object
-# loc3.data = loc3_data
-
-# ## load localization results -90 degrees
-# file4 = 'minus90_degrees.nc'
-# loc4 = Measurement()
-# loc4.from_netcdf(os.path.join(indir,file4))
-# loc4_data = loc4.data
-# # Filter
-# loc4_data = loc4_data.dropna(subset=['x', 'y','z']) # remove NaN
-# loc4_data = loc4_data.loc[(loc4_data['x']>=min(filter_x)) & 
-#                         (loc4_data['x']<=max(filter_x)) &
-#                         (loc4_data['y']>=min(filter_y)) & 
-#                         (loc4_data['y']<=max(filter_y)) &
-#                         (loc4_data['z']>=min(filter_z)) & 
-#                         (loc4_data['z']<=max(filter_z)) &
-#                         (loc4_data['x_std']<= filter_x_std) & 
-#                         (loc4_data['y_std']<= filter_y_std) &
-#                         (loc4_data['z_std']<= filter_z_std)
-#                         ]
-# # update loc object
-# loc4.data = loc4_data
-
-df = pd.read_csv(r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_ROV\localizations_matlab_with_CI.csv')
-loc1_data = df.loc[0:7] # 0 degrees
-loc3_data = df.loc[8:14]
-loc2_data = df.loc[15:19]
-loc4_data = df.loc[20:27]
+loc4 = Measurement()
+loc4.from_netcdf(r'C:\Users\xavier.mouy\Documents\Publications\Mouy.etal_2022_XAV-Arrays\manuscript\data\mobile_projector\localization_results_270deg.nc')
+loc4_data = loc4.data
+# df = pd.read_csv(r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_ROV\localizations_matlab_with_CI.csv')
+# loc1_data = df.loc[0:7] # 0 degrees
+# loc3_data = df.loc[8:14]
+# loc2_data = df.loc[15:19]
+# loc4_data = df.loc[20:27]
 
 ## load hydrophone locations
 hydrophones_config = pd.read_csv(hp_config_file)
 
 
 # Plot spectrogram
-fig_final, ax_spectro = plot_spectrogram(audio_file,loc1,t1_sec, t2_sec, geometry=(5,1,1))    
+t1_sec,t2_sec,fig_final, ax_spectro = plot_spectrogram(audio_file,loc1, geometry=(5,1,1))
 ax_spectro.set_title("")
 
 
@@ -427,10 +344,10 @@ plot_side_view(hydrophones_config,loc3_data,params, ax_sideloc,color='darkorange
 plot_side_view(hydrophones_config,loc4_data,params, ax_sideloc,color='darkblue',frame_on=False)
 
 
-ax_sideloc.set_anchor('W')
+# ax_sideloc.set_anchor('W')
 
 # set the spacing between subplots
-plt.subplots_adjust(wspace=0, hspace=0)
+plt.subplots_adjust(wspace=0.2, hspace=0)
 
 
 

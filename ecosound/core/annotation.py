@@ -274,7 +274,7 @@ class Annotation():
         if verbose:
             print('Integrity test succesfull')
 
-    def from_raven(self, files, class_header='Sound type', subclass_header=None, verbose=False):
+    def from_raven(self, files, class_header='Sound type', subclass_header=None, is_file_sequence=False, recursive=False, verbose=False):
         """
         Import data from 1 or several Raven files.
 
@@ -293,6 +293,9 @@ class Annotation():
         subclass_header : str, optional
             Name of the header in the Raven file corresponding to the subclass
             name. The default is None.
+        recursive : bool, optional
+            If set to True, goes rcursively through all subfolders. The default
+            is False.
         verbose : bool, optional
             If set to True, print the summary of the annatation integrity test.
             The default is False.
@@ -302,25 +305,41 @@ class Annotation():
         None.
 
         """
-        if os.path.isdir(files):
-            files = ecosound.core.tools.list_files(files,
-                                                   '.selections.txt',
-                                                   recursive=False,
-                                                   case_sensitive=True,
-                                                   )
-            if verbose:
-                print(len(files), 'annotation files found.')
+        if type(files) is not list:
+            if os.path.isdir(files):
+                files = ecosound.core.tools.list_files(files,
+                                                       '.selections.txt',
+                                                       recursive=recursive,
+                                                       case_sensitive=True,
+                                                       )
+                if verbose:
+                    print(len(files), 'annotation files found.')
         data = Annotation._import_csv_files(files)
-        files_timestamp = ecosound.core.tools.filename_to_datetime(
-            data['Begin Path'].tolist())
+        columns = data.columns.to_list()
+
+        if 'Begin Path' in columns:
+            files_timestamp = ecosound.core.tools.filename_to_datetime(data['Begin Path'].tolist())
+            self.data['audio_file_name'] = data['Begin Path'].apply(
+                lambda x: os.path.splitext(os.path.basename(x))[0])
+            self.data['audio_file_dir'] = data['Begin Path'].apply(
+                lambda x: os.path.dirname(x))
+            self.data['audio_file_extension'] = data['Begin Path'].apply(
+                lambda x: os.path.splitext(x)[1])
+        elif 'Begin File' in columns:
+            if verbose:
+                print("'Begin Path' not found using 'Begin File' to retriev timestamps")
+            files_timestamp = ecosound.core.tools.filename_to_datetime(data['Begin File'].tolist())
+            self.data['audio_file_name'] = data['Begin File'].apply(
+                lambda x: os.path.splitext(os.path.basename(x))[0])
+            self.data['audio_file_dir'] = None
+            self.data['audio_file_extension'] = data['Begin File'].apply(
+                lambda x: os.path.splitext(x)[1])
+        else:
+            files_timestamp = None
+            if verbose:
+                print('Name of annotated audio files could not be found')
         self.data['audio_file_start_date'] = files_timestamp
         self.data['audio_channel'] = data['Channel']
-        self.data['audio_file_name'] = data['Begin Path'].apply(
-            lambda x: os.path.splitext(os.path.basename(x))[0])
-        self.data['audio_file_dir'] = data['Begin Path'].apply(
-            lambda x: os.path.dirname(x))
-        self.data['audio_file_extension'] = data['Begin Path'].apply(
-            lambda x: os.path.splitext(x)[1])
         self.data['time_min_offset'] = data['Begin Time (s)']
         self.data['time_max_offset'] = data['End Time (s)']
         self.data['time_min_date'] = pd.to_datetime(
@@ -792,6 +811,23 @@ class Annotation():
         dxr1.attrs['datatype'] = 'Annotation'
         dxr1.to_netcdf(file, engine='netcdf4', format='NETCDF4')
 
+    def to_csv(self, file):
+        """
+        Writes data from the Annoatation object to a csv file.
+
+        Parameters
+        ----------
+        file : str
+            Name and path of the output csv file.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.data.to_csv(file, index=False)
+        
+
     def insert_values(self, **kwargs):
         """
         Insert constant values for given Annotation fields.
@@ -1090,10 +1126,40 @@ class Annotation():
         None.
 
         """
+        print(kwargs)
         graph = GrapherFactory('AnnotHeatmap', **kwargs)
         graph.add_data(self)
         graph.show()
 
+    def filter(self, query_str, inplace=False):
+        """
+        Filter data based on user-defined criteria.
+
+        Uses the pandas dataframe.query method to filter rows of the annotation
+        object (in annot.data datafrane). Filtering conditions are defined
+        as query string (query_str) indicating the fields and value conditions.
+        For example: query_str = 'label_class == "MW" & confidence >= 90'. See
+        documentation of pandas.DataFrame.query for more details.
+
+        Parameters
+        ----------
+        query_str : str
+            query string defining annotations fiels and value conditions. For
+            exemple: query_str = 'label_class == "MW" & confidence >= 90'.
+        inplace : bool, optional
+            Whether to modify the DataFrame rather than creating a new one.
+            The default is True.
+
+        Returns
+        -------
+        Annotation object
+            Updated with the filtered data.
+
+        """
+        self.data.query(query_str,inplace=inplace)
+        return self
+
+    
     def get_labels_class(self):
         """
         Get all the unique class labels of the annotations.
@@ -1234,14 +1300,20 @@ class Annotation():
                                  nrows=1)
             headerLength = header.shape[1]
             # Get all data and only keep values correpsonding to header labels
+            # tmp = pd.read_csv(file,
+            #                   delimiter='\t',
+            #                   #header=None,
+            #                   header=True,
+            #                   #skiprows=1,
+            #                   na_values=None,
+            #                   )
+            #tmp = tmp.iloc[:, 0:headerLength]
+            # Put header back
+            #tmp = tmp.set_axis(list(header.values[0]), axis=1, inplace=False)
             tmp = pd.read_csv(file,
                               delimiter='\t',
-                              header=None,
-                              skiprows=1,
-                              na_values=None)
-            tmp = tmp.iloc[:, 0:headerLength]
-            # Put header back
-            tmp = tmp.set_axis(list(header.values[0]), axis=1, inplace=False)
+                              na_values=None
+                              )
             if idx == 0:
                 data = tmp
             else:

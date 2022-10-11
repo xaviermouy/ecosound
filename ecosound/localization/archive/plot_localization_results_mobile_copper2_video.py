@@ -31,7 +31,7 @@ from localizationlib import euclidean_dist, calc_hydrophones_distances, calc_tdo
 import platform
 import cv2
 
-def plot_spectrogram(audio_file,loc,t1_sec, t2_sec, geometry=(1,1,1)):
+def plot_spectrogram(audio_file,loc,geometry=(1,1,1)):
     
     fmin=0
     fmax=1000
@@ -40,28 +40,29 @@ def plot_spectrogram(audio_file,loc,t1_sec, t2_sec, geometry=(1,1,1)):
     nfft=0.0853
     step=0.01
     channel=0
-    chunk=[t1_sec,t2_sec]
-    
+
     graph_spectros = GrapherFactory('SoundPlotter', title='Spectrograms', frequency_max=fmax)
     sound = Sound(audio_file)
-    sound.read(channel=channel, chunk=chunk, unit='sec', detrend=True)
+    sound.read(channel=channel, unit='sec', detrend=True)
+    t1_sec = 0
+    t2_sec = sound.file_duration_sec
     # Calculates  spectrogram
     spectro = Spectrogram(frame, window_type, nfft, step, sound.waveform_sampling_frequency, unit='sec')
     spectro.compute(sound, dB=True, use_dask=False)
     # Crop unused frequencies
     spectro.crop(frequency_min=fmin, frequency_max=fmax, inplace=True)
     # Plot
-    graph_spectros.add_data(spectro)    
+    graph_spectros.add_data(spectro)
     
     #graph_spectros.add_annotation(loc, panel=0, color='burlywood',label='Detections')
     graph_spectros.add_annotation(loc, panel=0, color='peachpuff')
     
     graph_spectros.colormap = 'binary' #'jet'
     fig, ax = graph_spectros.show()
-
+    #get_subplotspec
     if ax.get_geometry() != geometry :
-        ax.change_geometry(*geometry)        
-    return fig, ax
+        ax.change_geometry(*geometry)
+    return t1_sec,t2_sec,fig, ax
 
 def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
     
@@ -120,7 +121,7 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
+        ax.plot([loc_point['x_err_low'],loc_point['x_err_high']],
                 [loc_point['y'],loc_point['y']],
                 #c=loc_point['time_min_offset'],
                 linewidth=params['uncertainty_width'].values[0],
@@ -133,7 +134,7 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['y_min_CI99'],loc_point['y_max_CI99']],
+                [loc_point['y_err_low'],loc_point['y_err_high']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 #color=params['uncertainty_color'].values[0],
@@ -152,7 +153,6 @@ def plot_top_view(hydrophones_config,loc_data,params,cmap,norm, ax):
 
 
 def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
-    
     #fig1 = plt.figure()
     #ax = fig1.add_subplot(111)
     colors = matplotlib.cm.tab10(hydrophones_config.index.values)
@@ -209,7 +209,7 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                         )
     # plot uncertainties
     for idx, loc_point in loc_data.iterrows():   
-        ax.plot([loc_point['x_min_CI99'],loc_point['x_max_CI99']],
+        ax.plot([loc_point['x_err_low'],loc_point['x_err_high']],
                 [loc_point['z'],loc_point['z']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
@@ -219,7 +219,7 @@ def plot_side_view(hydrophones_config,loc_data,params,cmap,norm, ax):
                 )
     
         ax.plot([loc_point['x'],loc_point['x']],
-                [loc_point['z_min_CI99'],loc_point['z_max_CI99']],
+                [loc_point['z_err_low'],loc_point['z_err_high']],
                 linewidth=params['uncertainty_width'].values[0],
                 linestyle=params['uncertainty_style'].values[0],
                 #color=params['uncertainty_color'].values[0],
@@ -284,24 +284,13 @@ def calc_loc_errors(tdoa_errors_std, m, sound_speed_mps, hydrophones_config, hyd
 ## ###########################################################################
 
 def plot_full_figure(time_sec=None):
-    
-    #loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_1m_5cm.nc'    
-    loc_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_2cm_3m.nc'
-    loc_file_matlab = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\results\mobile_array_copper\localizations_matlab_with_CI.csv'
-    audio_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\671404070.190918222812.wav'
-    video_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\large_array\2019-09-15_HornbyIsland_AMAR_07-HI\3420_FishCam01_20190920T163627.613206Z_1600x1200_awb-auto_exp-night_fr-10_q-20_sh-0_b-50_c-0_i-400_sat-0.mp4'
-    hp_config_file = r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\data\mobile_array\2019-09-14_HornbyIsland_Trident\hydrophones_config_HI-201909.csv'
-    localization_config_file =r'C:\Users\xavier.mouy\Documents\Reports_&_Papers\Papers\10-XAVarray_2020\config_files\localization_config_mobile_array.yaml'
-    t1_sec = 214 #216
-    t2_sec = 224#223
-    
-    filter_x=[-5, 5]
-    filter_y=[-5, 5]
-    filter_z=[-2, 5]
-    filter_x_std=6
-    filter_y_std=9
-    filter_z_std=6
-    
+        
+    indir = r'C:\Users\xavier.mouy\Documents\Publications\Mouy.etal_2022_XAV-Arrays\manuscript\data\mobile_coppers'
+    loc_file = r'localization_results.nc'
+    audio_file = r'671404070.190921010008.wav'    
+    hp_config_file = r'hydrophones_config_HI-201909.csv'
+    localization_config_file =r'localization_config_mobile_array.yaml'
+
     params=pd.DataFrame({
         'loc_color': ['black'],
         'loc_marker': ['o'],
@@ -311,13 +300,19 @@ def plot_full_figure(time_sec=None):
         'uncertainty_style': ['-'],
         'uncertainty_alpha': [1], #0.7
         'uncertainty_width': [0.2], #0.2
-        'x_min':[-1.5],
-        'x_max':[1.5],
+        'x_min':[-1],
+        'x_max':[1],
         'y_min':[-0.5],
-        'y_max':[3],
-        'z_min':[-1.5],
+        'y_max':[1.5],
+        'z_min':[-0.5],
         'z_max':[1.5],    
         })
+    
+    # add path tol file names
+    loc_file = os.path.join(indir,loc_file)
+    audio_file = os.path.join(indir,audio_file)
+    hp_config_file = os.path.join(indir,hp_config_file)
+    localization_config_file = os.path.join(indir,localization_config_file)
         
     ## ###########################################################################
     localization_config = read_yaml(localization_config_file)
@@ -330,49 +325,9 @@ def plot_full_figure(time_sec=None):
     loc = Measurement()
     loc.from_netcdf(loc_file)
     loc_data = loc.data
-
-    # used matlab CI
-    loc_data = pd.read_csv(loc_file_matlab)
-
-    # ## recalculate data errors
-    # diff=[]
-    # idx = 0
-    # for idx in range(len(loc_data)):
-    #     m = loc_data.loc[[idx],['x','y','z']]        
-    #     tdoa_m = predict_tdoa(m, sound_speed_mps, hydrophones_config, hydrophone_pairs)
-    #     tdoa_measured = loc_data.loc[[idx],['tdoa_sec_1','tdoa_sec_2','tdoa_sec_3']].to_numpy()    
-    #     #diff_temp = (tdoa_m-tdoa_measured.T)**2
-    #     if idx==0:
-    #         diff = (tdoa_m-tdoa_measured.T)**2
-    #     else:
-    #         diff = np.vstack((diff,(tdoa_m-tdoa_measured.T)**2))
-    
-    # Q = len(loc_data)
-    # #M = m.size # number of dimensions of the model (here: X, Y, and Z)
-    # #N = len(tdoa_sec) # number of measurements    
-    # #error_std = np.sqrt((1/(Q*(N-M))) * (sum((tdoa_sec-tdoa_m)**2)))    
-    # tdoa_errors_std = np.sqrt( (1/Q)*(sum(diff)))
-    
-    # #tdoa_errors_std = calc_data_error(tdoa_sec, m, sound_speed_mps,hydrophones_config, hydrophone_pairs)
-    # for idx in range(len(loc_data)):
-    #     loc_errors_std = calc_loc_errors(tdoa_errors_std, loc_data.loc[[idx],['x','y','z']] , sound_speed_mps, hydrophones_config, hydrophone_pairs)
-    #     print('m')
     
     # Filter
-    loc_data = loc_data.dropna(subset=['x', 'y','z']) # remove NaN
-    loc_data = loc_data.loc[(loc_data['x']>=min(filter_x)) & 
-                            (loc_data['x']<=max(filter_x)) &
-                            (loc_data['y']>=min(filter_y)) & 
-                            (loc_data['y']<=max(filter_y)) &
-                            (loc_data['z']>=min(filter_z)) & 
-                            (loc_data['z']<=max(filter_z)) &
-                            (loc_data['x_std']<= filter_x_std) & 
-                            (loc_data['y_std']<= filter_y_std) &
-                            (loc_data['z_std']<= filter_z_std)
-                            ]
-    # Adjust detection times
-    loc_data['time_min_offset'] = loc_data['time_min_offset'] - t1_sec
-    loc_data['time_max_offset'] = loc_data['time_max_offset'] - t1_sec
+    loc.filter("y > 0", inplace=True)
     
     if time_sec!= None:
         loc_data = loc_data.loc[(loc_data['time_max_offset']<=time_sec)] 
@@ -381,26 +336,13 @@ def plot_full_figure(time_sec=None):
     
     # update loc object
     loc.data = loc_data
-    
-    # plots
-    # fig, ax = plt.subplots(figsize=(6, 1))
-    # fig.subplots_adjust(bottom=0.5)
-    # n_colors = t2_sec-t1_sec
-    # cmap = mpl.cm.get_cmap('CMRmap', n_colors*2)
-    # norm = mpl.colors.Normalize(vmin=0, vmax=n_colors)
-    # ax_cmap = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
-    #                                 norm=norm,
-    #                                 orientation='horizontal')
-    # ax_cmap.set_label('Time (s)')
-    
-   
-    
+
     # Plot spectrogram
-    fig_final, ax_spectro = plot_spectrogram(audio_file,loc,t1_sec, t2_sec, geometry=(5,1,1))    
+    t1_sec,t2_sec,fig_final, ax_spectro = plot_spectrogram(audio_file,loc, geometry=(5,1,1))    
     ax_spectro.set_title("")
     ax_spectro.get_xaxis().set_visible(False)
     n_colors = t2_sec-t1_sec
-    cmap = mpl.cm.get_cmap('viridis', n_colors*4)
+    cmap = mpl.cm.get_cmap('viridis', int(n_colors*4))
     norm = mpl.colors.Normalize(vmin=0, vmax=n_colors)
     divider = make_axes_locatable(ax_spectro)
     cax = divider.append_axes('bottom', 0.1, pad=0.03 )
@@ -423,33 +365,9 @@ def plot_full_figure(time_sec=None):
     ax_detec.get_xaxis().set_visible(False)
     ax_detec.get_yaxis().set_visible(False)
     ax_detec.axis('off')
-    
-    # #pos =[left, bottom, width, height]
-    # box = ax_detec.get_position()
-    # box.y0 = box.y0 + 0.6
-    # box.y1 = box.y1 + 0.6
-    # ax_detec.set_position(box)
-    
-    #size = fig_final.get_size_inches()
-    
-    
+
     plt.subplots_adjust(left=0.08, bottom=0.1, right=0.95, top=0.95, wspace=0, hspace=0)
-    
-    
-    # divider2 = make_axes_locatable(ax_spectro)
-    # cax2 = divider2.append_axes('top', size=0.2, pad=10.0)
-    # det_y = np.asarray(np.ones((1,len(loc_data['time_min_offset']))))[0]
-    # det_x = np.asarray(loc_data['time_min_offset'])
-    # cax2.plot(det_x,det_y,'.r')
-    # cax2.set_xlim(ax_spectro.get_xlim())
-    
-    
-    # ax_cmap = mpl.colorbar.ColorbarBase(cax, cmap=cmap,
-    #                                     norm=norm,
-    #                                     orientation='horizontal')
-    
-    
-    
+
     gs = fig_final.add_gridspec(3,2)
     
     # plot localization top
@@ -484,7 +402,7 @@ def plot_full_figure(time_sec=None):
     # ax_video2.get_yaxis().set_visible(False)
     
     
-    fig_final.set_size_inches(9.08, 6.72)
+    fig_final.set_size_inches(9.82, 6.72)
 
     box = ax_spectro.get_position()
     box.y0 = box.y0 - 0.03
@@ -495,34 +413,34 @@ def plot_full_figure(time_sec=None):
 
 def main():
     
-    # static
-    fig = plot_full_figure()
-    size = fig.get_size_inches()
+    # # static
+    # fig = plot_full_figure()
+    # size = fig.get_size_inches()
     
-    # # movie
-    # outdir = r'C:\Users\xavier.mouy\Documents\PhD\Thesis\phd-thesis\Figures\XAV_arrays\MobileArray_Copper\animation'
-    # fps=20
-    # duration_sec = 10
+    # movie
+    outdir = r'C:\Users\xavier.mouy\Documents\Publications\Mouy.etal_2022_XAV-Arrays\manuscript\data\mobile_coppers\animation'
+    fps=20
+    duration_sec = 12
     
-    # # create individual frames
-    # times = np.arange(0,duration_sec,1/fps)
-    # for idx, t in enumerate(times):
-    #     plot_full_figure(time_sec=t)
-    #     plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
-    #     plt.close()
+    # create individual frames
+    times = np.arange(0,duration_sec,1/fps)
+    for idx, t in enumerate(times):
+        plot_full_figure(time_sec=t)
+        plt.savefig(os.path.join(outdir,str(idx)+'.jpg'))
+        plt.close()
     
-    # # stack all frames
-    # img_array = []
-    # for filename in range(0,idx):
-    #     img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
-    #     height, width, layers = img.shape
-    #     size = (width,height)
-    #     img_array.append(img)
-    # # write videos
-    # out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
-    # for i in range(len(img_array)):
-    #     out.write(img_array[i])
-    # out.release()
+    # stack all frames
+    img_array = []
+    for filename in range(0,idx):
+        img = cv2.imread(os.path.join(outdir,str(filename)+'.jpg'))
+        height, width, layers = img.shape
+        size = (width,height)
+        img_array.append(img)
+    # write videos
+    out = cv2.VideoWriter(os.path.join(outdir,'animation.mp4'),cv2.VideoWriter_fourcc(*'DIVX'), fps, size) 
+    for i in range(len(img_array)):
+        out.write(img_array[i])
+    out.release()
     
 if __name__ == "__main__":
     main()

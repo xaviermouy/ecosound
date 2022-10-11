@@ -5,6 +5,7 @@ numba
 PySoundFile
 dask_image
 matplotlib
+ipympl
 scipy
 numpy>=1.18,<1.22
 scikit_learn

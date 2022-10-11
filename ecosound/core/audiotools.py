@@ -216,7 +216,7 @@ class Sound:
                            str(self._channels), ' channels available).'])
             raise ValueError(msg)
 
-    def filter(self, filter_type, cutoff_frequencies, order=4):
+    def filter(self, filter_type, cutoff_frequencies, order=4, verbose=True):
         """
         Filter the audio signal.
 
@@ -235,6 +235,8 @@ class Sound:
             filter_type is set to 'bandpass'.
         order : int, optional
             Order of the filter. The default is 4.
+        verbose : bool, optional
+            if True, prints all notifications. The default is True.
 
         Raises
         ------
@@ -257,11 +259,13 @@ class Sound:
             if (filter_type == 'bandpass') and (min(cutoff_frequencies) <=0):
                 cutoff_frequencies = [max(cutoff_frequencies)]
                 filter_type = 'lowpass'
-                print('Warning: filter type was changed from "bandpass" to "lowpass".')
+                if verbose:
+                    print('Warning: filter type was changed from "bandpass" to "lowpass".')
             if (filter_type == 'bandpass') and (max(cutoff_frequencies) >=self._waveform_sampling_frequency/2):
                 cutoff_frequencies = [min(cutoff_frequencies)]
                 filter_type = 'highpass'
-                print('Warning: filter type was changed from "bandpass" to "highpass".')
+                if verbose:
+                    print('Warning: filter type was changed from "bandpass" to "highpass".')
             # Instantiate filter object
             my_filter = Filter(filter_type, cutoff_frequencies, order)
             self._waveform = my_filter.apply(self._waveform,

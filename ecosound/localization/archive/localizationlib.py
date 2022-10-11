@@ -4,6 +4,8 @@ Created on Tue Jul 31 15:04:19 2018
 
 @author: xavier.mouy
 """
+import sys
+sys.path.append(r"C:\Users\xavier.mouy\Documents\GitHub\ecosound") # Adds higher directory to python modules path.
 
 import numpy as np
 import pandas as pd
@@ -252,7 +254,8 @@ def optimizeArray(ReceiverBounds, nReceivers, AnnealingSchedule, S, Rpairs, V, N
             T = AnnealingSchedule['Start']                       # initial temperature
             tmp1 = pd.DataFrame({'T': [T], 'cost': [E_m]})
             Cost = pd.DataFrame.append(Cost, tmp1, ignore_index=True)
-            Rchanges = R.as_matrix()                                         # Keeps track of model paraneters at each iteration
+            #Rchanges = R.as_matrix()                                         # Keeps track of model paraneters at each iteration
+            Rchanges = R.to_numpy()                                         # Keeps track of model paraneters at each iteration
             MappedParamsIdx = getParamsLinearMapping(R)          # linear list of each elements to optimize (for the perturnation phase)
             #plotArrayUncertainties(R, S, Uncertainties)
 
@@ -301,7 +304,8 @@ def optimizeArray(ReceiverBounds, nReceivers, AnnealingSchedule, S, Rpairs, V, N
             # saves cost and model parameters
             tmp1 = pd.DataFrame({'T': [T], 'cost': [E_m]})
             Cost = pd.DataFrame.append(Cost, tmp1, ignore_index=True)
-            Rchanges = np.dstack((Rchanges, R.as_matrix()))
+            #Rchanges = np.dstack((Rchanges, R.as_matrix()))
+            Rchanges = np.dstack((Rchanges, R.to_numpy()))
 
         # Calculates acceptance rate for that temperature value
         acceptRate = nAccepted / AnnealingSchedule['nPerturb']
