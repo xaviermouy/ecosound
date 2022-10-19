@@ -18,9 +18,10 @@ from ecosound.core.metadata import DeploymentInfo
 from ecosound.visualization.grapher_builder import GrapherFactory
 import copy
 import csv
+import datetime
 
 
-class Annotation():
+class Annotation:
     """
     A class used for manipulating annotation data.
 
@@ -163,46 +164,50 @@ class Annotation():
         Annotation object.
 
         """
-        self.data = pd.DataFrame({
-            'uuid': [],
-            'from_detector': [],  # True, False
-            'software_name': [],
-            'software_version': [],
-            'operator_name': [],
-            'UTC_offset': [],
-            'entry_date': [],
-            'audio_channel': [],
-            'audio_file_name': [],
-            'audio_file_dir': [],
-            'audio_file_extension': [],
-            'audio_file_start_date': [],
-            'audio_sampling_frequency': [],
-            'audio_bit_depth': [],
-            'mooring_platform_name': [],
-            'recorder_type': [],
-            'recorder_SN': [],
-            'hydrophone_model': [],
-            'hydrophone_SN': [],
-            'hydrophone_depth': [],
-            'location_name': [],
-            'location_lat': [],
-            'location_lon': [],
-            'location_water_depth': [],
-            'deployment_ID': [],
-            'frequency_min': [],
-            'frequency_max': [],
-            'time_min_offset': [],
-            'time_max_offset': [],
-            'time_min_date': [],
-            'time_max_date': [],
-            'duration': [],
-            'label_class': [],
-            'label_subclass': [],
-            'confidence': []
-            })
+        self.data = pd.DataFrame(
+            {
+                "uuid": [],
+                "from_detector": [],  # True, False
+                "software_name": [],
+                "software_version": [],
+                "operator_name": [],
+                "UTC_offset": [],
+                "entry_date": [],
+                "audio_channel": [],
+                "audio_file_name": [],
+                "audio_file_dir": [],
+                "audio_file_extension": [],
+                "audio_file_start_date": [],
+                "audio_sampling_frequency": [],
+                "audio_bit_depth": [],
+                "mooring_platform_name": [],
+                "recorder_type": [],
+                "recorder_SN": [],
+                "hydrophone_model": [],
+                "hydrophone_SN": [],
+                "hydrophone_depth": [],
+                "location_name": [],
+                "location_lat": [],
+                "location_lon": [],
+                "location_water_depth": [],
+                "deployment_ID": [],
+                "frequency_min": [],
+                "frequency_max": [],
+                "time_min_offset": [],
+                "time_max_offset": [],
+                "time_min_date": [],
+                "time_max_date": [],
+                "duration": [],
+                "label_class": [],
+                "label_subclass": [],
+                "confidence": [],
+            }
+        )
         self._enforce_dtypes()
 
-    def check_integrity(self, verbose=False, ignore_frequency_duplicates=False):
+    def check_integrity(
+        self, verbose=False, ignore_frequency_duplicates=False
+    ):
         """
         Check integrity of Annotation object.
 
@@ -237,44 +242,63 @@ class Annotation():
         count_start = len(self.data)
         if ignore_frequency_duplicates:  # doesn't use frequency boundaries
             self.data = self.data.drop_duplicates(
-                subset=['time_min_offset',
-                        'time_max_offset',
-                        'label_class',
-                        'label_subclass',
-                        'audio_file_name',
-                        ], keep="first",).reset_index(drop=True)
+                subset=[
+                    "time_min_offset",
+                    "time_max_offset",
+                    "label_class",
+                    "label_subclass",
+                    "audio_file_name",
+                ],
+                keep="first",
+            ).reset_index(drop=True)
         else:  # remove annot with exact same time AND frequency boundaries
             self.data = self.data.drop_duplicates(
-                subset=['time_min_offset',
-                        'time_max_offset',
-                        'frequency_min',
-                        'frequency_max',
-                        'label_class',
-                        'label_subclass',
-                        'audio_file_name',
-                        ], keep="first",).reset_index(drop=True)
+                subset=[
+                    "time_min_offset",
+                    "time_max_offset",
+                    "frequency_min",
+                    "frequency_max",
+                    "label_class",
+                    "label_subclass",
+                    "audio_file_name",
+                ],
+                keep="first",
+            ).reset_index(drop=True)
         count_stop = len(self.data)
         if verbose:
-            print('Duplicate entries removed:', str(count_start-count_stop))
+            print("Duplicate entries removed:", str(count_start - count_stop))
         # Check that start and stop times are coherent (i.e. t2 > t1)
         time_check = self.data.index[
-            self.data['time_max_offset'] <
-            self.data['time_min_offset']].tolist()
+            self.data["time_max_offset"] < self.data["time_min_offset"]
+        ].tolist()
         if len(time_check) > 0:
             raise ValueError(
-                'Incoherent annotation times (time_min > time_max). \
-                 Problematic annotations:' + str(time_check))
+                "Incoherent annotation times (time_min > time_max). \
+                 Problematic annotations:"
+                + str(time_check)
+            )
         # Check that min and max frequencies are coherent (i.e. fmin < fmax)
         freq_check = self.data.index[
-            self.data['frequency_max'] < self.data['frequency_min']].tolist()
+            self.data["frequency_max"] < self.data["frequency_min"]
+        ].tolist()
         if len(freq_check) > 0:
             raise ValueError(
-                'Incoherent annotation frequencies (frequency_min > \
-                frequency_max). Problematic annotations:' + str(freq_check))
+                "Incoherent annotation frequencies (frequency_min > \
+                frequency_max). Problematic annotations:"
+                + str(freq_check)
+            )
         if verbose:
-            print('Integrity test succesfull')
+            print("Integrity test succesfull")
 
-    def from_raven(self, files, class_header='Sound type', subclass_header=None, is_file_sequence=False, recursive=False, verbose=False):
+    def from_raven(
+        self,
+        files,
+        class_header="Sound type",
+        subclass_header=None,
+        is_file_sequence=False,
+        recursive=False,
+        verbose=False,
+    ):
         """
         Import data from 1 or several Raven files.
 
@@ -307,62 +331,82 @@ class Annotation():
         """
         if type(files) is not list:
             if os.path.isdir(files):
-                files = ecosound.core.tools.list_files(files,
-                                                       '.selections.txt',
-                                                       recursive=recursive,
-                                                       case_sensitive=True,
-                                                       )
+                files = ecosound.core.tools.list_files(
+                    files,
+                    ".selections.txt",
+                    recursive=recursive,
+                    case_sensitive=True,
+                )
                 if verbose:
-                    print(len(files), 'annotation files found.')
+                    print(len(files), "annotation files found.")
         data = Annotation._import_csv_files(files)
         columns = data.columns.to_list()
 
-        if 'Begin Path' in columns:
-            files_timestamp = ecosound.core.tools.filename_to_datetime(data['Begin Path'].tolist())
-            self.data['audio_file_name'] = data['Begin Path'].apply(
-                lambda x: os.path.splitext(os.path.basename(x))[0])
-            self.data['audio_file_dir'] = data['Begin Path'].apply(
-                lambda x: os.path.dirname(x))
-            self.data['audio_file_extension'] = data['Begin Path'].apply(
-                lambda x: os.path.splitext(x)[1])
-        elif 'Begin File' in columns:
+        if "Begin Path" in columns:
+            files_timestamp = ecosound.core.tools.filename_to_datetime(
+                data["Begin Path"].tolist()
+            )
+            self.data["audio_file_name"] = data["Begin Path"].apply(
+                lambda x: os.path.splitext(os.path.basename(x))[0]
+            )
+            self.data["audio_file_dir"] = data["Begin Path"].apply(
+                lambda x: os.path.dirname(x)
+            )
+            self.data["audio_file_extension"] = data["Begin Path"].apply(
+                lambda x: os.path.splitext(x)[1]
+            )
+        elif "Begin File" in columns:
             if verbose:
-                print("'Begin Path' not found using 'Begin File' to retriev timestamps")
-            files_timestamp = ecosound.core.tools.filename_to_datetime(data['Begin File'].tolist())
-            self.data['audio_file_name'] = data['Begin File'].apply(
-                lambda x: os.path.splitext(os.path.basename(x))[0])
-            self.data['audio_file_dir'] = None
-            self.data['audio_file_extension'] = data['Begin File'].apply(
-                lambda x: os.path.splitext(x)[1])
+                print(
+                    "'Begin Path' not found using 'Begin File' to retriev timestamps"
+                )
+            files_timestamp = ecosound.core.tools.filename_to_datetime(
+                data["Begin File"].tolist()
+            )
+            self.data["audio_file_name"] = data["Begin File"].apply(
+                lambda x: os.path.splitext(os.path.basename(x))[0]
+            )
+            self.data["audio_file_dir"] = None
+            self.data["audio_file_extension"] = data["Begin File"].apply(
+                lambda x: os.path.splitext(x)[1]
+            )
         else:
             files_timestamp = None
             if verbose:
-                print('Name of annotated audio files could not be found')
-        self.data['audio_file_start_date'] = files_timestamp
-        self.data['audio_channel'] = data['Channel']
-        self.data['time_min_offset'] = data['Begin Time (s)']
-        self.data['time_max_offset'] = data['End Time (s)']
-        self.data['time_min_date'] = pd.to_datetime(
-            self.data['audio_file_start_date'] + pd.to_timedelta(
-                self.data['time_min_offset'], unit='s'))
-        self.data['time_max_date'] = pd.to_datetime(
-            self.data['audio_file_start_date'] +
-            pd.to_timedelta(self.data['time_max_offset'], unit='s'))
-        self.data['frequency_min'] = data['Low Freq (Hz)']
-        self.data['frequency_max'] = data['High Freq (Hz)']
+                print("Name of annotated audio files could not be found")
+        self.data["audio_file_start_date"] = files_timestamp
+        self.data["audio_channel"] = data["Channel"]
+        self.data["time_min_offset"] = data["Begin Time (s)"]
+        self.data["time_max_offset"] = data["End Time (s)"]
+        self.data["time_min_date"] = pd.to_datetime(
+            self.data["audio_file_start_date"]
+            + pd.to_timedelta(self.data["time_min_offset"], unit="s")
+        )
+        self.data["time_max_date"] = pd.to_datetime(
+            self.data["audio_file_start_date"]
+            + pd.to_timedelta(self.data["time_max_offset"], unit="s")
+        )
+        self.data["frequency_min"] = data["Low Freq (Hz)"]
+        self.data["frequency_max"] = data["High Freq (Hz)"]
         if class_header is not None:
-            self.data['label_class'] = data[class_header]
+            self.data["label_class"] = data[class_header]
         if subclass_header is not None:
-            self.data['label_subclass'] = data[subclass_header]
-        self.data['from_detector'] = False
-        self.data['software_name'] = 'raven'
-        self.data['uuid'] = self.data.apply(lambda _: str(uuid.uuid4()), axis=1)
-        self.data['duration'] = self.data['time_max_offset'] - self.data['time_min_offset']
+            self.data["label_subclass"] = data[subclass_header]
+        self.data["from_detector"] = False
+        self.data["software_name"] = "raven"
+        self.data["uuid"] = self.data.apply(
+            lambda _: str(uuid.uuid4()), axis=1
+        )
+        self.data["duration"] = (
+            self.data["time_max_offset"] - self.data["time_min_offset"]
+        )
         self.check_integrity(verbose=verbose, ignore_frequency_duplicates=True)
         if verbose:
-                print(len(self), 'annotations imported.')
+            print(len(self), "annotations imported.")
 
-    def to_raven(self, outdir, outfile='Raven.Table.1.selections.txt', single_file=False):
+    def to_raven(
+        self, outdir, outfile="Raven.Table.1.selections.txt", single_file=False
+    ):
         """
         Write data to 1 or several Raven files.
 
@@ -387,67 +431,107 @@ class Annotation():
         None.
 
         """
-        cols = ['Selection', 'View', 'Channel', 'Begin Time (s)',
-                'End Time (s)', 'Delta Time (s)', 'Low Freq (Hz)',
-                'High Freq (Hz)', 'Begin Path', 'File Offset (s)',
-                'Begin File', 'Class', 'Sound type', 'Software',
-                'Confidence']
+        cols = [
+            "Selection",
+            "View",
+            "Channel",
+            "Begin Time (s)",
+            "End Time (s)",
+            "Delta Time (s)",
+            "Low Freq (Hz)",
+            "High Freq (Hz)",
+            "Begin Path",
+            "File Offset (s)",
+            "Begin File",
+            "Class",
+            "Sound type",
+            "Software",
+            "Confidence",
+        ]
         if len(self) > 0:
             if single_file:
                 annots = [self.data]
             else:
-                annots = [pd.DataFrame(y) for x, y in self.data.groupby(
-                    'audio_file_name', as_index=False)]
+                annots = [
+                    pd.DataFrame(y)
+                    for x, y in self.data.groupby(
+                        "audio_file_name", as_index=False
+                    )
+                ]
             for annot in annots:
-                annot.reset_index(inplace=True, drop=True)                
-                outdf = pd.DataFrame({'Selection': 0, 'View': 0, 'Channel': 0,
-                                      'Begin Time (s)': 0, 'End Time (s)': 0,
-                                      'Delta Time (s)': 0, 'Low Freq (Hz)': 0,
-                                      'High Freq (Hz)': 0, 'Begin Path': 0,
-                                      'File Offset (s)': 0, 'Begin File': 0,
-                                      'Class': 0, 'Sound type': 0, 'Software': 0,
-                                      'Confidence': 0},
-                                     index=list(range(annot.shape[0])))
-                outdf['Selection'] = range(1, annot.shape[0]+1)
-                outdf['View'] = 'Spectrogram 1'
-                outdf['Channel'] = annot['audio_channel']
-                outdf['Begin Time (s)'] = annot['time_min_offset']
-                outdf['End Time (s)'] = annot['time_max_offset']
-                outdf['Delta Time (s)'] = annot['duration']
-                outdf['Low Freq (Hz)'] = annot['frequency_min']
-                outdf['High Freq (Hz)'] = annot['frequency_max']
-                outdf['File Offset (s)'] = annot['time_min_offset']
-                outdf['Class'] = annot['label_class']
-                outdf['Sound type'] = annot['label_subclass']
-                outdf['Software'] = annot['software_name']
-                outdf['Confidence'] = annot['confidence']
-                outdf['Begin Path'] = [os.path.join(x, y) + z for x, y, z
-                                       in zip(annot['audio_file_dir'],
-                                              annot['audio_file_name'],
-                                              annot['audio_file_extension'])]
-                outdf['Begin File'] = [x + y for x, y
-                                       in zip(annot['audio_file_name'],
-                                              annot['audio_file_extension'])]
+                annot.reset_index(inplace=True, drop=True)
+                outdf = pd.DataFrame(
+                    {
+                        "Selection": 0,
+                        "View": 0,
+                        "Channel": 0,
+                        "Begin Time (s)": 0,
+                        "End Time (s)": 0,
+                        "Delta Time (s)": 0,
+                        "Low Freq (Hz)": 0,
+                        "High Freq (Hz)": 0,
+                        "Begin Path": 0,
+                        "File Offset (s)": 0,
+                        "Begin File": 0,
+                        "Class": 0,
+                        "Sound type": 0,
+                        "Software": 0,
+                        "Confidence": 0,
+                    },
+                    index=list(range(annot.shape[0])),
+                )
+                outdf["Selection"] = range(1, annot.shape[0] + 1)
+                outdf["View"] = "Spectrogram 1"
+                outdf["Channel"] = annot["audio_channel"]
+                outdf["Begin Time (s)"] = annot["time_min_offset"]
+                outdf["End Time (s)"] = annot["time_max_offset"]
+                outdf["Delta Time (s)"] = annot["duration"]
+                outdf["Low Freq (Hz)"] = annot["frequency_min"]
+                outdf["High Freq (Hz)"] = annot["frequency_max"]
+                outdf["File Offset (s)"] = annot["time_min_offset"]
+                outdf["Class"] = annot["label_class"]
+                outdf["Sound type"] = annot["label_subclass"]
+                outdf["Software"] = annot["software_name"]
+                outdf["Confidence"] = annot["confidence"]
+                outdf["Begin Path"] = [
+                    os.path.join(x, y) + z
+                    for x, y, z in zip(
+                        annot["audio_file_dir"],
+                        annot["audio_file_name"],
+                        annot["audio_file_extension"],
+                    )
+                ]
+                outdf["Begin File"] = [
+                    x + y
+                    for x, y in zip(
+                        annot["audio_file_name"], annot["audio_file_extension"]
+                    )
+                ]
                 outdf = outdf.fillna(0)
                 if single_file:
                     outfilename = os.path.join(outdir, outfile)
                 else:
                     outfilename = os.path.join(
-                        outdir, str(annot['audio_file_name'].iloc[0])
-                        + str(annot['audio_file_extension'].iloc[0])
-                        + '.chan' + str(annot['audio_channel'].iloc[0])
-                        + '.Table.1.selections.txt')
-                outdf.to_csv(outfilename,
-                             sep='\t',
-                             encoding='utf-8',
-                             header=True,
-                             columns=cols,
-                             index=False)
+                        outdir,
+                        str(annot["audio_file_name"].iloc[0])
+                        + str(annot["audio_file_extension"].iloc[0])
+                        + ".chan"
+                        + str(annot["audio_channel"].iloc[0])
+                        + ".Table.1.selections.txt",
+                    )
+                outdf.to_csv(
+                    outfilename,
+                    sep="\t",
+                    encoding="utf-8",
+                    header=True,
+                    columns=cols,
+                    index=False,
+                )
         else:
             # No annotation => write file with header only
             outfilename = os.path.join(outdir, outfile)
-            header='\t'.join(cols)
-            f = open(outfilename,'w')
+            header = "\t".join(cols)
+            f = open(outfilename, "w")
             f.write(header)
             f.close()
 
@@ -455,7 +539,7 @@ class Annotation():
         """
         Write data to a sqlite database file.
 
-        Write annotations as .sqlite file.         
+        Write annotations as .sqlite file.
 
         Parameters
         ----------
@@ -467,15 +551,17 @@ class Annotation():
         None.
 
         """
-        if file.endswith('.sqlite') is False:
-            file = file + '.sqlite'
+        if file.endswith(".sqlite") is False:
+            file = file + ".sqlite"
         self._enforce_dtypes()
-        
+
         conn = sqlite3.connect(file)
-        self.data.to_sql(name='detections', con=conn, if_exists='append', index=False)
+        self.data.to_sql(
+            name="detections", con=conn, if_exists="append", index=False
+        )
         conn.close()
 
-    def from_sqlite(self, files, table_name='detections', verbose=False):
+    def from_sqlite(self, files, table_name="detections", verbose=False):
         """
         Import data from 1 or several sqlite files.
 
@@ -486,12 +572,12 @@ class Annotation():
         ----------
         files : str, list
             Path of the sqlite file(s) to import. Can be a str if importing a
-            single file. Needs to be a list if importing multiple files. If 
+            single file. Needs to be a list if importing multiple files. If
             'files' is a folder, all files in that folder ending with '.sqlite'
             will be imported.
         table_name : str, optional
             Name of the sql table name containing the annotations. The default
-            is 'detections'.        
+            is 'detections'.
         verbose : bool, optional
             If set to True, print the summary of the annatation integrity test.
             The default is False.
@@ -501,14 +587,28 @@ class Annotation():
         None.
 
         """
-        assert type(files) in (str, list), "Input must be of type str (single \
+        assert type(files) in (
+            str,
+            list,
+        ), "Input must be of type str (single \
             file or directory) or list (multiple files)"
-        files = Annotation._make_list_from_input(files, '.sqlite', verbose=verbose)         
-        """Import one or several sqlite files to a Panda datafrane."""        
+        files = Annotation._make_list_from_input(
+            files, ".sqlite", verbose=verbose
+        )
+        """Import one or several sqlite files to a Panda datafrane."""
         tmp = []
         for idx, file in enumerate(files):
-            conn = sqlite3.connect(file)                        
-            tmp2 = pd.read_sql_query("SELECT * FROM " + table_name, conn, parse_dates=['entry_date','audio_file_start_date', 'time_min_date', 'time_max_date'])
+            conn = sqlite3.connect(file)
+            tmp2 = pd.read_sql_query(
+                "SELECT * FROM " + table_name,
+                conn,
+                parse_dates=[
+                    "entry_date",
+                    "audio_file_start_date",
+                    "time_min_date",
+                    "time_max_date",
+                ],
+            )
             conn.close()
             tmp.append(tmp2)
         data = pd.concat(tmp, ignore_index=True, sort=False)
@@ -516,7 +616,7 @@ class Annotation():
         self.data = data
         self.check_integrity(verbose=verbose, ignore_frequency_duplicates=True)
         if verbose:
-                print(len(self), 'annotations imported.')
+            print(len(self), "annotations imported.")
 
     def from_pamlab(self, files, verbose=False):
         """
@@ -542,56 +642,70 @@ class Annotation():
         """
         if type(files) is str:
             if os.path.isdir(files):
-                files = ecosound.core.tools.list_files(files,
-                                                       ' annotations.log',
-                                                       recursive=False,
-                                                       case_sensitive=True,
-                                                       )
+                files = ecosound.core.tools.list_files(
+                    files,
+                    " annotations.log",
+                    recursive=False,
+                    case_sensitive=True,
+                )
                 if verbose:
-                    print(len(files), 'annotation files found.')
+                    print(len(files), "annotation files found.")
         data = Annotation._import_csv_files(files)
         files_timestamp = ecosound.core.tools.filename_to_datetime(
-            data['Soundfile'].tolist())
-        self.data['audio_file_start_date'] = files_timestamp
-        self.data['operator_name'] = data['Operator']
-        self.data['entry_date'] = pd.to_datetime(
-            data['Annotation date and time (local)'],
-            format='%Y-%m-%d %H:%M:%S.%f')
-        self.data['audio_channel'] = data['Channel']
-        self.data['audio_file_name'] = data['Soundfile'].apply(
-            lambda x: os.path.splitext(os.path.basename(x))[0])
-        self.data['audio_file_dir'] = data['Soundfile'].apply(
-            lambda x: os.path.dirname(x))
-        self.data['audio_file_extension'] = data['Soundfile'].apply(
-            lambda x: os.path.splitext(x)[1])
-        self.data['audio_sampling_frequency'] = data['Sampling freq (Hz)']
-        self.data['recorder_type'] = data['Recorder type']
-        self.data['recorder_SN'] = data['Recorder ID']
-        self.data['hydrophone_depth'] = data['Recorder depth']
-        self.data['location_name'] = data['Station']
-        self.data['location_lat'] = data['Latitude (deg)']
-        self.data['location_lon'] = data['Longitude (deg)']
-        self.data['time_min_offset'] = data['Left time (sec)']
-        self.data['time_max_offset'] = data['Right time (sec)']
-        self.data['time_min_date'] = pd.to_datetime(
-            self.data['audio_file_start_date']
-            + pd.to_timedelta(self.data['time_min_offset'], unit='s'))
-        self.data['time_max_date'] = pd.to_datetime(
-            self.data['audio_file_start_date'] +
-            pd.to_timedelta(self.data['time_max_offset'], unit='s'))
-        self.data['frequency_min'] = data['Bottom freq (Hz)']
-        self.data['frequency_max'] = data['Top freq (Hz)']
-        self.data['label_class'] = data['Species']
-        self.data['label_subclass'] = data['Call type']
-        self.data['from_detector'] = False
-        self.data['software_name'] = 'pamlab'
-        self.data['uuid'] = self.data.apply(lambda _: str(uuid.uuid4()), axis=1)
-        self.data['duration'] = self.data['time_max_offset'] - self.data['time_min_offset']
+            data["Soundfile"].tolist()
+        )
+        self.data["audio_file_start_date"] = files_timestamp
+        self.data["operator_name"] = data["Operator"]
+        self.data["entry_date"] = pd.to_datetime(
+            data["Annotation date and time (local)"],
+            format="%Y-%m-%d %H:%M:%S.%f",
+        )
+        self.data["audio_channel"] = data["Channel"]
+        self.data["audio_file_name"] = data["Soundfile"].apply(
+            lambda x: os.path.splitext(os.path.basename(x))[0]
+        )
+        self.data["audio_file_dir"] = data["Soundfile"].apply(
+            lambda x: os.path.dirname(x)
+        )
+        self.data["audio_file_extension"] = data["Soundfile"].apply(
+            lambda x: os.path.splitext(x)[1]
+        )
+        self.data["audio_sampling_frequency"] = data["Sampling freq (Hz)"]
+        self.data["recorder_type"] = data["Recorder type"]
+        self.data["recorder_SN"] = data["Recorder ID"]
+        self.data["hydrophone_depth"] = data["Recorder depth"]
+        self.data["location_name"] = data["Station"]
+        self.data["location_lat"] = data["Latitude (deg)"]
+        self.data["location_lon"] = data["Longitude (deg)"]
+        self.data["time_min_offset"] = data["Left time (sec)"]
+        self.data["time_max_offset"] = data["Right time (sec)"]
+        self.data["time_min_date"] = pd.to_datetime(
+            self.data["audio_file_start_date"]
+            + pd.to_timedelta(self.data["time_min_offset"], unit="s")
+        )
+        self.data["time_max_date"] = pd.to_datetime(
+            self.data["audio_file_start_date"]
+            + pd.to_timedelta(self.data["time_max_offset"], unit="s")
+        )
+        self.data["frequency_min"] = data["Bottom freq (Hz)"]
+        self.data["frequency_max"] = data["Top freq (Hz)"]
+        self.data["label_class"] = data["Species"]
+        self.data["label_subclass"] = data["Call type"]
+        self.data["from_detector"] = False
+        self.data["software_name"] = "pamlab"
+        self.data["uuid"] = self.data.apply(
+            lambda _: str(uuid.uuid4()), axis=1
+        )
+        self.data["duration"] = (
+            self.data["time_max_offset"] - self.data["time_min_offset"]
+        )
         self.check_integrity(verbose=verbose)
         if verbose:
-            print(len(self), 'annotations imported.')
+            print(len(self), "annotations imported.")
 
-    def to_pamlab(self, outdir, outfile='PAMlab annotations.log', single_file=False):
+    def to_pamlab(
+        self, outdir, outfile="PAMlab annotations.log", single_file=False
+    ):
         """
         Write data to 1 or several PAMlab files.
 
@@ -620,70 +734,113 @@ class Annotation():
         if single_file:
             annots = [self.data]
         else:
-            annots = [pd.DataFrame(y)
-                      for x, y in self.data.groupby(
-                              'audio_file_name', as_index=False)]
+            annots = [
+                pd.DataFrame(y)
+                for x, y in self.data.groupby(
+                    "audio_file_name", as_index=False
+                )
+            ]
         for annot in annots:
             annot.reset_index(inplace=True, drop=True)
-            cols = ['fieldkey:', 'Soundfile', 'Channel', 'Sampling freq (Hz)',
-                    'Latitude (deg)', 'Longitude (deg)', 'Recorder ID',
-                    'Recorder depth', 'Start date and time (UTC)',
-                    'Annotation date and time (local)', 'Recorder type',
-                    'Deployment', 'Station', 'Operator', 'Left time (sec)',
-                    'Right time (sec)', 'Top freq (Hz)', 'Bottom freq (Hz)',
-                    'Species', 'Call type', 'rms SPL', 'SEL', '', '']
-            outdf = pd.DataFrame({'fieldkey:': 0, 'Soundfile': 0, 'Channel': 0,
-                                  'Sampling freq (Hz)': 0, 'Latitude (deg)': 0,
-                                  'Longitude (deg)': 0, 'Recorder ID': 0,
-                                  'Recorder depth': 0,
-                                  'Start date and time (UTC)': 0,
-                                  'Annotation date and time (local)': 0,
-                                  'Recorder type': 0, 'Deployment': 0,
-                                  'Station': 0, 'Operator': 0,
-                                  'Left time (sec)': 0, 'Right time (sec)': 0,
-                                  'Top freq (Hz)': 0, 'Bottom freq (Hz)': 0,
-                                  'Species': '', 'Call type': '', 'rms SPL': 0,
-                                  'SEL': 0, '': '', '': ''},
-                                 index=list(range(annot.shape[0])))
-            outdf['fieldkey:'] = 'an:'
-            outdf['Species'] = annot['label_class']
-            outdf['Call type'] = annot['label_subclass']
-            outdf['Left time (sec)'] = annot['time_min_offset']
-            outdf['Right time (sec)'] = annot['time_max_offset']
-            outdf['Top freq (Hz)'] = annot['frequency_max']
-            outdf['Bottom freq (Hz)'] = annot['frequency_min']
-            outdf['rms SPL'] = annot['confidence']
-            outdf['Operator'] = annot['operator_name']
-            outdf['Channel'] = annot['audio_channel']
-            outdf['Annotation date and time (local)'] = annot['entry_date']
-            outdf['Sampling freq (Hz)'] = annot['audio_sampling_frequency']
-            outdf['Recorder type'] = annot['recorder_type']
-            outdf['Recorder ID'] = annot['recorder_SN']
-            outdf['Recorder depth'] = annot['hydrophone_depth']
-            outdf['Station'] = annot['location_name']
-            outdf['Latitude (deg)'] = annot['location_lat']
-            outdf['Longitude (deg)'] = annot['location_lon']
-            outdf['Soundfile'] = [os.path.join(x, y) + z for x, y, z
-                                  in zip(annot['audio_file_dir'],
-                                         annot['audio_file_name'],
-                                         annot['audio_file_extension']
-                                         )
-                                  ]
+            cols = [
+                "fieldkey:",
+                "Soundfile",
+                "Channel",
+                "Sampling freq (Hz)",
+                "Latitude (deg)",
+                "Longitude (deg)",
+                "Recorder ID",
+                "Recorder depth",
+                "Start date and time (UTC)",
+                "Annotation date and time (local)",
+                "Recorder type",
+                "Deployment",
+                "Station",
+                "Operator",
+                "Left time (sec)",
+                "Right time (sec)",
+                "Top freq (Hz)",
+                "Bottom freq (Hz)",
+                "Species",
+                "Call type",
+                "rms SPL",
+                "SEL",
+                "",
+                "",
+            ]
+            outdf = pd.DataFrame(
+                {
+                    "fieldkey:": 0,
+                    "Soundfile": 0,
+                    "Channel": 0,
+                    "Sampling freq (Hz)": 0,
+                    "Latitude (deg)": 0,
+                    "Longitude (deg)": 0,
+                    "Recorder ID": 0,
+                    "Recorder depth": 0,
+                    "Start date and time (UTC)": 0,
+                    "Annotation date and time (local)": 0,
+                    "Recorder type": 0,
+                    "Deployment": 0,
+                    "Station": 0,
+                    "Operator": 0,
+                    "Left time (sec)": 0,
+                    "Right time (sec)": 0,
+                    "Top freq (Hz)": 0,
+                    "Bottom freq (Hz)": 0,
+                    "Species": "",
+                    "Call type": "",
+                    "rms SPL": 0,
+                    "SEL": 0,
+                    "": "",
+                    "": "",
+                },
+                index=list(range(annot.shape[0])),
+            )
+            outdf["fieldkey:"] = "an:"
+            outdf["Species"] = annot["label_class"]
+            outdf["Call type"] = annot["label_subclass"]
+            outdf["Left time (sec)"] = annot["time_min_offset"]
+            outdf["Right time (sec)"] = annot["time_max_offset"]
+            outdf["Top freq (Hz)"] = annot["frequency_max"]
+            outdf["Bottom freq (Hz)"] = annot["frequency_min"]
+            outdf["rms SPL"] = annot["confidence"]
+            outdf["Operator"] = annot["operator_name"]
+            outdf["Channel"] = annot["audio_channel"]
+            outdf["Annotation date and time (local)"] = annot["entry_date"]
+            outdf["Sampling freq (Hz)"] = annot["audio_sampling_frequency"]
+            outdf["Recorder type"] = annot["recorder_type"]
+            outdf["Recorder ID"] = annot["recorder_SN"]
+            outdf["Recorder depth"] = annot["hydrophone_depth"]
+            outdf["Station"] = annot["location_name"]
+            outdf["Latitude (deg)"] = annot["location_lat"]
+            outdf["Longitude (deg)"] = annot["location_lon"]
+            outdf["Soundfile"] = [
+                os.path.join(x, y) + z
+                for x, y, z in zip(
+                    annot["audio_file_dir"],
+                    annot["audio_file_name"],
+                    annot["audio_file_extension"],
+                )
+            ]
             outdf = outdf.fillna(0)
             if single_file:
                 outfilename = os.path.join(outdir, outfile)
             else:
                 outfilename = os.path.join(
                     outdir,
-                    str(annot['audio_file_name'].iloc[0])
-                    + str(annot['audio_file_extension'].iloc[0])
-                    + ' annotations.log')
-            outdf.to_csv(outfilename,
-                         sep='\t',
-                         encoding='utf-8',
-                         header=True,
-                         columns=cols,
-                         index=False)
+                    str(annot["audio_file_name"].iloc[0])
+                    + str(annot["audio_file_extension"].iloc[0])
+                    + " annotations.log",
+                )
+            outdf.to_csv(
+                outfilename,
+                sep="\t",
+                encoding="utf-8",
+                header=True,
+                columns=cols,
+                index=False,
+            )
 
     def from_parquet(self, file, verbose=False):
         """
@@ -709,7 +866,7 @@ class Annotation():
         self.data = pd.read_parquet(file)
         self.check_integrity(verbose=verbose)
         if verbose:
-            print(len(self), 'annotations imported.')
+            print(len(self), "annotations imported.")
 
     def to_parquet(self, file):
         """
@@ -731,9 +888,9 @@ class Annotation():
         # make sure the HP SN column are strings
         self.data.hydrophone_SN = self.data.hydrophone_SN.astype(str)
         # save
-        self.data.to_parquet(file,
-                             coerce_timestamps='ms',
-                             allow_truncated_timestamps=True)
+        self.data.to_parquet(
+            file, coerce_timestamps="ms", allow_truncated_timestamps=True
+        )
 
     def from_netcdf(self, files, verbose=False):
         """
@@ -758,31 +915,36 @@ class Annotation():
         None.
 
         """
-        assert type(files) in (str, list), "Input must be of type str (single \
+        assert type(files) in (
+            str,
+            list,
+        ), "Input must be of type str (single \
             file or directory) or list (multiple files)"
-        files = Annotation._make_list_from_input(files, '.nc', verbose=verbose)    
+        files = Annotation._make_list_from_input(files, ".nc", verbose=verbose)
         # Import all files to a dataframe
         tmp = []
         for idx, file in enumerate(files):
             dxr = xr.open_dataset(file)
-            if dxr.attrs['datatype'] == 'Annotation':
+            if dxr.attrs["datatype"] == "Annotation":
                 tmp2 = dxr.to_dataframe()
                 tmp2.reset_index(inplace=True)
-            elif dxr.attrs['datatype'] == 'Measurement':
+            elif dxr.attrs["datatype"] == "Measurement":
                 tmp2 = dxr.to_dataframe()
                 tmp2.reset_index(inplace=True)
                 tmp2 = tmp2[self.get_fields()]
-                warnings.warn('Importing Measurement data as Annotation >> Not all Measurement data are loaded.')
+                warnings.warn(
+                    "Importing Measurement data as Annotation >> Not all Measurement data are loaded."
+                )
             else:
-                raise ValueError(file + 'Not an Annotation file.')
+                raise ValueError(file + "Not an Annotation file.")
             tmp.append(tmp2)
 
         data = pd.concat(tmp, ignore_index=True, sort=False)
         data.reset_index(inplace=True, drop=True)
         self.data = data
-        self.check_integrity(verbose=verbose)                
+        self.check_integrity(verbose=verbose)
         if verbose:
-            print(len(self), 'annotations imported.')
+            print(len(self), "annotations imported.")
 
     def to_netcdf(self, file):
         """
@@ -801,15 +963,15 @@ class Annotation():
         None.
 
         """
-        if file.endswith('.nc') is False:
-            file = file + '.nc'
+        if file.endswith(".nc") is False:
+            file = file + ".nc"
         self._enforce_dtypes()
         meas = self.data
-        meas.set_index('time_min_date', drop=False, inplace=True)
-        meas.index.name = 'date'
+        meas.set_index("time_min_date", drop=False, inplace=True)
+        meas.index.name = "date"
         dxr1 = meas.to_xarray()
-        dxr1.attrs['datatype'] = 'Annotation'
-        dxr1.to_netcdf(file, engine='netcdf4', format='NETCDF4')
+        dxr1.attrs["datatype"] = "Annotation"
+        dxr1.to_netcdf(file, engine="netcdf4", format="NETCDF4")
 
     def to_csv(self, file):
         """
@@ -826,7 +988,6 @@ class Annotation():
 
         """
         self.data.to_csv(file, index=False)
-        
 
     def insert_values(self, **kwargs):
         """
@@ -862,8 +1023,9 @@ class Annotation():
             if key in self.data:
                 self.data[key] = value
             else:
-                raise ValueError('The annotation object has no field: '
-                                 + str(key))
+                raise ValueError(
+                    "The annotation object has no field: " + str(key)
+                )
 
     def insert_metadata(self, deployment_info_file, channel=0):
         """
@@ -890,24 +1052,44 @@ class Annotation():
         channel = int(channel)
         dep_info = DeploymentInfo()
         dep_info.read(deployment_info_file)
-        self.insert_values(UTC_offset=dep_info.data['UTC_offset'].values[channel],
-                           audio_channel=dep_info.data['audio_channel_number'].values[channel],
-                           audio_sampling_frequency=dep_info.data['sampling_frequency'].values[channel],
-                           audio_bit_depth=dep_info.data['bit_depth'].values[channel],
-                           mooring_platform_name = dep_info.data['mooring_platform_name'].values[channel],
-                           recorder_type=dep_info.data['recorder_type'].values[channel],
-                           recorder_SN=dep_info.data['recorder_SN'].values[channel],
-                           hydrophone_model=dep_info.data['hydrophone_model'].values[channel],
-                           hydrophone_SN=dep_info.data['hydrophone_SN'].values[channel],
-                           hydrophone_depth=dep_info.data['hydrophone_depth'].values[channel],
-                           location_name=dep_info.data['location_name'].values[channel],
-                           location_lat=dep_info.data['location_lat'].values[channel],
-                           location_lon=dep_info.data['location_lon'].values[channel],
-                           location_water_depth=dep_info.data['location_water_depth'].values[channel],
-                           deployment_ID=dep_info.data['deployment_ID'].values[channel],
-                          )
+        self.insert_values(
+            UTC_offset=dep_info.data["UTC_offset"].values[channel],
+            audio_channel=dep_info.data["audio_channel_number"].values[
+                channel
+            ],
+            audio_sampling_frequency=dep_info.data[
+                "sampling_frequency"
+            ].values[channel],
+            audio_bit_depth=dep_info.data["bit_depth"].values[channel],
+            mooring_platform_name=dep_info.data[
+                "mooring_platform_name"
+            ].values[channel],
+            recorder_type=dep_info.data["recorder_type"].values[channel],
+            recorder_SN=dep_info.data["recorder_SN"].values[channel],
+            hydrophone_model=dep_info.data["hydrophone_model"].values[channel],
+            hydrophone_SN=dep_info.data["hydrophone_SN"].values[channel],
+            hydrophone_depth=dep_info.data["hydrophone_depth"].values[channel],
+            location_name=dep_info.data["location_name"].values[channel],
+            location_lat=dep_info.data["location_lat"].values[channel],
+            location_lon=dep_info.data["location_lon"].values[channel],
+            location_water_depth=dep_info.data["location_water_depth"].values[
+                channel
+            ],
+            deployment_ID=dep_info.data["deployment_ID"].values[channel],
+        )
 
-    def filter_overlap_with(self, annot, freq_ovp=True,dur_factor_max=None,dur_factor_min=None,ovlp_ratio_min=None,remove_duplicates=False,inherit_metadata=False,filter_deploymentID=True, inplace=False):
+    def filter_overlap_with(
+        self,
+        annot,
+        freq_ovp=True,
+        dur_factor_max=None,
+        dur_factor_min=None,
+        ovlp_ratio_min=None,
+        remove_duplicates=False,
+        inherit_metadata=False,
+        filter_deploymentID=True,
+        inplace=False,
+    ):
         """
         Filter overalaping annotations.
 
@@ -977,53 +1159,95 @@ class Annotation():
             df = df[df.audio_file_name == an.audio_file_name]
             ## check overlap in time first
             if len(df) > 0:
-                df = df[((df.time_min_offset <= an.time_min_offset) & (df.time_max_offset >= an.time_max_offset)) |  # 1- annot inside detec
-                         ((df.time_min_offset >= an.time_min_offset) & (df.time_max_offset <= an.time_max_offset)) |  # 2- detec inside annot
-                         ((df.time_min_offset < an.time_min_offset) & (df.time_max_offset < an.time_max_offset) & (df.time_max_offset > an.time_min_offset)) | # 3- only the end of the detec overlaps with annot
-                         ((df.time_min_offset > an.time_min_offset) & (df.time_min_offset < an.time_max_offset) & (df.time_max_offset > an.time_max_offset)) # 4- only the begining of the detec overlaps with annot
-                          ]
+                df = df[
+                    (
+                        (df.time_min_offset <= an.time_min_offset)
+                        & (df.time_max_offset >= an.time_max_offset)
+                    )
+                    | (  # 1- annot inside detec
+                        (df.time_min_offset >= an.time_min_offset)
+                        & (df.time_max_offset <= an.time_max_offset)
+                    )
+                    | (  # 2- detec inside annot
+                        (df.time_min_offset < an.time_min_offset)
+                        & (df.time_max_offset < an.time_max_offset)
+                        & (df.time_max_offset > an.time_min_offset)
+                    )
+                    | (  # 3- only the end of the detec overlaps with annot
+                        (df.time_min_offset > an.time_min_offset)
+                        & (df.time_min_offset < an.time_max_offset)
+                        & (df.time_max_offset > an.time_max_offset)
+                    )  # 4- only the begining of the detec overlaps with annot
+                ]
             # then looks at frequency overlap. Can be turned off if freq bounds are not reliable
             if (len(df) > 0) & freq_ovp:
-                df = df[((df.frequency_min <= an.frequency_min) & (df.frequency_max >= an.frequency_max)) | # 1- annot inside detec
-                        ((df.frequency_min >= an.frequency_min) & (df.frequency_max <= an.frequency_max)) | # 2- detec inside annot
-                        ((df.frequency_min < an.frequency_min) & (df.frequency_max < an.frequency_max) & (df.frequency_max > an.frequency_min)) | # 3- only the top of the detec overlaps with annot
-                        ((df.frequency_min > an.frequency_min) & (df.frequency_min < an.frequency_max) & (df.frequency_max > an.frequency_max)) # 4- only the bottom of the detec overlaps with annot
-                        ]
+                df = df[
+                    (
+                        (df.frequency_min <= an.frequency_min)
+                        & (df.frequency_max >= an.frequency_max)
+                    )
+                    | (  # 1- annot inside detec
+                        (df.frequency_min >= an.frequency_min)
+                        & (df.frequency_max <= an.frequency_max)
+                    )
+                    | (  # 2- detec inside annot
+                        (df.frequency_min < an.frequency_min)
+                        & (df.frequency_max < an.frequency_max)
+                        & (df.frequency_max > an.frequency_min)
+                    )
+                    | (  # 3- only the top of the detec overlaps with annot
+                        (df.frequency_min > an.frequency_min)
+                        & (df.frequency_min < an.frequency_max)
+                        & (df.frequency_max > an.frequency_max)
+                    )  # 4- only the bottom of the detec overlaps with annot
+                ]
             # discard if durations are too different
             if (len(df) > 0) & (dur_factor_max is not None):
-                df = df[df.duration < an.duration*dur_factor_max]
+                df = df[df.duration < an.duration * dur_factor_max]
             if (len(df) > 0) & (dur_factor_min is not None):
-                df = df[df.duration > an.duration*dur_factor_min]
+                df = df[df.duration > an.duration * dur_factor_min]
 
             # discard if they don't overlap enough
             if (len(df) > 0) & (ovlp_ratio_min is not None):
-                df_ovlp = (df['time_max_offset'].apply(lambda x: min(x,an.time_max_offset)) - df['time_min_offset'].apply(lambda x: max(x,an.time_min_offset))) / an.duration
-                df = df[df_ovlp>=ovlp_ratio_min]
-                df_ovlp = df_ovlp[df_ovlp>=ovlp_ratio_min]
+                df_ovlp = (
+                    df["time_max_offset"].apply(
+                        lambda x: min(x, an.time_max_offset)
+                    )
+                    - df["time_min_offset"].apply(
+                        lambda x: max(x, an.time_min_offset)
+                    )
+                ) / an.duration
+                df = df[df_ovlp >= ovlp_ratio_min]
+                df_ovlp = df_ovlp[df_ovlp >= ovlp_ratio_min]
 
             if (len(df) > 1) & remove_duplicates:
                 try:
-                    df = df.iloc[[df_ovlp.values.argmax()]] # pick teh one with max time overlap
+                    df = df.iloc[
+                        [df_ovlp.values.argmax()]
+                    ]  # pick teh one with max time overlap
                 except:
-                    print('asas')
+                    print("asas")
 
             if len(df) > 0:
                 if inherit_metadata:
-                    df['mooring_platform_name'] = an['mooring_platform_name']
-                    df['recorder_type'] = an['recorder_type']
-                    df['recorder_SN'] = an['recorder_SN']
-                    df['hydrophone_model'] = an['hydrophone_model']
-                    df['hydrophone_SN'] = an['hydrophone_SN']
-                    df['hydrophone_depth'] = an['hydrophone_depth']
-                    df['location_name'] = an['location_name']
-                    df['location_lat'] = an['location_lat']
-                    df['location_lon'] = an['location_lon']
-                    df['location_water_depth'] = an['location_water_depth']
-                    df['deployment_ID'] = an['deployment_ID']
-                    df['label_class'] = an['label_class']
-                    df['label_subclass'] = an['label_subclass']
+                    df["mooring_platform_name"] = an["mooring_platform_name"]
+                    df["recorder_type"] = an["recorder_type"]
+                    df["recorder_SN"] = an["recorder_SN"]
+                    df["hydrophone_model"] = an["hydrophone_model"]
+                    df["hydrophone_SN"] = an["hydrophone_SN"]
+                    df["hydrophone_depth"] = an["hydrophone_depth"]
+                    df["location_name"] = an["location_name"]
+                    df["location_lat"] = an["location_lat"]
+                    df["location_lon"] = an["location_lon"]
+                    df["location_water_depth"] = an["location_water_depth"]
+                    df["deployment_ID"] = an["deployment_ID"]
+                    df["label_class"] = an["label_class"]
+                    df["label_subclass"] = an["label_subclass"]
                 stack.append(df)
-        ovlp = pd.concat(stack, ignore_index=True)
+        if len(stack) > 0:
+            ovlp = pd.concat(stack, ignore_index=True)
+        else:
+            ovlp = self.data[0:0]
         if inplace:
             self.data = ovlp
             self.check_integrity()
@@ -1034,14 +1258,20 @@ class Annotation():
             out_object.check_integrity()
         return out_object
 
-
-    def calc_time_aggregate_1D(self, integration_time='1H', resampler='count', is_binary=False):
+    def calc_time_aggregate_1D(
+        self,
+        integration_time="1H",
+        resampler="count",
+        is_binary=False,
+        start_date=None,
+        end_date=None,
+    ):
         """
         Calculate the 1D time aggregate of annotations.
 
         Calculate the time aggregate of annotations over the defined
         integration time.
-        
+
         Parameters
         ----------
         integration_time : str, optional
@@ -1052,6 +1282,14 @@ class Annotation():
         resampler : str, optional
             Defines method to combine aggregates. Currently only 'count' is
             implemented. The default is 'count'.
+        start_date : None, str, optional
+            Defines at which date the aggregate should start. If set to None,
+            the min. date will be automatically chosen. If str must be in the
+            format: yyyy-mm-dd HH:MM:SS. The default is None.
+        end_date : None, str, optional
+            Defines at which date the aggregate should end. If set to None,
+            the max. date will be automatically chosen. If str must be in the
+            format: yyyy-mm-dd HH:MM:SS. The default is None.
         is_binary : bool, optional
             If set to True, calculates the aggregates in term on presence (1)
             or absence (0). The default is False.
@@ -1065,13 +1303,21 @@ class Annotation():
         # calulate 1D aggreagate
         data = copy.copy(self.data)
         data.set_index("time_min_date", inplace=True)
-        data_resamp = Annotation._resample(data, integration_time=integration_time, resampler=resampler)
+        data_resamp = Annotation._resample(
+            data,
+            integration_time=integration_time,
+            resampler=resampler,
+            start_date=start_date,
+            end_date=end_date,
+        )
         data_resamp.set_index("datetime", inplace=True)
         if is_binary:
             data_resamp[data_resamp > 0] = 1
         return data_resamp
 
-    def calc_time_aggregate_2D(self, integration_time='1H', resampler='count', is_binary=False):
+    def calc_time_aggregate_2D(
+        self, integration_time="1H", resampler="count", is_binary=False
+    ):
         """
         Calculate the 2D time aggregate of annotations.
 
@@ -1100,16 +1346,24 @@ class Annotation():
             for each time of day and date.
         """
         # calulate 1D aggreagate
-        data_resamp = self.calc_time_aggregate_1D(integration_time=integration_time, is_binary=is_binary)
+        data_resamp = self.calc_time_aggregate_1D(
+            integration_time=integration_time, is_binary=is_binary
+        )
         data_resamp.reset_index(inplace=True)
-        data_resamp['date'] = data_resamp['datetime'].dt.date
-        data_resamp['time'] = data_resamp['datetime'].dt.time
+        data_resamp["date"] = data_resamp["datetime"].dt.date
+        data_resamp["time"] = data_resamp["datetime"].dt.time
         # Create 2D matrix
-        axis_date = sorted(data_resamp['date'].unique())
-        data_grid = pd.pivot_table(data_resamp, values='value', index='time',columns='date', aggfunc=np.sum)
-        data_grid = data_grid.fillna(0) # replaces NaNs by zeros
+        axis_date = sorted(data_resamp["date"].unique())
+        data_grid = pd.pivot_table(
+            data_resamp,
+            values="value",
+            index="time",
+            columns="date",
+            aggfunc=np.sum,
+        )
+        data_grid = data_grid.fillna(0)  # replaces NaNs by zeros
         if is_binary:
-            data_grid[data_grid>0]=1
+            data_grid[data_grid > 0] = 1
         return data_grid
 
     def heatmap(self, **kwargs):
@@ -1127,11 +1381,11 @@ class Annotation():
 
         """
         print(kwargs)
-        graph = GrapherFactory('AnnotHeatmap', **kwargs)
+        graph = GrapherFactory("AnnotHeatmap", **kwargs)
         graph.add_data(self)
         graph.show()
 
-    def filter(self, query_str, inplace=False):
+    def filter(self, query_str, inplace=False, **kwargs):
         """
         Filter data based on user-defined criteria.
 
@@ -1156,10 +1410,21 @@ class Annotation():
             Updated with the filtered data.
 
         """
-        self.data.query(query_str,inplace=inplace)
-        return self
+        # unpack kwargs as separate variables
+        for key, val in kwargs.items():
+            exec(key + "=val")
+        # del key, val
+        # filter
+        filt = self.data.query(query_str, inplace=inplace)
+        # create output obj
+        if inplace:
+            out_object = None
+        else:
+            out_object = copy.copy(self)
+            out_object.data = filt
+            out_object.check_integrity()
+        return out_object
 
-    
     def get_labels_class(self):
         """
         Get all the unique class labels of the annotations.
@@ -1171,7 +1436,7 @@ class Annotation():
 
         """
         if len(self.data) > 0:
-            classes = list(self.data['label_class'].unique())
+            classes = list(self.data["label_class"].unique())
         else:
             classes = []
         return classes
@@ -1187,7 +1452,7 @@ class Annotation():
 
         """
         if len(self.data) > 0:
-            subclasses = list(self.data['label_subclass'].unique())
+            subclasses = list(self.data["label_subclass"].unique())
         else:
             subclasses = []
         return subclasses
@@ -1204,7 +1469,7 @@ class Annotation():
         """
         return list(self.data.columns)
 
-    def summary(self, rows='deployment_ID', columns='label_class'):
+    def summary(self, rows="deployment_ID", columns="label_class"):
         """
         Produce a summary table of the number of annotations.
 
@@ -1228,76 +1493,116 @@ class Annotation():
             Pivot table with the number of annotations in each category.
 
         """
-        summary = self.data.pivot_table(index=rows,
-                                        columns=columns,
-                                        aggfunc='size',
-                                        fill_value=0)
+        summary = self.data.pivot_table(
+            index=rows, columns=columns, aggfunc="size", fill_value=0
+        )
         # Add a "Total" row and column
-        summary.loc['Total'] = summary.sum()
-        summary['Total'] = summary.sum(axis=1)
+        summary.loc["Total"] = summary.sum()
+        summary["Total"] = summary.sum(axis=1)
         return summary
 
     @staticmethod
-    def _resample(data, integration_time='1H', resampler='count'):
-        if resampler == 'count':
-            #Lmean = data.resample(integration_time, loffset=None, label='left').apply(count)
-            data_new = data.resample(integration_time, loffset=None, origin='start_day', label='left').count()        
-        data_out = pd.DataFrame({'datetime':data_new.index, 'value': data_new['uuid']})
-        data_out.reset_index(drop=True,inplace=True)
+    def _resample(
+        data,
+        integration_time="1H",
+        resampler="count",
+        start_date=None,
+        end_date=None,
+    ):
+
+        # define start time of the aggregate
+        if start_date is None:
+            start_date = min(data.index)
+        elif type(start_date) is str:
+            start_date = pd.Timestamp(start_date)
+
+        # define end time of the aggregate
+        if end_date is None:
+            end_date = max(data.index)
+        elif type(end_date) is str:
+            end_date = pd.Timestamp(end_date)
+
+        start_date = start_date.to_period(integration_time).to_timestamp()
+        end_date = end_date.to_period(integration_time).to_timestamp()
+
+        t_index = pd.DatetimeIndex(
+            pd.date_range(
+                start=start_date,
+                end=end_date,
+                freq=integration_time,
+            )
+        )
+        if resampler == "count":
+            # Lmean = data.resample(integration_time, loffset=None, label='left').apply(count)
+            data_new = data.resample(
+                integration_time,
+                loffset=None,
+                origin="start_day",
+                label="left",
+            ).count()
+
+        data_out = pd.DataFrame(
+            {"datetime": data_new.index, "value": data_new["uuid"]}
+        )
+        data_out = data_out.reindex(t_index).fillna(0)
+        data_out["datetime"] = data_out.index
+        data_out.reset_index(drop=True, inplace=True)
         return data_out
-    
+
     def _enforce_dtypes(self):
-        self.data = self.data.astype({
-            'uuid': 'str',
-            'from_detector': 'bool',  # True, False
-            'software_name': 'str',
-            'software_version': 'str',
-            'operator_name': 'str',
-            'UTC_offset': 'float',
-            'entry_date': 'datetime64[ns]',
-            'audio_channel': 'int',
-            'audio_file_name': 'str',
-            'audio_file_dir': 'str',
-            'audio_file_extension': 'str',
-            'audio_file_start_date': 'datetime64[ns]',
-            'audio_sampling_frequency': 'int',
-            'audio_bit_depth': 'int',
-            'mooring_platform_name': 'str',
-            'recorder_type': 'str',
-            'recorder_SN': 'str',
-            'hydrophone_model': 'str',
-            'hydrophone_SN': 'str',
-            'hydrophone_depth': 'float',
-            'location_name': 'str',
-            'location_lat': 'float',
-            'location_lon': 'float',
-            'location_water_depth': 'float',
-            'deployment_ID': 'str',
-            'frequency_min': 'float',
-            'frequency_max': 'float',
-            'time_min_offset': 'float',
-            'time_max_offset': 'float',
-            'time_min_date': 'datetime64[ns]',
-            'time_max_date': 'datetime64[ns]',
-            'duration': 'float',
-            'label_class': 'str',
-            'label_subclass': 'str',
-            'confidence': 'float',
-            })
+        self.data = self.data.astype(
+            {
+                "uuid": "str",
+                "from_detector": "bool",  # True, False
+                "software_name": "str",
+                "software_version": "str",
+                "operator_name": "str",
+                "UTC_offset": "float",
+                "entry_date": "datetime64[ns]",
+                "audio_channel": "int",
+                "audio_file_name": "str",
+                "audio_file_dir": "str",
+                "audio_file_extension": "str",
+                "audio_file_start_date": "datetime64[ns]",
+                "audio_sampling_frequency": "int",
+                "audio_bit_depth": "int",
+                "mooring_platform_name": "str",
+                "recorder_type": "str",
+                "recorder_SN": "str",
+                "hydrophone_model": "str",
+                "hydrophone_SN": "str",
+                "hydrophone_depth": "float",
+                "location_name": "str",
+                "location_lat": "float",
+                "location_lon": "float",
+                "location_water_depth": "float",
+                "deployment_ID": "str",
+                "frequency_min": "float",
+                "frequency_max": "float",
+                "time_min_offset": "float",
+                "time_max_offset": "float",
+                "time_min_date": "datetime64[ns]",
+                "time_max_date": "datetime64[ns]",
+                "duration": "float",
+                "label_class": "str",
+                "label_subclass": "str",
+                "confidence": "float",
+            }
+        )
 
     @staticmethod
     @ecosound.core.decorators.listinput
     def _import_csv_files(files):
         """Import one or several text files with header to a Panda datafrane."""
-        assert type(files) in (str, list), "Input must be of type str (single \
+        assert type(files) in (
+            str,
+            list,
+        ), "Input must be of type str (single \
             file) or list (multiple files)"
         # Import all files to a dataframe
         for idx, file in enumerate(files):
             # Extract header first due to formating issues in PAMlab files
-            header = pd.read_csv(file,
-                                 delimiter='\t',
-                                 header=None,
-                                 nrows=1)
+            header = pd.read_csv(file, delimiter="\t", header=None, nrows=1)
             headerLength = header.shape[1]
             # Get all data and only keep values correpsonding to header labels
             # tmp = pd.read_csv(file,
@@ -1307,53 +1612,52 @@ class Annotation():
             #                   #skiprows=1,
             #                   na_values=None,
             #                   )
-            #tmp = tmp.iloc[:, 0:headerLength]
+            # tmp = tmp.iloc[:, 0:headerLength]
             # Put header back
-            #tmp = tmp.set_axis(list(header.values[0]), axis=1, inplace=False)
-            tmp = pd.read_csv(file,
-                              delimiter='\t',
-                              na_values=None
-                              )
+            # tmp = tmp.set_axis(list(header.values[0]), axis=1, inplace=False)
+            tmp = pd.read_csv(file, delimiter="\t", na_values=None)
             if idx == 0:
                 data = tmp
             else:
                 data = pd.concat([data, tmp], ignore_index=True, sort=False)
         return data
-    
+
     @staticmethod
-    def _make_list_from_input(files, file_ext, verbose=True):        
-        if type(files) is str:            
+    def _make_list_from_input(files, file_ext, verbose=True):
+        if type(files) is str:
             if os.path.isdir(files):
                 files = ecosound.core.tools.list_files(
                     files,
                     file_ext,
                     recursive=False,
-                    case_sensitive=True,)
+                    case_sensitive=True,
+                )
                 if verbose:
-                    print(len(files), 'files found.')
+                    print(len(files), "files found.")
             else:
                 files = [files]
         return files
 
     def __add__(self, other):
         """Concatenate data from several annotation objects."""
-        assert type(other) is ecosound.core.annotation.Annotation, "Object type not \
+        assert (
+            type(other) is ecosound.core.annotation.Annotation
+        ), "Object type not \
             supported. Can only concatenate Annotation objects together."
         self._enforce_dtypes()
         other._enforce_dtypes()
-        self.data = pd.concat([self.data, other.data],
-                              ignore_index=True,
-                              sort=False)
+        self.data = pd.concat(
+            [self.data, other.data], ignore_index=True, sort=False
+        )
         return self
 
     def __repr__(self):
         """Return the type of object."""
-        return (f'{self.__class__.__name__} object ('
-                f'{len(self.data)})')
+        return f"{self.__class__.__name__} object (" f"{len(self.data)})"
 
     def __str__(self):
         """Return string when used with print of str."""
-        return f'{len(self.data)} annotation(s)'
+        return f"{len(self.data)} annotation(s)"
 
     def __len__(self):
         """Return number of annotations."""

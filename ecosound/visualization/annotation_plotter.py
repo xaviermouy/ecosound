@@ -291,7 +291,8 @@ class AnnotHeatmap(BaseClass):
             # only dipslay x label of bottom plot if shared axes
             if self.share_xaxis and (idx != nb_plots - 1):
                 current_ax.set_xlabel("")
-        plt.tight_layout()
+        # fig.tight_layout()
+        # fig.set_tight_layout(True)
         return fig, ax
 
     def to_file(self, filename):

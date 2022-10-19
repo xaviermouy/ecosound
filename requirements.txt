@@ -13,3 +13,4 @@ toolz
 opencv-python
 soundfile
 netCDF4
+tqdm
