@@ -10,7 +10,7 @@ scipy
 numpy
 scikit_learn
 toolz
-opencv-python
+opencv-python==4.5.5.64
 soundfile
 netCDF4
 tqdm
