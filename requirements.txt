@@ -1,8 +1,7 @@
-dask
-xarray
+xarray[complete]
+dask[complete]
 pandas
 numba
-PySoundFile
 dask_image
 matplotlib
 ipympl
@@ -10,7 +9,7 @@ scipy
 numpy
 scikit_learn
 toolz
-opencv-python==4.5.5.64
-soundfile
+opencv-python>=4.5.5.64
+soundfile>=0.10.0
 netCDF4
 tqdm

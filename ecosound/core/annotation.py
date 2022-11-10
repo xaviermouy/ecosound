@@ -16,9 +16,14 @@ import ecosound.core.decorators
 import sqlite3
 from ecosound.core.metadata import DeploymentInfo
 from ecosound.visualization.grapher_builder import GrapherFactory
+from ecosound.core.spectrogram import Spectrogram
+from ecosound.core.audiotools import Sound
 import copy
 import csv
 import datetime
+import re
+import warnings
+from tqdm import tqdm
 
 
 class Annotation:
@@ -65,6 +70,8 @@ class Annotation:
                         remove_duplicates=False,inherit_metadata=False,
                         filter_deploymentID=True, inplace=False)
         Filter annotations overalaping with another set of annotations.
+    update_audio_dir(new_data_dir)
+        Update path of audio files.
     get_labels_class()
         Return all unique class labels.
     get_labels_subclass()
@@ -287,6 +294,18 @@ class Annotation:
                 frequency_max). Problematic annotations:"
                 + str(freq_check)
             )
+
+        # check that there are not uuid duplicates
+        idx = self.data.duplicated(subset=["uuid"])
+        dup_idxs = idx[idx == True].index
+        for dup_idx in dup_idxs:
+            self.data.loc[dup_idx, "uuid"] = str(uuid.uuid4())
+        if len(dup_idxs) > 0:
+            if verbose:
+                print(
+                    len(dup_idxs),
+                    " UUID duplicates were found and regenerated.",
+                )
         if verbose:
             print("Integrity test succesfull")
 
@@ -1424,6 +1443,236 @@ class Annotation:
             out_object.data = filt
             out_object.check_integrity()
         return out_object
+
+    def update_audio_dir(self, new_data_dir, verbose=False):
+        """
+        Update path of audio files
+
+        Recursively finds the path of the annotations audio files in the folder
+        provided in new_data_dir and automatically updates the annotation field
+        "audio_file_dir". It is useful when the location of the audio data has
+        moved or if using annotations on a different computer.
+
+        Parameters
+        ----------
+        new_data_dir : str
+            Path of the parent directory where the audio files are.
+        verbose : bool
+            Printprocess logs in command window if set to True. The defaut is
+            False.
+
+        Returns
+        -------
+        None.
+
+        """
+        # list name of all audio files in dataset
+        dataset_files_list = set(
+            self.data["audio_file_dir"]
+            + os.path.sep
+            + self.data["audio_file_name"]
+            + self.data["audio_file_extension"]
+        )
+
+        # list extension of all audio files in dataset
+        dataset_ext_list = set(
+            [os.path.splitext(file)[1] for file in dataset_files_list]
+        )
+        if verbose:
+            print(len(dataset_files_list), " audio files.")
+
+        # list all audio files in new folder (only for the target file extensions)
+        new_dir_files_list = []
+        for ext in dataset_ext_list:
+            new_dir_files_list = (
+                new_dir_files_list
+                + ecosound.core.tools.list_files(
+                    new_data_dir, ext, recursive=True
+                )
+            )
+
+        # go through each file in dataset and try to find in in new data folder
+        missing_files_list = []
+        for file in dataset_files_list:
+            # if verbose:
+            # print(file)
+            res = [
+                idx
+                for idx, new_dir_file in enumerate(new_dir_files_list)
+                if re.search(os.path.split(file)[1], new_dir_file)
+            ]
+            if len(res) == 0:
+                missing_files_list.append(file)
+            else:
+                new_path = os.path.split(new_dir_files_list[res[0]])[0]
+                self.data.loc[
+                    self.data["audio_file_name"]
+                    == os.path.splitext(os.path.split(file)[1])[0],
+                    "audio_file_dir",
+                ] = new_path
+
+        if len(missing_files_list) > 0:
+            warnings.warn(
+                str(len(missing_files_list)) + " files could not be found."
+            )
+            if verbose:
+                print("")
+                print("List of audio files not found: ")
+                print("")
+                for ff in missing_files_list:
+                    print(ff)
+        else:
+            if verbose:
+                print("Audio paths succesfully updated.")
+
+    def export_spectrograms(
+        self,
+        out_dir,
+        time_buffer_sec=1,
+        spectro_unit="sec",
+        spetro_nfft=256,
+        spetro_frame=256,
+        spetro_inc=5,
+        freq_min_hz=None,
+        freq_max_hz=None,
+        sanpling_rate_hz=None,
+        filter_order=8,
+        filter_type="iir",
+        fig_size=(15, 10),
+        deployment_subfolders=True,
+        file_prefix_field=None,
+        channel=None,
+        colormap="viridis",
+    ):
+
+        # define the different class names and create separate folders
+        if os.path.isdir(out_dir) == False:
+            os.mkdir(out_dir)
+        labels = list(set(self.data["label_class"]))
+        # labels.reverse()
+
+        # initialize spectrogram
+        Spectro = Spectrogram(
+            spetro_frame,
+            "hann",
+            spetro_nfft,
+            spetro_inc,
+            sanpling_rate_hz,
+            unit=spectro_unit,
+        )
+
+        # loop through each class_labels
+        for label in labels:
+            # print(label)
+            current_dir = os.path.join(out_dir, label)
+            if os.path.isdir(current_dir) == False:
+                os.mkdir(current_dir)
+            annot_sp = self.data[self.data["label_class"] == label]
+
+            # loop through is annot for that class label
+            for idx, annot in tqdm(
+                annot_sp.iterrows(),
+                desc=label,
+                leave=True,
+                position=0,
+                miniters=1,
+                total=len(annot_sp),
+                colour="green",
+            ):
+                F = str(annot.uuid) + ".png"
+                # create subfolder for each deployment if option selected
+                if deployment_subfolders:
+                    current_dir2 = os.path.join(
+                        current_dir, str(annot.deployment_ID)
+                    )
+                    if os.path.isdir(current_dir2) == False:
+                        os.mkdir(current_dir2)
+                else:
+                    current_dir2 = current_dir
+                # only if file doesn't exist already
+                if os.path.isfile(os.path.join(current_dir2, F)) == False:
+                    # print("Processing file", F)
+
+                    # Load info from audio file
+                    audio_data = Sound(
+                        os.path.join(
+                            annot["audio_file_dir"], annot["audio_file_name"]
+                        )
+                        + annot["audio_file_extension"]
+                    )
+
+                    # define start/stop times +/- buffer
+                    t1 = annot.time_min_offset - time_buffer_sec
+                    if t1 <= 0:
+                        t1 = 0
+                    t2 = annot.time_max_offset + time_buffer_sec
+                    if t2 > audio_data.file_duration_sec:
+                        t2 = audio_data.file_duration_sec
+                    duration = t2 - t1
+
+                    # load audio data
+                    if channel != None:
+                        chan = int(channel)
+                    else:
+                        chan = annot["audio_channel"] - 1
+                    audio_data.read(
+                        channel=chan,
+                        chunk=[t1, t2],
+                        unit="sec",
+                        detrend=True,
+                    )
+
+                    # decimate
+                    audio_data.decimate(sanpling_rate_hz)
+
+                    # normalize
+                    audio_data.normalize()
+
+                    # compute spectrogram
+                    _ = Spectro.compute(audio_data, dB=True, use_dask=False)
+
+                    # crop if needed
+                    if freq_min_hz != None or freq_max_hz != None:
+                        Spectro.crop(
+                            frequency_min=freq_min_hz,
+                            frequency_max=freq_max_hz,
+                            inplace=True,
+                        )
+
+                    # display/save spectrogram as image file
+                    graph = GrapherFactory(
+                        "SoundPlotter",
+                        title=annot["audio_file_name"],
+                        fig_size=fig_size,
+                        colormap=colormap,
+                    )
+                    # crop plot if needed
+                    if freq_min_hz != None:
+                        graph.frequency_min = freq_min_hz
+                    if freq_max_hz != None:
+                        graph.frequency_max = freq_max_hz
+
+                    graph.add_data(Spectro)
+                    if file_prefix_field:
+                        prefix = annot[file_prefix_field]
+                        if type(prefix) is float:
+                            if prefix < 0:
+                                prefix = "minus-" + str(abs(round(prefix, 2)))
+                            else:
+                                prefix = str(round(prefix, 2))
+                        full_out_file = os.path.join(
+                            current_dir2, prefix + "_" + F
+                        )
+                    else:
+                        full_out_file = os.path.join(current_dir2, F)
+                    graph.to_file(full_out_file)
+                    # graph.show()
+
+                    # if params["spetro_on_npy"]:
+                    #    np.save(os.path.splitext(outfilename)[0] + ".npy", S)
+                    # annot_unique_id += 1
+                # else:
+                # print("file ", F, " already processed.")
 
     def get_labels_class(self):
         """
