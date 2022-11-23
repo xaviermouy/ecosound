@@ -5,15 +5,18 @@ Created on Wed Mar  2 08:22:48 2022
 @author: xavier.mouy
 """
 
-from ecosound.core.annotation import Annotation
-from ecosound.core.spectrogram import Spectrogram
+# from ecosound.core.annotation import Annotation
+# from ecosound.core.spectrogram import Spectrogram
 from ecosound.core.measurement import Measurement
-from ecosound.core.audiotools import Sound
-from ecosound.visualization.grapher_builder import GrapherFactory
+
+# from ecosound.core.audiotools import Sound
+# from ecosound.visualization.grapher_builder import GrapherFactory
 
 
 dataset_file_path = r"C:\Users\xavier.mouy\Documents\GitHub\fish_detector_bc\Master_annotations_dataset_20221028_without_06-MILL-FS_withSNR.nc"
-out_dir = r"D:\Detector\spectrograms\Master_annotations_dataset_20221025_SNR"
+out_dir = (
+    r"D:\Detector\spectrograms\Master_annotations_dataset_20221025_SNR\test"
+)
 
 
 # Load dataset
@@ -38,8 +41,12 @@ dataset.export_spectrograms(
     filter_order=8,
     filter_type="iir",
     fig_size=(15, 10),
-    deployment_subfolders=True,
+    deployment_subfolders=False,
+    date_subfolders=True,
+    # file_name_field="uuid",
+    file_name_field="audio_file_name",
     file_prefix_field="snr",
     channel=0,
     colormap="viridis",
+    save_wav=True,
 )

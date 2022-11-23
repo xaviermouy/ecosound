@@ -281,7 +281,7 @@ class PRF:
         detec=None,
         out_dir=None,
         target_class=None,
-        files_to_use="both",  # 'detec', 'annot', 'both', list
+        files_to_use="both",  # 'detec', 'annot', 'both', list, None
         thresholds=np.arange(0, 1.05, 0.05),
         date_min=None,
         date_max=None,
@@ -319,47 +319,54 @@ class PRF:
         detec.filter('label_class == "' + target_class + '"', inplace=True)
 
         # Define list of files to use for the performance evaluation.
-        if (
-            files_to_use == "detec"
-        ):  # case 1: all files with detections are used
-            files_list = list(set(detec.data.audio_file_name))
-        elif (
-            files_to_use == "annot"
-        ):  # case 2: all files with annotations are used
-            files_list = list(set(annot.data.audio_file_name))
-        elif (
-            files_to_use == "both"
-        ):  # case 3: all files with annotations or detections are used
-            files_list1 = list(set(annot.data.audio_file_name))
-            files_list2 = list(set(detec.data.audio_file_name))
-            files_list = list(set(files_list1 + files_list2))
+        if files_to_use:
+            if (
+                files_to_use == "detec"
+            ):  # case 1: all files with detections are used
+                files_list = list(set(detec.data.audio_file_name))
+            elif (
+                files_to_use == "annot"
+            ):  # case 2: all files with annotations are used
+                files_list = list(set(annot.data.audio_file_name))
+            elif (
+                files_to_use == "both"
+            ):  # case 3: all files with annotations or detections are used
+                files_list1 = list(set(annot.data.audio_file_name))
+                files_list2 = list(set(detec.data.audio_file_name))
+                files_list = list(set(files_list1 + files_list2))
 
-        elif (
-            type(files_to_use) is list
-        ):  # case 4: only files provided by the user are used
-            files_list = files_to_use
-        files_list.sort()
+            elif (
+                type(files_to_use) is list
+            ):  # case 4: only files provided by the user are used
+                files_list = files_to_use
+            files_list.sort()
 
-        # filter annotations with selected files to use
-        annot.filter(
-            "audio_file_name in @files_list",
-            files_list=files_list,
-            inplace=True,
-        )
+            # filter annotations with selected files to use
+            annot.filter(
+                "audio_file_name in @files_list",
+                files_list=files_list,
+                inplace=True,
+            )
 
-        # filter detections with selected files to use
-        detec.filter(
-            "audio_file_name in @files_list",
-            files_list=files_list,
-            inplace=True,
-        )
+            # filter detections with selected files to use
+            detec.filter(
+                "audio_file_name in @files_list",
+                files_list=files_list,
+                inplace=True,
+            )
 
         # Create annootation aggregate
+        aggr_min_date = min(
+            min(annot.data["time_max_date"]), min(detec.data["time_max_date"])
+        )
+        aggr_max_date = max(
+            max(annot.data["time_max_date"]), max(detec.data["time_max_date"])
+        )
         annot_aggr = annot.calc_time_aggregate_1D(
             integration_time=integration_time,
             is_binary=False,
-            start_date=date_min,
-            end_date=date_max,
+            start_date=aggr_min_date,
+            end_date=aggr_max_date,
         )
 
         dates_list = annot_aggr.index
@@ -379,8 +386,8 @@ class PRF:
             detec_aggr = detec_conf.calc_time_aggregate_1D(
                 integration_time=integration_time,
                 is_binary=False,
-                start_date=date_min,
-                end_date=date_max,
+                start_date=aggr_min_date,
+                end_date=aggr_max_date,
             )
 
             # init
@@ -402,8 +409,11 @@ class PRF:
                 )
             ):
                 # filter to only keep data from this time frame
-                annot_tmp = annot_aggr.loc[date].value
-                detec_tmp = detec_aggr.loc[date].value
+                try:
+                    annot_tmp = annot_aggr.loc[date].value
+                    detec_tmp = detec_aggr.loc[date].value
+                except:
+                    print("stop")
 
                 # apply threshold on min number of detections
                 if detec_tmp >= min_detec_nb:

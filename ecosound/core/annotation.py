@@ -1539,10 +1539,13 @@ class Annotation:
         filter_order=8,
         filter_type="iir",
         fig_size=(15, 10),
-        deployment_subfolders=True,
+        deployment_subfolders=False,
+        date_subfolders=False,
+        file_name_field="uuid",
         file_prefix_field=None,
         channel=None,
         colormap="viridis",
+        save_wav=False,
     ):
 
         # define the different class names and create separate folders
@@ -1579,16 +1582,22 @@ class Annotation:
                 total=len(annot_sp),
                 colour="green",
             ):
-                F = str(annot.uuid) + ".png"
-                # create subfolder for each deployment if option selected
+                # output file name
+                F = str(eval("annot." + file_name_field))
+
+                # create subfolder for each deployment and each day if option selected
                 if deployment_subfolders:
                     current_dir2 = os.path.join(
                         current_dir, str(annot.deployment_ID)
                     )
-                    if os.path.isdir(current_dir2) == False:
-                        os.mkdir(current_dir2)
                 else:
                     current_dir2 = current_dir
+                if date_subfolders:
+                    current_date = annot.time_min_date.strftime("%Y-%m-%d")
+                    current_dir2 = os.path.join(current_dir2, current_date)
+                if os.path.isdir(current_dir2) == False:
+                    os.mkdir(current_dir2)
+
                 # only if file doesn't exist already
                 if os.path.isfile(os.path.join(current_dir2, F)) == False:
                     # print("Processing file", F)
@@ -1642,7 +1651,9 @@ class Annotation:
                     # display/save spectrogram as image file
                     graph = GrapherFactory(
                         "SoundPlotter",
-                        title=annot["audio_file_name"],
+                        title=annot["audio_file_name"]
+                        + " - "
+                        + str(abs(round(annot["time_min_offset"], 2))),
                         fig_size=fig_size,
                         colormap=colormap,
                     )
@@ -1665,7 +1676,11 @@ class Annotation:
                         )
                     else:
                         full_out_file = os.path.join(current_dir2, F)
-                    graph.to_file(full_out_file)
+                    graph.to_file(full_out_file + ".png")
+
+                    if save_wav:
+                        audio_data.write(full_out_file + ".wav")
+
                     # graph.show()
 
                     # if params["spetro_on_npy"]:
