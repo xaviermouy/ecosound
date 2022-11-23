@@ -51,6 +51,6 @@ setup(
         "Operating System :: OS Independent",
         "Natural Language :: English",
     ],
-    python_requires='>=3.8.0',
+    python_requires='>=3.6.0',
 	zip_safe=False,
 )

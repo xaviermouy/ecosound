@@ -47,7 +47,7 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-
+#html_theme = 'bizstyle'
 # Add logo
 html_logo = '_static/ecosound_logo.png'
 
