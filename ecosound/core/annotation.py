@@ -1583,7 +1583,7 @@ class Annotation:
                 colour="green",
             ):
                 # output file name
-                F = str(eval("annot." + file_name_field))
+                F = Annotation._convert_to_str(annot[file_name_field])
 
                 # create subfolder for each deployment and each day if option selected
                 if deployment_subfolders:
@@ -1663,19 +1663,18 @@ class Annotation:
                     if freq_max_hz != None:
                         graph.frequency_max = freq_max_hz
 
+                    # output file name
                     graph.add_data(Spectro)
                     if file_prefix_field:
-                        prefix = annot[file_prefix_field]
-                        if type(prefix) is float:
-                            if prefix < 0:
-                                prefix = "minus-" + str(abs(round(prefix, 2)))
-                            else:
-                                prefix = str(round(prefix, 2))
+                        prefix = Annotation._convert_to_str(
+                            annot[file_prefix_field]
+                        )
                         full_out_file = os.path.join(
                             current_dir2, prefix + "_" + F
                         )
                     else:
                         full_out_file = os.path.join(current_dir2, F)
+
                     graph.to_file(full_out_file + ".png")
 
                     if save_wav:
@@ -1901,6 +1900,19 @@ class Annotation:
             else:
                 files = [files]
         return files
+
+    @staticmethod
+    def _convert_to_str(value):
+        if type(value) is str:
+            F = value
+        elif type(value) is float:
+            if value < 0:
+                F = "minus-" + str(abs(round(value, 2)))
+            else:
+                F = str(round(value, 2))
+        elif type(value) is pd.Timestamp:
+            F = value.strftime("%Y%m%dT%H%M%S")
+        return F
 
     def __add__(self, other):
         """Concatenate data from several annotation objects."""

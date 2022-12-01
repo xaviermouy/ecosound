@@ -13,10 +13,8 @@ from ecosound.core.measurement import Measurement
 # from ecosound.visualization.grapher_builder import GrapherFactory
 
 
-dataset_file_path = r"C:\Users\xavier.mouy\Documents\GitHub\fish_detector_bc\Master_annotations_dataset_20221028_without_06-MILL-FS_withSNR.nc"
-out_dir = (
-    r"D:\Detector\spectrograms\Master_annotations_dataset_20221025_SNR\test"
-)
+dataset_file_path = r"D:\NOAA\2022_BC_fish_detector\manual_annotations\Master_annotations_dataset_20221028_without_06-MILL-FS_withSNR.nc"
+out_dir = r"C:\Users\xavier.mouy\Desktop\test"
 
 
 # Load dataset
@@ -27,6 +25,9 @@ dataset.from_netcdf(dataset_file_path)
 dataset.filter("label_class=='FS'", inplace=True)
 # dataset.data = dataset.data[0:10]
 
+dataset.update_audio_dir(
+    r"D:\NOAA\2022_BC_fish_detector\manual_annotations", verbose=True
+)
 
 dataset.export_spectrograms(
     out_dir,
@@ -43,10 +44,12 @@ dataset.export_spectrograms(
     fig_size=(15, 10),
     deployment_subfolders=False,
     date_subfolders=True,
+    # file_name_field="time_min_offset",
     # file_name_field="uuid",
-    file_name_field="audio_file_name",
-    file_prefix_field="snr",
+    file_name_field="time_min_date",
+    file_prefix_field="recorder_SN",
     channel=0,
-    colormap="viridis",
+    # colormap="viridis",
+    colormap="Greys",
     save_wav=True,
 )
