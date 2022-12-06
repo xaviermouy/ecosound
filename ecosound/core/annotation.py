@@ -1583,7 +1583,7 @@ class Annotation:
                 colour="green",
             ):
                 # output file name
-                F = Annotation._convert_to_str(annot[file_name_field])
+                F = self._convert_to_str(annot[file_name_field])
 
                 # create subfolder for each deployment and each day if option selected
                 if deployment_subfolders:
@@ -1666,9 +1666,7 @@ class Annotation:
                     # output file name
                     graph.add_data(Spectro)
                     if file_prefix_field:
-                        prefix = Annotation._convert_to_str(
-                            annot[file_prefix_field]
-                        )
+                        prefix = self._convert_to_str(annot[file_prefix_field])
                         full_out_file = os.path.join(
                             current_dir2, prefix + "_" + F
                         )
@@ -1901,8 +1899,7 @@ class Annotation:
                 files = [files]
         return files
 
-    @staticmethod
-    def _convert_to_str(value):
+    def _convert_to_str(self, value):
         if type(value) is str:
             F = value
         elif type(value) is float:
@@ -1911,7 +1908,18 @@ class Annotation:
             else:
                 F = str(round(value, 2))
         elif type(value) is pd.Timestamp:
-            F = value.strftime("%Y%m%dT%H%M%S")
+            if self.data.UTC_offset.iloc[0] >= 0:
+                sign_str = "+"
+            else:
+                sign_str = "-"
+            tz_str = datetime.datetime(
+                year=1,
+                month=1,
+                day=1,
+                hour=int(abs(self.data.UTC_offset.iloc[0])),
+            ).strftime("%H%M")
+
+            F = value.strftime("%Y%m%dT%H%M%S.%f") + sign_str + tz_str
         return F
 
     def __add__(self, other):
