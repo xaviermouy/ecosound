@@ -12,15 +12,16 @@ from ecosound.core.audiotools import Sound
 import os
 import numpy as np
 
-annot_file = r"C:\Users\xavier.mouy\Documents\GitHub\fish_detector_bc\Master_annotations_dataset_20221028_without_06-MILL-FS.nc"
-annot_file2 = r"C:\Users\xavier.mouy\Documents\GitHub\fish_detector_bc\Master_annotations_dataset_20221028_without_06-MILL-FS_withSNR.nc"
-noise_win_sec = 0.25
+annot_file = r"D:\NOAA\2022_BC_fish_detector\manual_annotations\Master_annotations_dataset_20221028_without_06-MILL-FS.nc"
+annot_file2 = r"D:\NOAA\2022_BC_fish_detector\manual_annotations\Master_annotations_dataset_20221028_without_06-MILL-FS_withSNR.nc"
+noise_win_sec = "auto"  # 0.25
 
 # load annotations
 dataset = Annotation()
 dataset.from_netcdf(annot_file)
 # dataset.filter('label_class=="FS"', inplace=True)
 # dataset.data = dataset.data.iloc[:100]
+# dataset.update_audio_dir(r"D:\NOAA\2022_BC_fish_detector\manual_annotations")
 
 # Meausrement
 snr_measurer = MeasurerFactory("SNR", noise_win_sec=noise_win_sec)

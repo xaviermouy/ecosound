@@ -1582,6 +1582,9 @@ class Annotation:
                 total=len(annot_sp),
                 colour="green",
             ):
+
+                # annot = annot_sp.iloc[1969]
+                # idx = 1969
                 # output file name
                 F = self._convert_to_str(annot[file_name_field])
 
@@ -1920,6 +1923,8 @@ class Annotation:
             ).strftime("%H%M")
 
             F = value.strftime("%Y%m%dT%H%M%S.%f") + sign_str + tz_str
+        elif np.isnan(value):
+            F = "nan"
         return F
 
     def __add__(self, other):

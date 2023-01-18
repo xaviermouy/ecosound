@@ -13,8 +13,8 @@ from ecosound.core.measurement import Measurement
 # from ecosound.visualization.grapher_builder import GrapherFactory
 
 
-dataset_file_path = r"D:\NOAA\2022_BC_fish_detector\manual_annotations\Master_annotations_dataset_20221028_without_06-MILL-FS_withSNR.nc"
-out_dir = r"C:\Users\xavier.mouy\Desktop\test"
+dataset_file_path = r"D:\NOAA\2022_BC_fish_detector\manual_annotations\Master_annotations_dataset_20221028_without_06-MILL-FS.nc"
+out_dir = r"D:\NOAA\2022_BC_fish_detector\spectrograms\SNR_test2"
 
 
 # Load dataset
@@ -25,13 +25,13 @@ dataset.from_netcdf(dataset_file_path)
 dataset.filter("label_class=='FS'", inplace=True)
 # dataset.data = dataset.data[0:10]
 
-dataset.update_audio_dir(
-    r"D:\NOAA\2022_BC_fish_detector\manual_annotations", verbose=True
-)
+# dataset.update_audio_dir(
+#     r"D:\NOAA\2022_BC_fish_detector\manual_annotations", verbose=True
+# )
 
 dataset.export_spectrograms(
     out_dir,
-    time_buffer_sec=0.5,
+    time_buffer_sec=0.2,
     spectro_unit="sec",
     spetro_nfft=0.064,
     spetro_frame=0.064,
@@ -43,11 +43,11 @@ dataset.export_spectrograms(
     filter_type="iir",
     fig_size=(15, 10),
     deployment_subfolders=False,
-    date_subfolders=True,
+    date_subfolders=False,
     # file_name_field="time_min_offset",
     # file_name_field="uuid",
-    file_name_field="time_min_date",
-    file_prefix_field="recorder_SN",
+    file_name_field="uuid",
+    file_prefix_field="snr",
     channel=0,
     # colormap="viridis",
     colormap="Greys",

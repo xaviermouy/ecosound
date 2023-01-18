@@ -178,14 +178,8 @@ class SNR(BaseClass):
             + annot["audio_file_extension"]
         )
 
-        # define duration of noise window
-        if self.noise_win_sec == "auto":
-            half_noise_win_dur = annot.duration / 2
-        else:
-            half_noise_win_dur = self.noise_win_sec / 2
-
         # define left noise window
-        noise_left_start = annot["time_min_offset"] - half_noise_win_dur
+        noise_left_start = annot["time_min_offset"] - self.noise_win_sec
         if noise_left_start < 0:
             noise_left_end = annot["time_min_offset"]
             noise_left_start = 0
@@ -194,7 +188,7 @@ class SNR(BaseClass):
 
         # define right noise window
         noise_right_start = annot["time_max_offset"]
-        noise_right_end = noise_right_start + half_noise_win_dur
+        noise_right_end = noise_right_start + self.noise_win_sec
         if noise_right_end > sound.file_duration_sec:
             noise_right_end = sound.file_duration_sec
 
@@ -207,7 +201,7 @@ class SNR(BaseClass):
                 annot["frequency_min"],
                 annot["frequency_max"],
             ],
-            order=10,
+            order=4,
             verbose=False,
         )
         sound.normalize()
@@ -228,22 +222,12 @@ class SNR(BaseClass):
         noise_left = sound.waveform[int(times_samp[0]) : int(times_samp[1])]
         sig = sound.waveform[int(times_samp[1]) : int(times_samp[2])]
         noise_right = sound.waveform[int(times_samp[2]) : int(times_samp[3])]
-        # noise_pw = (sum(noise_left**2) + sum(noise_right**2)) / (
-        #     len(noise_left) + len(noise_right)
-        # )
-        # sig_pw = sum(sig**2) / len(sig)
-
-        noise_rms = np.sqrt(
-            (sum(noise_left**2) + sum(noise_right**2))
-            / (len(noise_left) + len(noise_right))
+        noise_pw = (sum(noise_left**2) + sum(noise_right**2)) / (
+            len(noise_left) + len(noise_right)
         )
-        sig_rms = np.sqrt(sum(sig**2) / len(sig))
-
-        # noise_var = np.sqrt((sum(noise_left**2) + sum(noise_right**2)))
-
+        sig_pw = sum(sig**2) / len(sig)
         # try:
-        snr = 20 * np.log10(sig_rms / noise_rms)
-        # snr = 10 * np.log10(sig_pw / noise_pw)
+        snr = 10 * np.log10(sig_pw / noise_pw)
         # except:
         #    print("Error")
         #    snr = np.nan
