@@ -11,10 +11,6 @@ Created on Tue Jul 31 14:33:54 2018
 
 @author: xavier.mouy
 """
-import os
-import sys
-sys.path.append(r'C:\Users\xavier.mouy\Documents\GitHub\ecosound') # Adds higher directory to python modules path.
-
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -24,6 +20,8 @@ import numpy as np
 import pickle
 import pandas as pd
 import localizationlib as loclib
+import pickle
+import os
 
 def getArrayUncertainties(R,radius,spacing,V,NoiseSTD,contoursValues):
     
@@ -147,109 +145,94 @@ def getArrayUncertainties(R,radius,spacing,V,NoiseSTD,contoursValues):
 
 
 
-## Grid/uncertainties parameters
-radius = 2 # meters
-spacing = 0.05 # meters 0.3
+## Large array
+out_dir = r'C:\Users\xavier.mouy\Documents\Publications\2022_Mouy.etal_XAV-Arrays\manuscript\figures\Uncertainty_patterns_all_arrays'
+label = 'large-array'
+radius = 3 # meters
+spacing = 0.3 # meters 0.3
 V = 1488 # Sound speed (m/s)
 NoiseSTD = 0.00012 # standard deviation of TDOAs
-contoursValues = [0.5,1,3]
+contoursValues = [0.5]
 Colors=['k','r','b','g']
+#x=[-0.858,-0.858, 0.858,0.028,-0.858,0.858]
+#y=[-0.86,-0.86,-0.86,0,0.86,0.86]
+#z=[-0.671,0.671,-0.671,-0.002,-0.671,0.671]
+x=[-1,-1, 1,0,-1,1]
+y=[-1,-1,-1,0,1,1]
+z=[-1,1,-1,0,-1,1]
+R = pd.DataFrame({'x':x,'y':y, 'z':z})
+XY, XZ, YZ = getArrayUncertainties(R,radius,spacing,V,NoiseSTD,contoursValues)
 
-### Optimal configuration from simulated annealing
-#x=[-1,0,-1,-1,1,1]
-#y=[1,0,1,-1,-1,1]
-#z=[1,0,-1,1,-1,1]
-#R1 = pd.DataFrame({'x':x,'y':y, 'z':z})
-#XY1, XZ1, YZ1 = getArrayUncertainties(R1,radius,spacing,V,NoiseSTD,contoursValues)
 
-# ## Optimal configuration from simulated annealing WITH 6ft XY and 5 ft Z 
-
+# ## Mobile array
+# out_dir = r'C:\Users\xavier.mouy\Documents\Publications\2022_Mouy.etal_XAV-Arrays\manuscript\figures\Uncertainty_patterns_all_arrays'
+# label = 'mobile-array'
+# radius = 1 # meters
+# spacing = 0.02 # meters 0.3
+# V = 1488 # Sound speed (m/s)
+# NoiseSTD = 0.00012 # standard deviation of TDOAs
+# contoursValues = [0.5,1]
+# Colors=['k','r','b','g']
 # x=[-0.46,0,0,0.48]
-# y=[0, 0.19,0.49,0]
+# y=[0,0.19,0.49,0]
 # z=[0,0.54,0,0]
-# R1 = pd.DataFrame({'x':x,'y':y, 'z':z})
-# XY1, XZ1, YZ1 = getArrayUncertainties(R1,radius,spacing,V,NoiseSTD,contoursValues)
+# R = pd.DataFrame({'x':x,'y':y, 'z':z})
+# XY, XZ, YZ = getArrayUncertainties(R,radius,spacing,V,NoiseSTD,contoursValues)
 
 
-### Optimal configuration from simulated annealing
-#x=[0,-1,1,0]
-#y=[-1,1,1,0]
-#z=[-1,-1,-1,1]
-#R1 = pd.DataFrame({'x':x,'y':y, 'z':z})
-#XY1, XZ1, YZ1 = getArrayUncertainties(R1,radius,spacing,V,NoiseSTD,contoursValues)
+# ## Mini array
+# out_dir = r'C:\Users\xavier.mouy\Documents\Publications\2022_Mouy.etal_XAV-Arrays\manuscript\figures\Uncertainty_patterns_all_arrays'
+# label = 'mini-array'
+# radius = 1 # meters
+# spacing = 0.02 # meters 0.3
+# V = 1488 # Sound speed (m/s)
+# NoiseSTD = 0.00012 # standard deviation of TDOAs
+# contoursValues = [0.5,1]
+# Colors=['k','r','b','g']
+# x=[0.63,0.13,0.00, -0.50]
+# y=[0.00,0.57,0.00,0.00]
+# z=[0.00, 0.14,0.54,0.00]
+# R = pd.DataFrame({'x':x,'y':y, 'z':z})
+# XY, XZ, YZ = getArrayUncertainties(R,radius,spacing,V,NoiseSTD,contoursValues)
 
-### Rodney's configuration
-#x=[1,0,0,-1,0,0]
-#y=[0,1,0,0,-1,0]
-#z=[0,0,-1,0,0,1]
-#R2 = pd.DataFrame({'x':x,'y':y, 'z':z})
-#XY2, XZ2, YZ2 = getArrayUncertainties(R2,radius,spacing,V,NoiseSTD,contoursValues)
 
-## Optimal configuration from simulated annealing WITH 5ft instead of 2 m
-x=[-0.9144,0,-0.9144,-0.9144,0.9144,0.9144]
-y=[0.9144,-0.9144,0.9144,-0.9144,-0.9144,0.9144]
-z=[0.762,0,-0.762,0.762,-0.762,0.762]
-R2 = pd.DataFrame({'x':x,'y':y, 'z':z})
-XY2, XZ2, YZ2 = getArrayUncertainties(R2,radius,spacing,V,NoiseSTD,contoursValues)
+save_obj = {'XY':XY, 'XZ':XZ, 'YZ':YZ, 'x':x, 'y':y, 'z':z, 'NoiseSTD':NoiseSTD,'contoursValues':contoursValues}
+out_file = os.path.join(out_dir, label+'.pickle')
+with open(out_file, 'wb') as f:
+    pickle.dump(save_obj, f)
 
-### 6 HP optim configuration using cubic volume sources
-#picklefile=r'C:\Users\xavier.mouy\Documents\Workspace\GitHub\Fish-localization\results\ArrayOptimization\20180801132326_Receivers6_Bounds1m_Sources729_Radius3m\ArrayOptimizationResults_iteration-3.pickle'
-#data = pickle.load(open(picklefile, 'rb')) # load  pickle file
-#R2 = data["R"] # Receivers coordinates
-#XY2, XZ2, YZ2 = getArrayUncertainties(R2,radius,spacing,V,NoiseSTD,contoursValues)
+# ## PLot both contours
+# f2, (AX1, AX2, AX3) = plt.subplots(1, 3, sharey=False,figsize=(16, 5))
+# 
+# #XY
+# for i in range(len(contoursValues)):
+#    AX1.plot(XY1[i][:,0],XY1[i][:,1],Colors[i])
+#    AX1.plot(XY2[i][:,0],XY2[i][:,1],'--'+Colors[i])
+#    AX1.set_xlabel('X(m)')
+#    AX1.set_ylabel('Y(m)')
+#    AX1.grid(True)
+#    #AX1.set_aspect('auto')
 
-### 5 HP optim configuration
-#x=[-1,-1,-1,1,1]
-#y=[1,1,-1,-1,1]
-#z=[1,-1,1,-1,1]
-#R2 = pd.DataFrame({'x':x,'y':y, 'z':z})
-#XY2, XZ2, YZ2 = getArrayUncertainties(R2,radius,spacing,V,NoiseSTD,contoursValues)
+# #XZ
+# for i in range(len(contoursValues)):
+#    AX2.plot(XZ1[i][:,0],XZ1[i][:,1],Colors[i])
+#    AX2.plot(XZ2[i][:,0],XZ2[i][:,1],'--'+Colors[i])
+#    AX2.set_xlabel('X(m)')
+#    AX2.set_ylabel('Z(m)')
+#    AX2.grid(True)
+#    #AX2.set_aspect('auto')
 
-### 4 HP optim configuration
-#picklefile=r'C:\Users\xavier.mouy\Documents\Workspace\GitHub\Fish-localization\results\ArrayOptimization\20180711213934_Receivers4_Bounds1m_Sources500_Radius2m\ArrayOptimizationResults_iteration-2.pickle'
-#data = pickle.load(open(picklefile, 'rb')) # load  pickle file
-#R2 = data["R"] # Receivers coordinates
-#XY2, XZ2, YZ2 = getArrayUncertainties(R2,radius,spacing,V,NoiseSTD,contoursValues)
+# #YZ
+# for i in range(len(contoursValues)):
+#    AX3.plot(YZ1[i][:,0],YZ1[i][:,1],Colors[i],label=str(contoursValues[i]))
+#    AX3.plot(YZ2[i][:,0],YZ2[i][:,1],'--'+Colors[i])
+#    AX3.set_xlabel('Y(m)')
+#    AX3.set_ylabel('Z(m)')
+#    AX3.grid(True)
+#    #AX3.set_aspect('auto')
 
-### 4 HP tetrahedral
-#x=[0,-1,1,0]
-#y=[-1,1,1,0]
-#z=[-1,-1,-1,1]
-#R1 = pd.DataFrame({'x':x,'y':y, 'z':z})
-#XY1, XZ1, YZ1 = getArrayUncertainties(R1,radius,spacing,V,NoiseSTD,contoursValues)
-
-## PLot both contours
-f2, (AX1, AX2, AX3) = plt.subplots(1, 3, sharey=False,figsize=(16, 5))
-
-#XY
-for i in range(len(contoursValues)):
-   #AX1.plot(XY1[i][:,0],XY1[i][:,1],Colors[i])
-   AX1.plot(XY2[i][:,0],XY2[i][:,1],'--'+Colors[i])
-   AX1.set_xlabel('X(m)')
-   AX1.set_ylabel('Y(m)')
-   AX1.grid(True)
-   #AX1.set_aspect('auto')
-
-#XZ
-for i in range(len(contoursValues)):
-   #AX2.plot(XZ1[i][:,0],XZ1[i][:,1],Colors[i])
-   AX2.plot(XZ2[i][:,0],XZ2[i][:,1],'--'+Colors[i])
-   AX2.set_xlabel('X(m)')
-   AX2.set_ylabel('Z(m)')
-   AX2.grid(True)
-   #AX2.set_aspect('auto')
-
-#YZ
-for i in range(len(contoursValues)):
-   #AX3.plot(YZ1[i][:,0],YZ1[i][:,1],Colors[i],label=str(contoursValues[i]))
-   AX3.plot(YZ2[i][:,0],YZ2[i][:,1],'--'+Colors[i])
-   AX3.set_xlabel('Y(m)')
-   AX3.set_ylabel('Z(m)')
-   AX3.grid(True)
-   #AX3.set_aspect('auto')
-
-from matplotlib.lines import Line2D
-custom_lines = [Line2D([0], [0], color=Colors[0], lw=2),
-                Line2D([0], [0], color=Colors[1], lw=2),
-                Line2D([0], [0], color=Colors[2], lw=2)]
-AX3.legend(custom_lines, [str(contoursValues[0])+' m', str(contoursValues[1])+' m', str(contoursValues[2])+' m'],loc='upper right')
+# from matplotlib.lines import Line2D
+# custom_lines = [Line2D([0], [0], color=Colors[0], lw=2),
+#                 Line2D([0], [0], color=Colors[1], lw=2),
+#                 Line2D([0], [0], color=Colors[2], lw=2)]
+# #AX3.legend(custom_lines, [str(contoursValues[0])+' m', str(contoursValues[1])+' m', str(contoursValues[2])+' m'],loc='upper right')

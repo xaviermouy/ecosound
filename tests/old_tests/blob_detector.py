@@ -6,8 +6,8 @@ Created on Fri Feb  7 15:41:54 2020
 
 """
 
-import sys
-sys.path.append("..") # Adds higher directory to python modules path.
+# import sys
+# sys.path.append("..") # Adds higher directory to python modules path.
 from ecosound.core.audiotools import Sound
 from ecosound.core.spectrogram import Spectrogram
 #from ecosound.core.measurement import Measurement
@@ -18,9 +18,12 @@ import time
 
 ## Input paraneters ##########################################################
 
-single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
+#single_channel_file = r"../ecosound/resources/67674121.181018013806.wav"
 #single_channel_file = r"../ecosound/resources/JASCOAMARHYDROPHONE742_20140913T084017.774Z.wav"
-single_channel_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\67674121.181018040806.wav"
+#single_channel_file = r"C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\DFO_snake-island_rca-in_20181017\audio_data\67674121.181018040806.wav"
+
+single_channel_file = r'C:\Users\xavier.mouy\Documents\Projects\2022_DFO_fish_catalog\Darienne_data\Taylor-Islet_LA_dep2\data\6\AMAR173.6.20220821T180710Z.wav'
+
 
 # Spectrogram parameters
 frame = 0.0625 #3000
@@ -28,12 +31,12 @@ nfft = 0.0853 # 4096
 step = 0.01 # 500
 #ovlp = 2500
 fmin = 0
-fmax = 1000
+fmax = 5000
 window_type = 'hann'
 
 # start and stop time of wavfile to analyze
-t1 = 197 #22#24
-t2 = 217 #40#24#40
+t1 = 700 #197 #22#24
+t2 = 800 #217 #40#24#40
 ## ###########################################################################
 tic = time.perf_counter()
 

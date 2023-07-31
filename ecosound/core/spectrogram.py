@@ -340,7 +340,8 @@ class Spectrogram:
     def _calc_spectrogram(sig, win, starts, stops, fft_samp):
         fft_samp = np.int32(fft_samp)
         fnyq0 = np.round(fft_samp / 2)
-        fnyq = np.int(fnyq0)
+        #fnyq = np.int(fnyq0)
+        fnyq = int(fnyq0)
         spectro = np.empty((fnyq, len(starts)))  # the default
         idx = 0
         for start, stop in zip(starts, stops):

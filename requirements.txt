@@ -13,3 +13,4 @@ opencv-python>=4.5.5.64
 soundfile>=0.10.0
 netCDF4
 tqdm
+eccodes==1.2.0

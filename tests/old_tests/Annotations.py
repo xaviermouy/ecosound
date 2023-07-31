@@ -4,11 +4,19 @@ Created on Thu Feb  6 15:28:29 2020
 
 @author: xavier.mouy
 """
-import sys
-sys.path.append("..")  # Adds higher directory to python modules path.
-from ecosound.core.measurement import Measurement
+# import sys
+# sys.path.append("..")  # Adds higher directory to python modules path.
+# from ecosound.core.measurement import Measurement
+# from ecosound.core.annotation import Annotation
+
 from ecosound.core.annotation import Annotation
 
+
+PAMlab_dir = r"D:\NOAA\2022_BC_fish_detector\manual_annotations\UVIC_spring-bay_rca_20180821"
+annot = Annotation()
+#annot.from_pamlab(PAMlab_dir, verbose=True)
+annot.from_raven(PAMlab_dir, verbose=True, class_header="Call Type")
+annot.to_raven(PAMlab_dir,single_file=False)
 
 # PAMlab_files = []
 # Raven_files = []
@@ -64,11 +72,11 @@ from ecosound.core.annotation import Annotation
 # annot4.from_netcdf(netcdf_files, verbose=True)
 # print(len(annot4))
 
-# ## netcdf folder from Measurements
-netcdf_files = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\test2'
-annot4 = Measurement()
-annot4.from_netcdf(netcdf_files, verbose=True)
-print(len(annot4))
+# # ## netcdf folder from Measurements
+# netcdf_files = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Dectector\datasets\test2'
+# annot4 = Measurement()
+# annot4.from_netcdf(netcdf_files, verbose=True)
+# print(len(annot4))
 
 # import xarray as xr
 # d=annot3.data

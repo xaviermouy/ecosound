@@ -103,6 +103,148 @@ class Measurement(Annotation):
             pass
         dxr1.to_netcdf(file, engine="netcdf4", format="NETCDF4")
 
+    def to_raven(
+        self, outdir, outfile="Raven.Table.1.selections.txt", single_file=False
+    ):
+        """
+        Write data to 1 or several Raven files.
+
+        Write measurements as .txt files readable by the software Raven. Output
+        files can be written in a single txt file or in several txt files (one
+        per audio recording). In the latter case, output file names are
+        automatically generated based on the audio file's name.
+
+        Parameters
+        ----------
+        outdir : str
+            Path of the output directory where the Raven files are written.
+        outfile : str
+            Name of the output file. Only used is single_file is True. The
+            default is 'Raven.Table.1.selections.txt'.
+        single_file : bool, optional
+            If set to True, writes a single output file with all annotations.
+            The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
+        cols = [
+            "Selection",
+            "View",
+            "Channel",
+            "Begin Time (s)",
+            "End Time (s)",
+            "Delta Time (s)",
+            "Low Freq (Hz)",
+            "High Freq (Hz)",
+            "Begin Path",
+            "File Offset (s)",
+            "Begin File",
+            "Class",
+            "Sound type",
+            "Software",
+            "Confidence",
+        ]
+        
+        # add measurements names
+        cols = cols + self.metadata['measurements_name'][0]
+        
+        if len(self) > 0:
+            if single_file:
+                annots = [self.data]
+            else:
+                annots = [
+                    pd.DataFrame(y)
+                    for x, y in self.data.groupby(
+                        "audio_file_name", as_index=False
+                    )
+                ]
+            for annot in annots:
+                annot.reset_index(inplace=True, drop=True)
+                
+                outdf = pd.DataFrame(columns =cols)
+                # outdf = pd.DataFrame(
+                #     {
+                #         "Selection": 0,
+                #         "View": 0,
+                #         "Channel": 0,
+                #         "Begin Time (s)": 0,
+                #         "End Time (s)": 0,
+                #         "Delta Time (s)": 0,
+                #         "Low Freq (Hz)": 0,
+                #         "High Freq (Hz)": 0,
+                #         "Begin Path": 0,
+                #         "File Offset (s)": 0,
+                #         "Begin File": 0,
+                #         "Class": 0,
+                #         "Sound type": 0,
+                #         "Software": 0,
+                #         "Confidence": 0,
+                #     },
+                #     index=list(range(annot.shape[0])),
+                # )
+                
+                
+                outdf["Selection"] = range(1, annot.shape[0] + 1)
+                outdf["View"] = "Spectrogram 1"
+                outdf["Channel"] = annot["audio_channel"]
+                outdf["Begin Time (s)"] = annot["time_min_offset"]
+                outdf["End Time (s)"] = annot["time_max_offset"]
+                outdf["Delta Time (s)"] = annot["duration"]
+                outdf["Low Freq (Hz)"] = annot["frequency_min"]
+                outdf["High Freq (Hz)"] = annot["frequency_max"]
+                outdf["File Offset (s)"] = annot["time_min_offset"]
+                outdf["Class"] = annot["label_class"]
+                outdf["Sound type"] = annot["label_subclass"]
+                outdf["Software"] = annot["software_name"]
+                outdf["Confidence"] = annot["confidence"]
+                outdf["Begin Path"] = [
+                    os.path.join(x, y) + z
+                    for x, y, z in zip(
+                        annot["audio_file_dir"],
+                        annot["audio_file_name"],
+                        annot["audio_file_extension"],
+                    )
+                ]
+                outdf["Begin File"] = [
+                    x + y
+                    for x, y in zip(
+                        annot["audio_file_name"], annot["audio_file_extension"]
+                    )
+                ]
+                outdf = outdf.fillna(0)
+                # add neasurements
+                outdf[self.metadata['measurements_name'][0]]=annot[self.metadata['measurements_name'][0]]                
+                if single_file:
+                    outfilename = os.path.join(outdir, outfile)
+                else:
+                    outfilename = os.path.join(
+                        outdir,
+                        str(annot["audio_file_name"].iloc[0])
+                        + str(annot["audio_file_extension"].iloc[0])
+                        + ".chan"
+                        + str(annot["audio_channel"].iloc[0])
+                        + ".Table.1.selections.txt",
+                    )                                                
+                outdf.to_csv(
+                    outfilename,
+                    sep="\t",
+                    encoding="utf-8",
+                    header=True,
+                    columns=cols,
+                    index=False,
+                )
+        else:
+            # No annotation => write file with header only
+            outfilename = os.path.join(outdir, outfile)
+            header = "\t".join(cols)
+            f = open(outfilename, "w")
+            f.write(header)
+            f.close()
+    
+
     def from_netcdf(self, file, verbose=False):
         """
         Import measurement data from a netcdf file.

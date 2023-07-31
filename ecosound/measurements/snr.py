@@ -199,17 +199,26 @@ class SNR(BaseClass):
             noise_right_end = sound.file_duration_sec
 
         # load sound data chunk
-        sound.read(chunk=[noise_left_start, noise_right_end], unit="sec")
+        try:
+            sound.read(chunk=[noise_left_start, noise_right_end], unit="sec")
+        except:
+            print(annot)
+            raise Exception("error with time boundaries")
+        
         # bandpass filter
-        sound.filter(
-            "bandpass",
-            cutoff_frequencies=[
-                annot["frequency_min"],
-                annot["frequency_max"],
-            ],
-            order=10,
-            verbose=False,
-        )
+        try:
+            sound.filter(
+                "bandpass",
+                cutoff_frequencies=[
+                    annot["frequency_min"],
+                    annot["frequency_max"],
+                ],
+                order=10,
+                verbose=False,
+            )
+        except:
+            print(annot)
+            raise Exception("error with frequency filtering")
         sound.normalize()
 
         # calculate energies

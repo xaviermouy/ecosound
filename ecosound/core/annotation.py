@@ -1529,7 +1529,7 @@ class Annotation:
         self,
         out_dir,
         time_buffer_sec=1,
-        spectro_unit="sec",
+        spectro_unit="samp",
         spetro_nfft=256,
         spetro_frame=256,
         spetro_inc=5,
@@ -1800,7 +1800,7 @@ class Annotation:
             # Lmean = data.resample(integration_time, loffset=None, label='left').apply(count)
             data_new = data.resample(
                 integration_time,
-                loffset=None,
+                #loffset=None,
                 origin="start_day",
                 label="left",
             ).count()
@@ -1871,8 +1871,8 @@ class Annotation:
             # Get all data and only keep values correpsonding to header labels
             # tmp = pd.read_csv(file,
             #                   delimiter='\t',
-            #                   #header=None,
-            #                   header=True,
+            #                   header=None,
+            #                   #header=True,
             #                   #skiprows=1,
             #                   na_values=None,
             #                   )

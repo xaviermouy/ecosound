@@ -196,10 +196,11 @@ class PRF:
             FP_th = perf_tmp["FP"].sum()
             FN_th = perf_tmp["FN"].sum()
             R_th = TP_th / (TP_th + FN_th)
-            P_th = TP_th / (TP_th + FP_th)
-            F_th = (1 + F_beta**2) * (
-                (P_th * R_th) / ((F_beta**2 * P_th) + R_th)
-            )
+            if (TP_th + FP_th) == 0:
+                P_th = 1
+            else:
+                P_th = TP_th / (TP_th + FP_th)
+            F_th = (1 + F_beta**2) * ((P_th * R_th) / ((F_beta**2 * P_th) + R_th))
             tmp_PRF = pd.DataFrame(
                 {
                     "threshold": [threshold],
@@ -460,7 +461,10 @@ class PRF:
             FP_th = perf_tmp["FP"].sum()
             FN_th = perf_tmp["FN"].sum()
             R_th = TP_th / (TP_th + FN_th)
-            P_th = TP_th / (TP_th + FP_th)
+            if (TP_th + FP_th) == 0:
+                P_th = 1
+            else:
+                P_th = TP_th / (TP_th + FP_th)
             F_th = (1 + F_beta**2) * (
                 (P_th * R_th) / ((F_beta**2 * P_th) + R_th)
             )
