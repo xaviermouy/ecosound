@@ -251,7 +251,7 @@ class AnnotHeatmap(BaseClass):
             1,
             figsize=self.fig_size,
             sharex=self.share_xaxis,
-            constrained_layout=True,
+            constrained_layout=False,
         )  # gridspec_kw={'hspace': self.hspace}
         # Subplot titles
         titles = [None] * nb_plots

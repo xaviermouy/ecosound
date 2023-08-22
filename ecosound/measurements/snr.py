@@ -29,8 +29,8 @@ class SNR(BaseClass):
         *args : str
             Do not use. Only used by the MeasurerFactory.
         noise_win_sec : float, optional
-            Duration of window to use on either side of the signal to estimate
-            noise, in seconds.
+            Duration in seconds of the window to use to estimate noise. Half of this window is used before and half if
+            used after teh signal of interest.
 
         Returns
         -------
@@ -178,88 +178,97 @@ class SNR(BaseClass):
             + annot["audio_file_extension"]
         )
 
-        # define duration of noise window
-        if self.noise_win_sec == "auto":
-            half_noise_win_dur = annot.duration / 2
-        else:
-            half_noise_win_dur = self.noise_win_sec / 2
+        # verify that time boundaries are correct and fit into the duration of the sound file
+        if annot["time_max_offset"] > sound.file_duration_sec:
+            annot["time_max_offset"] = sound.file_duration_sec
+            print('The annotation end time was adjusted as it exceeded the end time of the audio recording.')
 
-        # define left noise window
-        noise_left_start = annot["time_min_offset"] - half_noise_win_dur
-        if noise_left_start < 0:
-            noise_left_end = annot["time_min_offset"]
-            noise_left_start = 0
-        else:
-            noise_left_end = annot["time_min_offset"]
+        if annot["time_min_offset"] < sound.file_duration_sec: # if annotation is completely outside teh recording -> discard
 
-        # define right noise window
-        noise_right_start = annot["time_max_offset"]
-        noise_right_end = noise_right_start + half_noise_win_dur
-        if noise_right_end > sound.file_duration_sec:
-            noise_right_end = sound.file_duration_sec
+            # define duration of noise window
+            if self.noise_win_sec == "auto":
+                half_noise_win_dur = annot.duration / 2
+            else:
+                half_noise_win_dur = self.noise_win_sec / 2
 
-        # load sound data chunk
-        try:
-            sound.read(chunk=[noise_left_start, noise_right_end], unit="sec")
-        except:
-            print(annot)
-            raise Exception("error with time boundaries")
-        
-        # bandpass filter
-        try:
-            sound.filter(
-                "bandpass",
-                cutoff_frequencies=[
-                    annot["frequency_min"],
-                    annot["frequency_max"],
-                ],
-                order=10,
-                verbose=False,
+            # define left noise window
+            noise_left_start = annot["time_min_offset"] - half_noise_win_dur
+            if noise_left_start < 0:
+                noise_left_end = annot["time_min_offset"]
+                noise_left_start = 0
+            else:
+                noise_left_end = annot["time_min_offset"]
+
+            # define right noise window
+            noise_right_start = annot["time_max_offset"]
+            noise_right_end = noise_right_start + half_noise_win_dur
+            if noise_right_end > sound.file_duration_sec:
+                noise_right_end = sound.file_duration_sec
+
+            # load sound data chunk
+            try:
+                sound.read(chunk=[noise_left_start, noise_right_end], unit="sec")
+            except:
+                print(annot)
+                raise Exception("error with time boundaries")
+
+            # bandpass filter
+            try:
+                sound.filter(
+                    "bandpass",
+                    cutoff_frequencies=[
+                        annot["frequency_min"],
+                        annot["frequency_max"],
+                    ],
+                    order=10,
+                    verbose=False,
+                )
+            except:
+                print(annot)
+                raise Exception("error with frequency filtering")
+            sound.normalize()
+
+            # calculate energies
+            times_samp = np.round(
+                np.dot(
+                    [
+                        noise_left_start,
+                        noise_left_end,
+                        noise_right_start,
+                        noise_right_end,
+                    ],
+                    sound.waveform_sampling_frequency,
+                )
             )
-        except:
-            print(annot)
-            raise Exception("error with frequency filtering")
-        sound.normalize()
+            times_samp = times_samp - times_samp[0]
+            noise_left = sound.waveform[int(times_samp[0]) : int(times_samp[1])]
+            sig = sound.waveform[int(times_samp[1]) : int(times_samp[2])]
+            noise_right = sound.waveform[int(times_samp[2]) : int(times_samp[3])]
+            # noise_pw = (sum(noise_left**2) + sum(noise_right**2)) / (
+            #     len(noise_left) + len(noise_right)
+            # )
+            # sig_pw = sum(sig**2) / len(sig)
 
-        # calculate energies
-        times_samp = np.round(
-            np.dot(
-                [
-                    noise_left_start,
-                    noise_left_end,
-                    noise_right_start,
-                    noise_right_end,
-                ],
-                sound.waveform_sampling_frequency,
+            noise_rms = np.sqrt(
+                (sum(noise_left**2) + sum(noise_right**2))
+                / (len(noise_left) + len(noise_right))
             )
-        )
-        times_samp = times_samp - times_samp[0]
-        noise_left = sound.waveform[int(times_samp[0]) : int(times_samp[1])]
-        sig = sound.waveform[int(times_samp[1]) : int(times_samp[2])]
-        noise_right = sound.waveform[int(times_samp[2]) : int(times_samp[3])]
-        # noise_pw = (sum(noise_left**2) + sum(noise_right**2)) / (
-        #     len(noise_left) + len(noise_right)
-        # )
-        # sig_pw = sum(sig**2) / len(sig)
+            sig_rms = np.sqrt(sum(sig**2) / len(sig))
 
-        noise_rms = np.sqrt(
-            (sum(noise_left**2) + sum(noise_right**2))
-            / (len(noise_left) + len(noise_right))
-        )
-        sig_rms = np.sqrt(sum(sig**2) / len(sig))
+            # noise_var = np.sqrt((sum(noise_left**2) + sum(noise_right**2)))
 
-        # noise_var = np.sqrt((sum(noise_left**2) + sum(noise_right**2)))
+            # try:
+            snr = 20 * np.log10(sig_rms / noise_rms)
+            # snr = 10 * np.log10(sig_pw / noise_pw)
+            # except:
+            #    print("Error")
+            #    snr = np.nan
 
-        # try:
-        snr = 20 * np.log10(sig_rms / noise_rms)
-        # snr = 10 * np.log10(sig_pw / noise_pw)
-        # except:
-        #    print("Error")
-        #    snr = np.nan
-
-        if debug:
-            sound.plot(newfig=True, title=str(round(snr, 1)))
-
+            if debug:
+                sound.plot(newfig=True, title=str(round(snr, 1)))
+        else:
+            print('Annotation outside of audio recording.')
+            snr = np.nan
         # stack all features
         tmp = pd.DataFrame(
             {

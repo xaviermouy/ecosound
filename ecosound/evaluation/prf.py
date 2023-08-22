@@ -41,6 +41,12 @@ class PRF:
         F_beta=1,
     ):
 
+        # create subfolder for figures is plot option is ON
+        if do_plot:
+            out_dir_figs = os.path.join(out_dir, 'TP-FN-FP-plots')
+            if os.path.isdir(out_dir_figs) == False:
+                os.mkdir(out_dir_figs)
+
         # filter dates (if dataset partially annotated)
         if date_min:
             annot.filter("time_min_date >= '" + date_min + "'", inplace=True)
@@ -160,6 +166,9 @@ class PRF:
                 if do_plot:
                     PRF._plot_annot_boxes(
                         [annot_tmp, detec_tmp],
+                        out_dir_figs,
+                        threshold,
+                        file,
                         line_width=2,
                         colors=["blue", "red"],
                         labels=["Annotations", "Detections"],
@@ -558,6 +567,9 @@ class PRF:
     @staticmethod
     def _plot_annot_boxes(
         annot_list,
+        out_dir,
+        threshold,
+        file,
         line_width=2,
         colors=["blue"],
         labels=["Annotations"],
@@ -588,7 +600,7 @@ class PRF:
             p = PatchCollection(
                 patches,
                 edgecolor=colors[idx],
-                # label=labels[idx],
+                label=labels[idx],
                 facecolor=facecolor,
             )
             ax.add_collection(p)
@@ -596,7 +608,12 @@ class PRF:
         ax.set_xlabel("Times (s)")
         ax.set_ylabel("Frequency (Hz)")
         ax.set_title(title)
+        #ax.legend(handles=p)
         ax.grid()
         ax.plot([1], [1])
-        plt.show()
-        ax.legend()
+        #plt.show()
+        fig.savefig(os.path.join(out_dir, str(round(threshold,2)) + "_" + file + '.png'))
+        plt.close(fig)
+
+
+

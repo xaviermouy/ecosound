@@ -621,14 +621,15 @@ class Annotation:
             tmp2 = pd.read_sql_query(
                 "SELECT * FROM " + table_name,
                 conn,
-                parse_dates=[
-                    "entry_date",
-                    "audio_file_start_date",
-                    "time_min_date",
-                    "time_max_date",
-                ],
+                parse_dates={
+                    "entry_date":'ISO8601',
+                    "audio_file_start_date":'ISO8601',
+                    "time_min_date":'ISO8601',
+                    "time_max_date":'ISO8601',
+                },
             )
             conn.close()
+
             tmp.append(tmp2)
         data = pd.concat(tmp, ignore_index=True, sort=False)
         data.reset_index(inplace=True, drop=True)
@@ -1444,6 +1445,41 @@ class Annotation:
             out_object.check_integrity()
         return out_object
 
+    def merge_overlapped(self, time_tolerance_sec=None, inplace=False):
+
+        # add temporary time shift
+        if time_tolerance_sec:
+            self.data.time_min_offset = self.data.time_min_offset - time_tolerance_sec
+            self.data.time_max_offset = self.data.time_max_offset + time_tolerance_sec
+
+        # get index of overlapped annots
+        ovlp_idx_list = self._identify_ovlp_annot()
+
+        # # merge
+        # for annot_idx in ovlp_idx_list:
+        #     # adjust t1 and t2, fmin, fmax etc
+        #
+        #     # apply merge rules for given columns (e.g. SNR, confidence)
+        #
+        #     # create new dataframe
+        # print('here')
+
+
+        # # remove temporary time shift
+        # if time_tolerance_sec:
+        #     self.data.time_min_offset = self.data.time_min_offset - time_tolerance_sec
+        #     self.data.time_max_offset = self.data.time_max_offset + time_tolerance_sec
+        #
+        # if inplace:
+        #     self.data = ovlp
+        #     self.check_integrity()
+        #     out_object = None
+        # else:
+        #     out_object = copy.copy(self)
+        #     out_object.data = ovlp
+        #     out_object.check_integrity()
+        # return out_object
+
     def update_audio_dir(self, new_data_dir, verbose=False):
         """
         Update path of audio files
@@ -1764,6 +1800,59 @@ class Annotation:
         summary.loc["Total"] = summary.sum()
         summary["Total"] = summary.sum(axis=1)
         return summary
+
+    def _identify_ovlp_annot(self):
+        stack = []
+        data = self.data
+        files_list = list(set(data.audio_file_name))
+        for file in files_list:  # for each audio file
+            file_data = data.query('audio_file_name==@file')  # data for a single file
+            while len(file_data) > 0:
+                t1 = file_data.iloc[0].time_min_offset
+                t2 = file_data.iloc[0].time_max_offset
+                # stack index + update dataframe
+                tmp = []
+                index_id = file_data.iloc[0].name
+                tmp.append(index_id)
+                file_data = file_data.drop([index_id], axis=0)  # delete annot alreday stacked in tmp
+                while True:
+                    # find other annot overlaping with curent annot
+                    ovlp = file_data[
+                        (
+                            (file_data.time_min_offset <= t1)
+                            & (file_data.time_max_offset >= t2)
+                        )
+                        | (  # 1- annot inside detec
+                            (file_data.time_min_offset >= t1)
+                            & (file_data.time_max_offset <= t2)
+                        )
+                        | (  # 2- detec inside annot
+                            (file_data.time_min_offset < t1)
+                            & (file_data.time_max_offset < t2)
+                            & (file_data.time_max_offset > t1)
+                        )
+                        | (  # 3- only the end of the detec overlaps with annot
+                            (file_data.time_min_offset > t1)
+                            & (file_data.time_min_offset < t2)
+                            & (file_data.time_max_offset > t2)
+                        )  # 4- only the begining of the detec overlaps with annot
+                        ]
+                    if len(ovlp) == 0:  # no overlap
+                        stack.append(tmp)
+                        break
+                    elif len(ovlp) > 0:  # 1 of more overlaps
+                        index_ids = list(ovlp.index.values)
+                        for index_id in index_ids:
+                            tmp.append(index_id)
+                            t1 = min([t1, ovlp.time_min_offset.values[0]])
+                            t2 = max([t2, ovlp.time_max_offset.values[0]])
+                            file_data = file_data.drop([index_id], axis=0)  # delete annot alreday stacked in tmp
+        #print('done')
+        # Sanity check
+        annot_count = sum([len(ovlp) for ovlp in stack])
+        if annot_count != len(data):
+            print('overlapped annotation identified do not add up to the total number of annotations')
+        return stack
 
     @staticmethod
     def _resample(
