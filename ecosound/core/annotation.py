@@ -1104,9 +1104,6 @@ class Annotation:
         Fill in the blank metadata when the deployment_info_file is not provided
 
         """
-        channel = int(channel)
-        dep_info = DeploymentInfo()
-        dep_info.read(deployment_info_file)
         self.insert_values(audio_channel=0,
                            UTC_offset=0,
                            audio_sampling_frequency=0,
