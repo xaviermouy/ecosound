@@ -1098,6 +1098,32 @@ class Annotation:
             deployment_ID=dep_info.data["deployment_ID"].values[channel],
         )
 
+    def insert_metadata_blank(self):
+        """
+        Insert blank metadata information to the annotation.
+        Fill in the blank metadata when the deployment_info_file is not provided
+
+        """
+        channel = int(channel)
+        dep_info = DeploymentInfo()
+        dep_info.read(deployment_info_file)
+        self.insert_values(audio_channel=0,
+                           UTC_offset=0,
+                           audio_sampling_frequency=0,
+                           audio_bit_depth=0,
+                           mooring_platform_name='',
+                           recorder_type='',
+                           recorder_SN='',
+                           hydrophone_model='',
+                           hydrophone_SN='',
+                           hydrophone_depth=0,
+                           location_name='',
+                           location_lat=0,
+                           location_lon=0,
+                           location_water_depth=0,
+                           deployment_ID='',
+                           )
+
     def filter_overlap_with(
         self,
         annot,
