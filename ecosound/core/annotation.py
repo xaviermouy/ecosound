@@ -1041,7 +1041,8 @@ class Annotation:
         """
         for key, value in kwargs.items():
             if key in self.data:
-                self.data[key] = value
+                #self.data[key] = value
+                self.data.loc[:, key]
             else:
                 raise ValueError(
                     "The annotation object has no field: " + str(key)
@@ -1478,30 +1479,46 @@ class Annotation:
         # get index of overlapped annots
         ovlp_idx_list = self._identify_ovlp_annot()
 
-        # # merge
-        # for annot_idx in ovlp_idx_list:
-        #     # adjust t1 and t2, fmin, fmax etc
-        #
-        #     # apply merge rules for given columns (e.g. SNR, confidence)
-        #
-        #     # create new dataframe
-        # print('here')
+        # merge
+        annot2 = Annotation()
+        for annot_idx in ovlp_idx_list:
+            annot_tmp = Annotation()
+            annot_tmp.data = self.data.iloc[[annot_idx[0]]]
+            if len(annot_idx)>1:
+                t_min = min(self.data.iloc[annot_idx].time_min_offset)
+                t_max = max(self.data.iloc[annot_idx].time_max_offset)
+                date_min = min(self.data.iloc[annot_idx].time_min_date)
+                date_max = max(self.data.iloc[annot_idx].time_max_date)
+                f_min = min(self.data.iloc[annot_idx].frequency_min)
+                f_max = max(self.data.iloc[annot_idx].frequency_max)
+                # TO DO
+                # apply merge rules for given columns (e.g. SNR, confidence)
+                annot_tmp.insert_values(
+                    time_min_offset=t_min,
+                    time_max_offset=t_max,
+                    duration=t_max-t_min,
+                    time_min_date=date_min,
+                    time_max_date=date_max,
+                    frequency_min=f_min,
+                    frequency_max=f_max,
+                )
+            # create new dataframe
+            annot2 = annot2+annot_tmp
 
+        # remove temporary time shift
+        if time_tolerance_sec:
+            annot2.data.time_min_offset = annot2.data.time_min_offset - time_tolerance_sec
+            annot2.data.time_max_offset = annot2.data.time_max_offset + time_tolerance_sec
 
-        # # remove temporary time shift
-        # if time_tolerance_sec:
-        #     self.data.time_min_offset = self.data.time_min_offset - time_tolerance_sec
-        #     self.data.time_max_offset = self.data.time_max_offset + time_tolerance_sec
-        #
-        # if inplace:
-        #     self.data = ovlp
-        #     self.check_integrity()
-        #     out_object = None
-        # else:
-        #     out_object = copy.copy(self)
-        #     out_object.data = ovlp
-        #     out_object.check_integrity()
-        # return out_object
+        if inplace:
+            self.data = annot2.data
+            self.check_integrity()
+            out_object = None
+        else:
+            out_object = copy.copy(self)
+            out_object.data = annot2.data
+            out_object.check_integrity()
+        return out_object
 
     def update_audio_dir(self, new_data_dir, verbose=False):
         """
