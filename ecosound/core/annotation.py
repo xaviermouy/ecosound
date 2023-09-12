@@ -1491,24 +1491,24 @@ class Annotation:
                 date_max = max(self.data.iloc[annot_idx].time_max_date)
                 f_min = min(self.data.iloc[annot_idx].frequency_min)
                 f_max = max(self.data.iloc[annot_idx].frequency_max)
+                dur = t_max-t_min-(2*time_tolerance_sec)
                 # TO DO
                 # apply merge rules for given columns (e.g. SNR, confidence)
-                annot_tmp.insert_values(
-                    time_min_offset=t_min,
-                    time_max_offset=t_max,
-                    duration=t_max-t_min,
-                    time_min_date=date_min,
-                    time_max_date=date_max,
-                    frequency_min=f_min,
-                    frequency_max=f_max,
-                )
+                annot_tmp.data.loc[:,'time_min_offset'] = t_min
+                annot_tmp.data.loc[:,'time_max_offset'] = t_max
+                annot_tmp.data.loc[:,'duration'] = dur
+                annot_tmp.data.loc[:,'time_min_date'] = date_min
+                annot_tmp.data.loc[:,'time_max_date'] = date_max
+                annot_tmp.data.loc[:,'frequency_min'] = f_min
+                annot_tmp.data.loc[:,'frequency_max'] = f_max
+                
             # create new dataframe
             annot2 = annot2+annot_tmp
 
         # remove temporary time shift
         if time_tolerance_sec:
-            annot2.data.time_min_offset = annot2.data.time_min_offset - time_tolerance_sec
-            annot2.data.time_max_offset = annot2.data.time_max_offset + time_tolerance_sec
+            annot2.data.time_min_offset = annot2.data.time_min_offset + time_tolerance_sec
+            annot2.data.time_max_offset = annot2.data.time_max_offset - time_tolerance_sec
 
         if inplace:
             self.data = annot2.data
@@ -1617,6 +1617,7 @@ class Annotation:
         fig_size=(15, 10),
         deployment_subfolders=False,
         date_subfolders=False,
+        file_subfolder=False,
         file_name_field="uuid",
         file_prefix_field=None,
         channel=None,
@@ -1674,6 +1675,11 @@ class Annotation:
                 if date_subfolders:
                     current_date = annot.time_min_date.strftime("%Y-%m-%d")
                     current_dir2 = os.path.join(current_dir2, current_date)
+                    
+                if file_subfolder:
+                    current_file = annot.audio_file_name
+                    current_dir2 = os.path.join(current_dir2, current_file)
+                    
                 if os.path.isdir(current_dir2) == False:
                     os.mkdir(current_dir2)
 
