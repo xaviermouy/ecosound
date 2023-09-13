@@ -1501,7 +1501,7 @@ class Annotation:
                 annot_tmp.data.loc[:,'time_max_date'] = date_max
                 annot_tmp.data.loc[:,'frequency_min'] = f_min
                 annot_tmp.data.loc[:,'frequency_max'] = f_max
-                
+
             # create new dataframe
             annot2 = annot2+annot_tmp
 
@@ -1660,116 +1660,119 @@ class Annotation:
                 colour="green",
             ):
 
-                # annot = annot_sp.iloc[1969]
-                # idx = 1969
-                # output file name
-                F = self._convert_to_str(annot[file_name_field])
-
-                # create subfolder for each deployment and each day if option selected
-                if deployment_subfolders:
-                    current_dir2 = os.path.join(
-                        current_dir, str(annot.deployment_ID)
-                    )
-                else:
-                    current_dir2 = current_dir
-                if date_subfolders:
-                    current_date = annot.time_min_date.strftime("%Y-%m-%d")
-                    current_dir2 = os.path.join(current_dir2, current_date)
-                    
-                if file_subfolder:
-                    current_file = annot.audio_file_name
-                    current_dir2 = os.path.join(current_dir2, current_file)
-                    
-                if os.path.isdir(current_dir2) == False:
-                    os.mkdir(current_dir2)
-
-                # only if file doesn't exist already
-                if os.path.isfile(os.path.join(current_dir2, F)) == False:
-                    # print("Processing file", F)
-
-                    # Load info from audio file
-                    audio_data = Sound(
-                        os.path.join(
-                            annot["audio_file_dir"], annot["audio_file_name"]
-                        )
-                        + annot["audio_file_extension"]
-                    )
-
-                    # define start/stop times +/- buffer
-                    t1 = annot.time_min_offset - time_buffer_sec
-                    if t1 <= 0:
-                        t1 = 0
-                    t2 = annot.time_max_offset + time_buffer_sec
-                    if t2 > audio_data.file_duration_sec:
-                        t2 = audio_data.file_duration_sec
-                    duration = t2 - t1
-
-                    # load audio data
-                    if channel != None:
-                        chan = int(channel)
-                    else:
-                        chan = annot["audio_channel"] - 1
-                    audio_data.read(
-                        channel=chan,
-                        chunk=[t1, t2],
-                        unit="sec",
-                        detrend=True,
-                    )
-
-                    # decimate
-                    audio_data.decimate(sanpling_rate_hz)
-
-                    # normalize
-                    audio_data.normalize()
-
-                    # compute spectrogram
-                    _ = Spectro.compute(audio_data, dB=True, use_dask=False)
-
-                    # crop if needed
-                    if freq_min_hz != None or freq_max_hz != None:
-                        Spectro.crop(
-                            frequency_min=freq_min_hz,
-                            frequency_max=freq_max_hz,
-                            inplace=True,
-                        )
-
-                    # display/save spectrogram as image file
-                    graph = GrapherFactory(
-                        "SoundPlotter",
-                        title=annot["audio_file_name"]
-                        + " - "
-                        + str(abs(round(annot["time_min_offset"], 2))),
-                        fig_size=fig_size,
-                        colormap=colormap,
-                    )
-                    # crop plot if needed
-                    if freq_min_hz != None:
-                        graph.frequency_min = freq_min_hz
-                    if freq_max_hz != None:
-                        graph.frequency_max = freq_max_hz
-
+                try:
+                    # annot = annot_sp.iloc[1969]
+                    # idx = 1969
                     # output file name
-                    graph.add_data(Spectro)
-                    if file_prefix_field:
-                        prefix = self._convert_to_str(annot[file_prefix_field])
-                        full_out_file = os.path.join(
-                            current_dir2, prefix + "_" + F
+                    F = self._convert_to_str(annot[file_name_field])
+
+                    # create subfolder for each deployment and each day if option selected
+                    if deployment_subfolders:
+                        current_dir2 = os.path.join(
+                            current_dir, str(annot.deployment_ID)
                         )
                     else:
-                        full_out_file = os.path.join(current_dir2, F)
+                        current_dir2 = current_dir
+                    if date_subfolders:
+                        current_date = annot.time_min_date.strftime("%Y-%m-%d")
+                        current_dir2 = os.path.join(current_dir2, current_date)
 
-                    graph.to_file(full_out_file + ".png")
+                    if file_subfolder:
+                        current_file = annot.audio_file_name
+                        current_dir2 = os.path.join(current_dir2, current_file)
 
-                    if save_wav:
-                        audio_data.write(full_out_file + ".wav")
+                    if os.path.isdir(current_dir2) == False:
+                        os.mkdir(current_dir2)
 
-                    # graph.show()
+                    # only if file doesn't exist already
+                    if os.path.isfile(os.path.join(current_dir2, F)) == False:
+                        # print("Processing file", F)
 
-                    # if params["spetro_on_npy"]:
-                    #    np.save(os.path.splitext(outfilename)[0] + ".npy", S)
-                    # annot_unique_id += 1
-                # else:
-                # print("file ", F, " already processed.")
+                        # Load info from audio file
+                        audio_data = Sound(
+                            os.path.join(
+                                annot["audio_file_dir"], annot["audio_file_name"]
+                            )
+                            + annot["audio_file_extension"]
+                        )
+
+                        # define start/stop times +/- buffer
+                        t1 = annot.time_min_offset - time_buffer_sec
+                        if t1 <= 0:
+                            t1 = 0
+                        t2 = annot.time_max_offset + time_buffer_sec
+                        if t2 > audio_data.file_duration_sec:
+                            t2 = audio_data.file_duration_sec
+                        duration = t2 - t1
+
+                        # load audio data
+                        if channel != None:
+                            chan = int(channel)
+                        else:
+                            chan = annot["audio_channel"] - 1
+                        audio_data.read(
+                            channel=chan,
+                            chunk=[t1, t2],
+                            unit="sec",
+                            detrend=True,
+                        )
+
+                        # decimate
+                        audio_data.decimate(sanpling_rate_hz)
+
+                        # normalize
+                        audio_data.normalize()
+
+                        # compute spectrogram
+                        _ = Spectro.compute(audio_data, dB=True, use_dask=False)
+
+                        # crop if needed
+                        if freq_min_hz != None or freq_max_hz != None:
+                            Spectro.crop(
+                                frequency_min=freq_min_hz,
+                                frequency_max=freq_max_hz,
+                                inplace=True,
+                            )
+
+                        # display/save spectrogram as image file
+                        graph = GrapherFactory(
+                            "SoundPlotter",
+                            title=annot["audio_file_name"]
+                            + " - "
+                            + str(abs(round(annot["time_min_offset"], 2))),
+                            fig_size=fig_size,
+                            colormap=colormap,
+                        )
+                        # crop plot if needed
+                        if freq_min_hz != None:
+                            graph.frequency_min = freq_min_hz
+                        if freq_max_hz != None:
+                            graph.frequency_max = freq_max_hz
+
+                        # output file name
+                        graph.add_data(Spectro)
+                        if file_prefix_field:
+                            prefix = self._convert_to_str(annot[file_prefix_field])
+                            full_out_file = os.path.join(
+                                current_dir2, prefix + "_" + F
+                            )
+                        else:
+                            full_out_file = os.path.join(current_dir2, F)
+
+                        graph.to_file(full_out_file + ".png")
+
+                        if save_wav:
+                            audio_data.write(full_out_file + ".wav")
+
+                        # graph.show()
+
+                        # if params["spetro_on_npy"]:
+                        #    np.save(os.path.splitext(outfilename)[0] + ".npy", S)
+                        # annot_unique_id += 1
+                    # else:
+                    # print("file ", F, " already processed.")
+                except Exception as error:
+                    print("An error occurred:", type(error).__name__, "–", error)
 
     def get_labels_class(self):
         """
