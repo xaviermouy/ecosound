@@ -428,8 +428,11 @@ class Sound:
 
     def normalize(self, method="amplitude"):
         if method == "amplitude":
+            self._waveform = self._waveform - np.mean(self._waveform)
             self._waveform = self._waveform / np.max(self._waveform)
-
+        if method == "std":
+            self._waveform = self._waveform - np.mean(self._waveform)
+            self._waveform = self._waveform / np.std(self._waveform)
     def plot(
         self,
         unit="sec",
