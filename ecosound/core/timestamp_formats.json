@@ -1,37 +1,43 @@
 [
  {
+  "name": "AMAR_v0",
+  "string_pattern":"\\.[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}\\.",
+  "time_format": ".%Y-%m-%d-%H-%M-%S."
+ }
+ ,
+ {
   "name": "AMAR_v1",
-  "string_pattern":"_[0-9]{8}T[0-9]{6}.[0-9]{3}Z.",
+  "string_pattern":"_[0-9]{8}T[0-9]{6}\\.[0-9]{3}Z\\.",
   "time_format": "_%Y%m%dT%H%M%S.%fZ."
  }
  ,
 {
   "name": "AMARS_v2",
-  "string_pattern":".[0-9]{8}T[0-9]{6}Z.",
+  "string_pattern":"\\.[0-9]{8}T[0-9]{6}Z\\.",
   "time_format": ".%Y%m%dT%H%M%SZ."
  }
  ,
 {
   "name": "SOUNDTRAPS",
-  "string_pattern":".([0-9]{12}).",
+  "string_pattern":"\\.([0-9]{12})\\.",
   "time_format": ".%y%m%d%H%M%S."
  }
  ,
  {
   "name": "SOUNDTRAPS_UAberdeen",
-  "string_pattern":"_([0-9]{12}).",
+  "string_pattern":"_([0-9]{12})\\.",
   "time_format": "_%y%m%d%H%M%S."
  }
  ,
 {
   "name": "MARU",
-  "string_pattern":"_[0-9]{8}_[0-9]{6}.",
+  "string_pattern":"_[0-9]{8}_[0-9]{6}\\.",
   "time_format": "_%Y%m%d_%H%M%S."
  }
 ,
 {
   "name": "SAMS",
-  "string_pattern":"_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}.",
+  "string_pattern":"_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\\.",
   "time_format": "_%Y-%m-%d_%H-%M-%S."
  }
 ]
