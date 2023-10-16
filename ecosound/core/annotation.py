@@ -1042,7 +1042,7 @@ class Annotation:
         for key, value in kwargs.items():
             if key in self.data:
                 #self.data[key] = value
-                self.data.loc[:, key]
+                self.data.loc[:, key] = value
             else:
                 raise ValueError(
                     "The annotation object has no field: " + str(key)
@@ -1108,7 +1108,7 @@ class Annotation:
         self.insert_values(audio_channel=0,
                            UTC_offset=0,
                            audio_sampling_frequency=0,
-                           audio_bit_depth=0,
+                           audio_bit_depth=int(0),
                            mooring_platform_name='',
                            recorder_type='',
                            recorder_SN='',
