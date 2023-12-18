@@ -36,6 +36,24 @@
  }
 ,
 {
+  "name": "MARU_with_ms",
+  "string_pattern":"_[0-9]{8}_[0-9]{6}_[0-9]{3}\\.",
+  "time_format": "_%Y%m%d_%H%M%S_%f."
+ }
+,
+{
+  "name": "MARU_variant",
+  "string_pattern":"_[0-9]{6}_[0-9]{6}_",
+  "time_format": "_%y%m%d_%H%M%S_"
+ }
+ ,
+{
+  "name": "PMEL",
+  "string_pattern":"-[0-9]{6}-[0-9]{6}\\.",
+  "time_format": "-%y%m%d-%H%M%S."
+ }
+,
+{
   "name": "SAMS",
   "string_pattern":"_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\\.",
   "time_format": "_%Y-%m-%d_%H-%M-%S."
