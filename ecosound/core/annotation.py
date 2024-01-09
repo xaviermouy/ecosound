@@ -1617,6 +1617,7 @@ class Annotation:
         fig_size=(15, 10),
         deployment_subfolders=False,
         date_subfolders=False,
+        date_subfolders_format="%Y-%m-%d",
         file_subfolder=False,
         file_name_field="uuid",
         file_prefix_field=None,
@@ -1674,7 +1675,7 @@ class Annotation:
                     else:
                         current_dir2 = current_dir
                     if date_subfolders:
-                        current_date = annot.time_min_date.strftime("%Y-%m-%d")
+                        current_date = annot.time_min_date.strftime(date_subfolders_format)
                         current_dir2 = os.path.join(current_dir2, current_date)
 
                     if file_subfolder:
