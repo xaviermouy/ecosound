@@ -32,7 +32,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
+#from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
@@ -368,12 +368,12 @@ def main():
     input_args['cv_splits'] = 10 #5
     input_args['cv_repeats'] = 1
     input_args['rebalance_classes'] = True
-    #input_args['data_file']= r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\results\dataset_FS-NN_modified_20201105145300.nc'
-    input_args['data_file']= r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\results\dataset_FS-NN_modified_20200902194334.nc'
-    input_args['out_dir'] = r'C:\Users\xavier.mouy\Documents\PhD\Projects\Detector\results\Classification'
-    input_args['run_CV'] = False
+    input_args['data_file']= r'J:\JASCO_laptop_backup\Documents\PhD\Projects\Detector\results\\dataset_FS-NN_modified_20201105145300.nc'
+    #input_args['data_file']= r'J:\JASCO_laptop_backup\Documents\PhD\Projects\Detector\results\dataset_FS-NN_modified_20200902194334.nc'
+    input_args['out_dir'] = r'J:\JASCO_laptop_backup\Documents\PhD\Projects\Detector\results\Classification'
+    input_args['run_CV'] = True
     input_args['train_final_model'] = True
-    input_args['final_model_name'] = 'RF50'
+    input_args['final_model_name'] = 'RF5'
 
     ## DEFINITION OF CLASSIFIERS -------------------------------------------------
     models = []
@@ -384,7 +384,7 @@ def main():
     #models.append(('KNN', KNeighborsClassifier(n_neighbors=4, metric='euclidean')))
     models.append(('CART', DecisionTreeClassifier()))
     #models.append(('NB', GaussianNB()))
-    models.append(('XGBoost', XGBClassifier()))
+    #models.append(('XGBoost', XGBClassifier()))
     #models.append(('MLP', MLPClassifier(solver='sgd', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=0)))
     models.append(('RF5', RandomForestClassifier(n_estimators=5,min_samples_split= 100, min_samples_leaf=50,random_state=0)))
     models.append(('RF10', RandomForestClassifier(n_estimators=10,min_samples_split= 100, min_samples_leaf=50,random_state=0)))

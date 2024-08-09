@@ -1265,6 +1265,14 @@ class Annotation:
                 df_ovlp = df_ovlp[df_ovlp >= ovlp_ratio_min]
 
             if (len(df) > 1) & remove_duplicates:
+                df_ovlp = (
+                              df["time_max_offset"].apply(
+                                  lambda x: min(x, an.time_max_offset)
+                              )
+                              - df["time_min_offset"].apply(
+                              lambda x: max(x, an.time_min_offset)
+                          )
+                          ) / an.duration
                 try:
                     df = df.iloc[
                         [df_ovlp.values.argmax()]

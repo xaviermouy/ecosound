@@ -64,4 +64,5 @@
   "string_pattern":"_[0-9]{8}_[0-9]{6}Z\\.",
   "time_format": "_%Y%m%d_%H%M%SZ."
  }
+
 ]
