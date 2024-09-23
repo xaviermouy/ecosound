@@ -64,5 +64,16 @@
   "string_pattern":"_[0-9]{8}_[0-9]{6}Z\\.",
   "time_format": "_%Y%m%d_%H%M%SZ."
  }
-
+ ,
+ {
+  "name": "NOAA_SOUNDTRAPS_v2",
+  "string_pattern":"\\.([0-9]{14})\\.",
+  "time_format": ".%Y%m%d%H%M%S."
+ }
+,
+ {
+  "name": "Loggerhead",
+  "string_pattern":"[0-9]{8}T[0-9]{6}\\.",
+  "time_format": "%Y%m%dT%H%M%S."
+ }
 ]
