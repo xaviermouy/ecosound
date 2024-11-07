@@ -1,24 +1,9 @@
 
-.. image:: docs\source\_static\ecosound_logo_small.png
+.. image:: docs/source/_static/ecosound_logo_small.png
 
 
 Welcome to ecosound!
 ====================
-
-.. image:: https://img.shields.io/pypi/v/ecosound.svg
-        :target: https://pypi.python.org/pypi/ecosound
-		
-.. image:: https://readthedocs.org/projects/ecosound/badge/?version=latest
-        :target: https://ecosound.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
-		
-.. image:: https://travis-ci.com/xaviermouy/ecosound.svg?branch=master
-    :target: https://travis-ci.com/xaviermouy/ecosound
-
-.. image:: https://coveralls.io/repos/github/xaviermouy/ecosound/badge.svg?branch=master
-	:target: https://coveralls.io/github/xaviermouy/ecosound?branch=master
-
-	
 
 **Ecosound** is an open source python package to facilitate the analysis of passive acoustic data. It includes modules for manual annotation
 processing and visualization, automatic detection, signal classification, and localization. It heavily relies on libraries such as xarray,
