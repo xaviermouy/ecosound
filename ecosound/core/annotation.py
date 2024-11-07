@@ -314,7 +314,7 @@ class Annotation:
         files,
         class_header="Sound type",
         subclass_header=None,
-        is_file_sequence=False,
+        confidence_header=None,
         recursive=False,
         verbose=False,
     ):
@@ -336,6 +336,9 @@ class Annotation:
         subclass_header : str, optional
             Name of the header in the Raven file corresponding to the subclass
             name. The default is None.
+        confidence_header : str, optional
+            Name of the header in the Raven file corresponding to the confidence
+            value. The default is None.
         recursive : bool, optional
             If set to True, goes rcursively through all subfolders. The default
             is False.
@@ -411,6 +414,8 @@ class Annotation:
             self.data["label_class"] = data[class_header]
         if subclass_header is not None:
             self.data["label_subclass"] = data[subclass_header]
+        if confidence_header is not None:
+            self.data["confidence"] = data[confidence_header]
         self.data["from_detector"] = False
         self.data["software_name"] = "raven"
         self.data["uuid"] = self.data.apply(
