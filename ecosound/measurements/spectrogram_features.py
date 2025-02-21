@@ -707,6 +707,11 @@ class SpectrogramFeatures(BaseClass):
             Dataframe with measurmenets of the envelope.
 
         """
+        # add offset to only have positive values
+        if min(values) < 0:
+            values = values + abs(min(values))
+        else:
+            values = values - min(values)
         # peak
         peak_value, peak_position_unit, peak_position_relative = SpectrogramFeatures.peak(values, axis)
         # Position of percentiles

@@ -34,7 +34,7 @@ nfft = 4096
 step = 500
 window_type = 'hann'
 fmin = 0 # freq min (Hz)
-fmax = 1000 # freq max (Hz) 
+fmax = 1000 # freq max (Hz)
 dB = False
 # Denoising:
 remove_background = True # True or False => subtract average spectrum before doing measurements
@@ -84,6 +84,9 @@ for annot_file in annot_files:
     if remove_background:
         bkg_spectrum = spectro.spectrogram.mean(axis=1)
         spectro._spectrogram = spectro.spectrogram - bkg_spectrum[:, np.newaxis]
+
+    # apply frequency independent amplitude offset to avoid negative values
+    spectro._spectrogram = spectro.spectrogram + abs(spectro._spectrogram.min())
 
     # # Plot - uncomment to look at denoising spectrogram on a single file
     # graph = GrapherFactory('SoundPlotter', title='Recording', frequency_max=fmax)
