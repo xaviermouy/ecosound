@@ -17,6 +17,7 @@ def rolling_energy(x, window, alignment='center', pad_mode='reflect'):
     """
     Rolling energy (sum of squares) over a window along the last axis.
 
+
     Args:
         x (array-like): 1D waveform (or ND, time on the last axis).
         window (int): number of samples in the window (>=1).
@@ -26,6 +27,7 @@ def rolling_energy(x, window, alignment='center', pad_mode='reflect'):
             - 'future': anti-causal; includes current and next (window-1) samples
         pad_mode (str): np.pad mode for edge handling ('reflect', 'edge', 'constant', ...)
 
+
     Returns:
         np.ndarray: same shape as x with rolling energy along the last axis.
     """
@@ -34,8 +36,10 @@ def rolling_energy(x, window, alignment='center', pad_mode='reflect'):
     if alignment not in ('center', 'past', 'future'):
         raise ValueError("alignment must be 'center', 'past', or 'future'")
 
+
     x = np.asarray(x, dtype=np.float64)
     kernel = np.ones(int(window), dtype=np.float64)
+
 
     # Handle multi-d arrays by applying along the last axis
     if x.ndim > 1:
@@ -47,8 +51,11 @@ def rolling_energy(x, window, alignment='center', pad_mode='reflect'):
         return _rolling_energy_1d(x, window, alignment, pad_mode, kernel)
 
 
+
+
 def _rolling_energy_1d(x, window, alignment, pad_mode, kernel):
     x2 = x * x
+
 
     if alignment == 'center':
         left = window // 2
@@ -59,19 +66,23 @@ def _rolling_energy_1d(x, window, alignment, pad_mode, kernel):
     else:                               # 'future' anti-causal (lookahead)
         pad = (0, window - 1)
 
+
     x2_pad = np.pad(x2, pad, mode=pad_mode)
     # Convolution with 'valid' keeps output length == len(x)
     return np.convolve(x2_pad, kernel, mode='valid')
+
 
 def max_peaks_by_threshold(array, threshold, strictly=True):
     """
     Find the maximum peak (value and index) for each contiguous region
     where `array` exceeds `threshold`.
 
+
     Args:
         array (1D array-like): input signal.
         threshold (float): threshold to exceed.
         strictly (bool): if True use '>' (exceed), if False use '>='.
+
 
     Returns:
         peak_idx (np.ndarray[int]): indices of the max peak in each region.
@@ -81,9 +92,11 @@ def max_peaks_by_threshold(array, threshold, strictly=True):
     if x.ndim != 1:
         raise ValueError("array must be 1D")
 
+
     mask = (x > threshold) if strictly else (x >= threshold)
     if not mask.any():
         return np.array([], dtype=int), np.array([], dtype=x.dtype)
+
 
     # Find region boundaries where mask turns on/off
     d = np.diff(mask.astype(np.int8))
@@ -94,18 +107,22 @@ def max_peaks_by_threshold(array, threshold, strictly=True):
     if mask[-1]:  # ended above threshold
         ends = np.r_[ends, len(x)]
 
+
     peak_idx, peak_val = [], []
     for s, e in zip(starts, ends):
         i = s + np.argmax(x[s:e])  # first index of max if plateau
         peak_idx.append(i)
         peak_val.append(x[i])
 
+
     return np.array(peak_idx, dtype=int), np.array(peak_val)
 
+
 ## ####################################################################
-annot_dir = r'C:\Users\xavier.mouy\Documents\GitHub\Haddock-detector\data\test_features'
-audio_dir = r'C:\Users\xavier.mouy\Documents\GitHub\Haddock-detector\data\test_features'
-out_dir = r'C:\Users\xavier.mouy\Documents\GitHub\Haddock-detector\data\test_features\output_measurements'
+annot_dir = r'Z:\DATA_ANALYSIS\FISH\NEFSC_SBNMS_HADDOCK\NEFSC_SBNMS_201901_SB02\Raven_tables'
+audio_dir = r'\\nefscdata\PassiveAcoustics_Soundfiles\BOTTOM_MOUNTED\NEFSC_SBNMS\NEFSC_SBNMS_201901_SB02\805867544_48kHz'
+out_dir = r'Z:\DATA_ANALYSIS\FISH\NEFSC_SBNMS_HADDOCK\NEFSC_SBNMS_201901_SB02\output_measurements'
+
 
 # Spectrogram parameters
 spectro_unit='sec'
@@ -113,22 +130,28 @@ spectro_nfft=0.08
 spectro_frame=0.05
 spectro_inc=0.008
 
+
 window_type = 'hann'
 disp_plots = True
 
+
 resampling_fs_hz = 4000
 bkg_spectral_subtraction = True
+
 
 freq_min_hz=30
 freq_max_hz=1000
 energy_window_sec = 0.06
 energy_threshold = 0.4
 
+
 ## ####################################################################
+
 
 # load detections
 detec = Annotation()
-detec.from_raven(annot_dir)
+detec.from_raven(annot_dir, verbose= True)
+
 
 # loop through detection and perform measurements
 first_meas = True 
@@ -155,12 +178,15 @@ for idx in range(0,len(detec)):
         spectro = Spectrogram(spectro_frame, window_type, spectro_nfft, spectro_inc, fs, unit=spectro_unit)
         spectro.compute(sound, dB=True)
 
+
         spectro.crop(frequency_min=freq_min_hz, frequency_max=freq_max_hz,inplace=True)
+
 
         # denoise
         if bkg_spectral_subtraction:
             bkg_spec = np.mean(spectro.spectrogram,axis=1)
             spectro._spectrogram = spectro.spectrogram - bkg_spec[:,None]
+
 
         # calculate energy
         energy_window_samp = round(energy_window_sec * fs)
@@ -169,9 +195,11 @@ for idx in range(0,len(detec)):
         E = E/max(E)
         E = savgol_filter(E, window_length=energy_window_samp, polyorder=2)
 
+
         # Define energy peaks
         peaks_samp, peaks_vals = max_peaks_by_threshold(E, energy_threshold)
         peaks_sec = peaks_samp/fs
+
 
         # ---- plot ----
         fs = sound.waveform_sampling_frequency
@@ -207,8 +235,10 @@ for idx in range(0,len(detec)):
         #plt.savefig('overlayed_energy.png')
         #plt.show()
 
+
         # Measurements
         if len(peaks_sec) > 1:
+
 
             IPI = peaks_sec[1:] - peaks_sec[0:-1] # Inter-pulse interval
             IPI_median_sec = np.median(IPI) # median
@@ -219,9 +249,11 @@ for idx in range(0,len(detec)):
             dur_sec = peaks_sec[-1]-peaks_sec[0] # duration
             n_pulses = len(peaks_sec) # number of pulses
 
+
             # calculate average spectrum of pulses
             first_it = True
             for peak_sec in peaks_sec:
+
 
                 start_sec=peak_sec - (energy_window_sec/2)
                 end_sec = peak_sec + (energy_window_sec/2)
@@ -246,6 +278,8 @@ for idx in range(0,len(detec)):
             fig.tight_layout()
             plt.savefig(os.path.join(out_dir, ID+'.png'))
             #plt.show()
+            plt.close('all')
+
 
             # Spectral measurements
             # peak
@@ -263,6 +297,7 @@ for idx in range(0,len(detec)):
             concentration_unit = SpectrogramFeatures.concentration(av_spec, spectro.axis_frequencies)
             # centroid
             centroid = SpectrogramFeatures.centroid(av_spec, spectro.axis_frequencies)
+
 
             # save as dataframe
             features = pd.DataFrame({
@@ -286,6 +321,7 @@ for idx in range(0,len(detec)):
                 'freq_centroid_hz': [centroid],
             })
 
+
             #Stack measurements
             if first_meas == True:
                 first_meas = False
@@ -294,7 +330,8 @@ for idx in range(0,len(detec)):
                 measurements_df = pd.concat([measurements_df,features], ignore_index=True)
             print('Finished!')
 
-    except:
-        print('Issue happened with this detection')
 
+    except Exception as e:
+        print('Issue happened with this detection')
+        print(f"A general error occurred: {e}")
 measurements_df.to_csv(os.path.join(out_dir,'measurements.csv'),index=False)
