@@ -119,42 +119,44 @@ def max_peaks_by_threshold(array, threshold, strictly=True):
 
 
 ## ####################################################################
-annot_dir = r'Z:\DATA_ANALYSIS\FISH\NEFSC_SBNMS_HADDOCK\NEFSC_SBNMS_201901_SB02\Raven_tables'
-audio_dir = r'\\nefscdata\PassiveAcoustics_Soundfiles\BOTTOM_MOUNTED\NEFSC_SBNMS\NEFSC_SBNMS_201901_SB02\805867544_48kHz'
-out_dir = r'Z:\DATA_ANALYSIS\FISH\NEFSC_SBNMS_HADDOCK\NEFSC_SBNMS_201901_SB02\output_measurements'
-
+annot_dir = r'Z:\DATA_ANALYSIS\FISH\NEFSC_SBNMS_HADDOCK\NEFSC_SBNMS_201901_SB02\Raven_tables'  # folder where the annotation are
+audio_dir = r'\\nefscdata\PassiveAcoustics_Soundfiles\BOTTOM_MOUNTED\NEFSC_SBNMS\NEFSC_SBNMS_201901_SB02\805867544_48kHz' # folder where the corresponding audio data are
+out_dir = r'Z:\DATA_ANALYSIS\FISH\NEFSC_SBNMS_HADDOCK\NEFSC_SBNMS_201901_SB02\output_measurements' # folder where results are written
 
 # Spectrogram parameters
 spectro_unit='sec'
 spectro_nfft=0.08
 spectro_frame=0.05
 spectro_inc=0.008
-
-
 window_type = 'hann'
 disp_plots = True
-
+time_buffer_sec = 1 # nb seconds to add before and after the annotation to provide more context when manually reviewing results
 
 resampling_fs_hz = 4000
 bkg_spectral_subtraction = True
 
-
+# For the ernegy calculation
 freq_min_hz=30
 freq_max_hz=1000
 energy_window_sec = 0.06
 energy_threshold = 0.4
 
+# Filters
+min_duration_sec = 0.5 # minimum duration of the annotations to process (can be used to remove annotations that are too short)
 
 ## ####################################################################
+
 
 
 # load detections
 detec = Annotation()
 detec.from_raven(annot_dir, verbose= True)
 
+# filter by duration
+detec.filter(f'duration>={min_duration_sec}',inplace=True)
 
 # loop through detection and perform measurements
-first_meas = True 
+first_meas = True
 for idx in range(0,len(detec)):
     detec_test = detec.data.iloc[[idx]]
     try:
@@ -166,8 +168,19 @@ for idx in range(0,len(detec)):
         ID = detec_test['audio_file_name'] + '_' + str(start_time)
         ID = ID.values[0]
         print(ID)
-        # load audio data
+
+        # define audio file
         sound = Sound(file_path)
+
+        # apply time offset
+        start_time = start_time - time_buffer_sec
+        end_time = end_time + time_buffer_sec
+        if start_time<0:
+            start_time=0
+        if end_time > sound.file_duration_sec:
+            end_time=sound.file_duration_sec
+
+        # load audio data
         sound.read(channel=file_channel, chunk=[start_time, end_time],unit='sec')
         # decimate
         sound.decimate(new_sampling_frequency=resampling_fs_hz)
