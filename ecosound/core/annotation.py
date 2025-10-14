@@ -1482,7 +1482,7 @@ class Annotation:
             out_object.check_integrity()
         return out_object
 
-    def merge_overlapped(self, time_tolerance_sec=None, inplace=False):
+    def merge_overlapped(self, time_tolerance_sec=None, confidence_agg='max', min_merged_detections=1, inplace=False):
 
         # add temporary time shift
         if time_tolerance_sec:
@@ -1491,6 +1491,13 @@ class Annotation:
 
         # get index of overlapped annots
         ovlp_idx_list = self._identify_ovlp_annot()
+        merged_detec_number = [len(element) for element in ovlp_idx_list]
+
+        # filter/delete based on min number of merged detections (could be useful for only retaining click trains)
+        if min_merged_detections > 1:
+            idx_del = [index for index, value in enumerate(merged_detec_number) if value < min_merged_detections]
+            merged_detec_number = [value for index, value in enumerate(merged_detec_number) if index not in idx_del]
+            ovlp_idx_list = [value for index, value in enumerate(ovlp_idx_list) if index not in idx_del]
 
         # merge
         annot2 = Annotation()
@@ -1505,6 +1512,14 @@ class Annotation:
                 f_min = min(self.data.iloc[annot_idx].frequency_min)
                 f_max = max(self.data.iloc[annot_idx].frequency_max)
                 dur = t_max-t_min-(2*time_tolerance_sec)
+                if confidence_agg == 'max':
+                    conf = max(self.data.iloc[annot_idx].confidence)
+                elif confidence_agg == 'min':
+                    conf = min(self.data.iloc[annot_idx].confidence)
+                elif confidence_agg == 'mean':
+                    conf = float(np.mean(self.data.iloc[annot_idx].confidence))
+                elif confidence_agg == 'median':
+                    conf = float(np.median(self.data.iloc[annot_idx].confidence))
                 # TO DO
                 # apply merge rules for given columns (e.g. SNR, confidence)
                 annot_tmp.data.loc[:,'time_min_offset'] = t_min
@@ -1514,6 +1529,7 @@ class Annotation:
                 annot_tmp.data.loc[:,'time_max_date'] = date_max
                 annot_tmp.data.loc[:,'frequency_min'] = f_min
                 annot_tmp.data.loc[:,'frequency_max'] = f_max
+                annot_tmp.data.loc[:,'confidence'] = conf
 
             # create new dataframe
             annot2 = annot2+annot_tmp
@@ -1531,7 +1547,7 @@ class Annotation:
             out_object = copy.copy(self)
             out_object.data = annot2.data
             out_object.check_integrity()
-        return out_object
+        return  merged_detec_number, out_object
 
     def update_audio_dir(self, new_data_dir, verbose=False):
         """
