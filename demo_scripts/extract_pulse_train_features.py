@@ -12,6 +12,25 @@ import os
 import pandas as pd
 import numpy as np
 import scipy.signal as spsig
+from xarray.util.generate_ops import inplace
+'''
+This script measures characteristics of pulse trains from annotation
+
+Requires 1 Raven tabel file per audio file. Each Raven table should have teh following columns:
+- Selection
+- View
+- Channel
+- Begin Time (s)
+- End Time (s)
+- Low Freq (Hz)
+- High Freq (Hz)
+- Begin Path
+- Begin File
+- File Offset (s)
+- Sound type
+
+
+'''
 matplotlib.use('TkAgg')
 def rolling_energy(x, window, alignment='center', pad_mode='reflect'):
     """
@@ -119,27 +138,27 @@ def max_peaks_by_threshold(array, threshold, strictly=True):
 
 
 ## ####################################################################
-annot_dir = r'Z:\DATA_ANALYSIS\FISH\NEFSC_SBNMS_HADDOCK\NEFSC_SBNMS_201901_SB02\Raven_tables'  # folder where the annotation are
-audio_dir = r'\\nefscdata\PassiveAcoustics_Soundfiles\BOTTOM_MOUNTED\NEFSC_SBNMS\NEFSC_SBNMS_201901_SB02\805867544_48kHz' # folder where the corresponding audio data are
-out_dir = r'Z:\DATA_ANALYSIS\FISH\NEFSC_SBNMS_HADDOCK\NEFSC_SBNMS_201901_SB02\output_measurements' # folder where results are written
+annot_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel'  # folder where the annotations are
+audio_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel' # folder where the corresponding audio data are
+out_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel\measurements' # folder where results are written
 
 # Spectrogram parameters
 spectro_unit='sec'
-spectro_nfft=0.08
-spectro_frame=0.05
+spectro_nfft=0.05
+spectro_frame=0.021
 spectro_inc=0.008
 window_type = 'hann'
-disp_plots = True
-time_buffer_sec = 1 # nb seconds to add before and after the annotation to provide more context when manually reviewing results
+disp_plots = False
+time_buffer_sec = 0.2 # nb seconds to add before and after the annotation to provide more context when manually reviewing results
 
-resampling_fs_hz = 4000
+resampling_fs_hz = 8000
 bkg_spectral_subtraction = True
 
 # For the ernegy calculation
-freq_min_hz=30
-freq_max_hz=1000
-energy_window_sec = 0.06
-energy_threshold = 0.4
+freq_min_hz=500
+freq_max_hz=2500
+energy_window_sec = 0.02
+energy_threshold = 0.2
 
 # Filters
 min_duration_sec = 0.5 # minimum duration of the annotations to process (can be used to remove annotations that are too short)
@@ -154,6 +173,9 @@ detec.from_raven(annot_dir, verbose= True)
 
 # filter by duration
 detec.filter(f'duration>={min_duration_sec}',inplace=True)
+
+# update audio file path
+detec.update_audio_dir(audio_dir)
 
 # loop through detection and perform measurements
 first_meas = True
@@ -246,7 +268,8 @@ for idx in range(0,len(detec)):
         axes[1].set_xlim(t_x[0], t_x[-1])
         fig.tight_layout()
         #plt.savefig('overlayed_energy.png')
-        #plt.show()
+        if disp_plots:
+            plt.show()
 
 
         # Measurements
@@ -258,7 +281,7 @@ for idx in range(0,len(detec)):
             IPI_mean_sec = np.mean(IPI) # mean
             IPI_std_sec = np.std(IPI) # standard deviation
             IPI_cv = IPI_std_sec/IPI_mean_sec #  coefficient of variation (CV) - measure of dispersiom
-            PPR_hz = 1/IPI_mean_sec # pulse repetition rate
+            PRR_hz = 1/IPI_mean_sec # pulse repetition rate
             dur_sec = peaks_sec[-1]-peaks_sec[0] # duration
             n_pulses = len(peaks_sec) # number of pulses
 
@@ -268,8 +291,8 @@ for idx in range(0,len(detec)):
             for peak_sec in peaks_sec:
 
 
-                start_sec=peak_sec - (energy_window_sec/2)
-                end_sec = peak_sec + (energy_window_sec/2)
+                start_sec=peak_sec - (energy_window_sec)
+                end_sec = peak_sec + (energy_window_sec)
                 mask = (spectro.axis_times >= start_sec) & (spectro.axis_times <= end_sec)
                 idx_1d = np.where(mask)[0]
                 #av_spec =  np.sum(spectro.spectrogram[:,idx_1d],1)
@@ -320,7 +343,7 @@ for idx in range(0,len(detec)):
                 'IPI_mean_sec':[IPI_mean_sec],
                 'IPI_std_sec':[IPI_std_sec],
                 'IPI_cv':[IPI_cv],
-                'PPR_hz':[PPR_hz],
+                'PRR_hz':[PRR_hz],
                 'dur_sec':[dur_sec],
                 'n_pulses':[n_pulses],
                 'freq_peak_hz': [peak_position_unit],
@@ -332,6 +355,8 @@ for idx in range(0,len(detec)):
                 'freq_IQR_hz': [inter_quart_range],
                 'freq_concentration_hz': [concentration_unit],
                 'freq_centroid_hz': [centroid],
+                'spectrum_freq_hz': [spectro.axis_frequencies],
+                'spectrum_normalized_amplitude': [av_spec]
             })
 
 

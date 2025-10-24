@@ -1629,6 +1629,7 @@ class Annotation:
         else:
             if verbose:
                 print("Audio paths succesfully updated.")
+        return missing_files_list
 
     def export_spectrograms(
         self,

@@ -1,0 +1,11 @@
+Selection	View	Channel	Begin Time (s)	End Time (s)	Low Freq (Hz)	High Freq (Hz)	Begin Path	Begin File	File Offset (s)	Sound type
+1	Waveform 1	1	23.376475542	27.182989759	495.300	3402.700	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	23.3765	CE
+1	Spectrogram 1	1	23.376475542	27.182989759	495.300	3402.700	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	23.3765	CE
+2	Waveform 1	1	28.616030405	32.377762101	484.600	3079.700	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	28.6160	CE
+2	Spectrogram 1	1	28.616030405	32.377762101	484.600	3079.700	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	28.6160	CE
+3	Waveform 1	1	39.453400292	42.677741746	538.400	2584.300	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	39.4534	CE
+3	Spectrogram 1	1	39.453400292	42.677741746	538.400	2584.300	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	39.4534	CE
+4	Waveform 1	1	44.692955155	47.648601488	538.400	2950.500	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	44.6930	CE
+4	Spectrogram 1	1	44.692955155	47.648601488	538.400	2950.500	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	44.6930	CE
+5	Waveform 1	1	48.228874615	51.902940907	344.600	3025.800	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	48.2289	CE
+5	Spectrogram 1	1	48.228874615	51.902940907	344.600	3025.800	C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\7817.230831000000.wav	7817.230831000000.wav	48.2289	CE
