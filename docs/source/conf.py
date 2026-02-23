@@ -37,6 +37,18 @@ extensions = [
     'sphinx.ext.autosectionlabel',
 ]
 
+# Mock heavy/binary dependencies so autodoc can import ecosound on ReadTheDocs
+# without needing to compile or install packages like opencv or numba.
+autodoc_mock_imports = [
+    'cv2',
+    'numba',
+    'dask_image',
+    'netCDF4',
+    'eccodes',
+    'sklearn',
+    'skimage',
+]
+
 # Napoleon settings (for NumPy-style docstrings)
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
