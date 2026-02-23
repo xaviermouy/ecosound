@@ -18,7 +18,20 @@ import yaml
 
 
 def read_json(file):
-    """Load JSON file as dict."""
+    """
+    Load a JSON file as a dictionary.
+
+    Parameters
+    ----------
+    file : str
+        Path of the JSON file to load.
+
+    Returns
+    -------
+    data : dict
+        Contents of the JSON file as a Python dictionary.
+
+    """
     with open(file, "r") as read_file:
         data = json.load(read_file)
     return data
@@ -47,7 +60,29 @@ def read_yaml(file):
 
 @ecosound.core.decorators.listinput
 def filename_to_datetime(files):
-    """Extract date from a list of str of filenames."""
+    """
+    Extract datetime from audio filenames.
+
+    Parses timestamps embedded in audio file names or paths using a set of
+    known timestamp patterns defined in ``timestamp_formats.json``. Accepts a
+    single filename string or a list of filename strings.
+
+    Parameters
+    ----------
+    files : str or list of str
+        Filename(s) or full file path(s) containing an embedded timestamp.
+
+    Raises
+    ------
+    ValueError
+        If the timestamp format in a filename is not recognized.
+
+    Returns
+    -------
+    timestamps : list of datetime
+        List of :class:`datetime.datetime` objects parsed from each filename.
+
+    """
     current_dir = os.path.dirname(os.path.realpath(__file__))
     patterns = read_json(os.path.join(current_dir, r"timestamp_formats.json"))
 
@@ -79,7 +114,21 @@ def filename_to_datetime(files):
 # @njit
 def normalize_vector(vec):
     """
-    Normalize amplitude of vector.
+    Normalize the amplitude of a 1-D vector.
+
+    Removes the mean (DC offset) and scales the vector so that its maximum
+    absolute value is 1.
+
+    Parameters
+    ----------
+    vec : numpy.ndarray
+        1-D array to normalize.
+
+    Returns
+    -------
+    normVec : numpy.ndarray
+        Mean-subtracted and amplitude-normalized version of ``vec``.
+
     """
     # vec = vec+abs(min(vec))
     # normVec = vec/max(vec)
@@ -92,10 +141,25 @@ def normalize_vector(vec):
 # @njit
 def tighten_signal_limits(signal, energy_percentage):
     """
-    Tighten signal limits
+    Tighten signal limits based on cumulative energy.
 
-    Redefine start and stop samples to have "energy_percentage" of the original
-    signal. Returns a list with the new start and stop sample indices.
+    Redefines the start and stop sample indices to retain the central
+    ``energy_percentage`` percent of the signal's cumulative energy. Equal
+    amounts of energy are trimmed from both ends.
+
+    Parameters
+    ----------
+    signal : numpy.ndarray
+        1-D waveform array.
+    energy_percentage : float
+        Percentage of the total signal energy to retain (0–100). Higher values
+        keep more of the signal; lower values crop more aggressively.
+
+    Returns
+    -------
+    chunk : list of int
+        Two-element list ``[start_sample, stop_sample]`` with the new sample
+        indices bounding the requested energy percentage.
 
     """
     cumul_energy = np.cumsum(np.square(signal))
@@ -111,12 +175,27 @@ def tighten_signal_limits(signal, energy_percentage):
 
 def tighten_signal_limits_peak(signal, percentage_max_energy):
     """
-    Tighten signal limits
+    Tighten signal limits based on peak energy samples.
 
-    Redefine start and stop samples to have "energy_percentage" of the original
-    signal. Returns a list with the new start and stop sample indices.
+    Redefines the start and stop sample indices by identifying the smallest
+    contiguous window that contains the highest-energy samples, representing
+    ``percentage_max_energy`` percent of the total signal energy. Samples are
+    ranked by energy (highest first) rather than by position. Smaller values of
+    ``percentage_max_energy`` produce a tighter (shorter) window.
 
-    small values of percentage_max_energy -> tighter signal
+    Parameters
+    ----------
+    signal : numpy.ndarray
+        1-D waveform array.
+    percentage_max_energy : float
+        Percentage of total signal energy to capture (0–100). Smaller values
+        yield tighter windows around the most energetic part of the signal.
+
+    Returns
+    -------
+    chunk : list of int
+        Two-element list ``[start_sample, stop_sample]`` spanning the window
+        that contains the requested percentage of peak energy.
 
     """
     squared_signal = np.square(signal)
@@ -136,8 +215,34 @@ def tighten_signal_limits_peak(signal, percentage_max_energy):
 
 def resample_1D_array(x, y, resolution, kind="linear"):
     """
-    Interpolate values of coordinates x and y with a given resolution.
-    Default uisn linear interpolation.
+    Resample a 1-D array to a new uniform resolution via interpolation.
+
+    Interpolates the values of ``y`` over a new ``x`` axis with uniform
+    spacing defined by ``resolution``.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        1-D array of original x-axis coordinates (must be monotonically
+        increasing).
+    y : numpy.ndarray
+        1-D array of values corresponding to ``x``.
+    resolution : float
+        Desired spacing between consecutive points on the new x-axis. Must
+        use the same units as ``x``.
+    kind : str, optional
+        Interpolation method passed to :func:`scipy.interpolate.interp1d`.
+        Common options are ``'linear'``, ``'nearest'``, ``'cubic'``.
+        The default is ``'linear'``.
+
+    Returns
+    -------
+    xnew : numpy.ndarray
+        New uniformly-spaced x-axis array from ``x[0]`` to ``x[-1]`` with
+        step ``resolution``.
+    ynew : numpy.ndarray
+        Interpolated y values at each point in ``xnew``.
+
     """
     f = interpolate.interp1d(x, y, kind=kind, fill_value="extrapolate")
     xnew = np.arange(x[0], x[-1] + resolution, resolution)
@@ -148,8 +253,28 @@ def resample_1D_array(x, y, resolution, kind="linear"):
 @njit
 def entropy(array_1d, apply_square=False):
     """
-    Aggregate (SHannon's) entropy as defined in the Raven manual
-    apply_square = True, suqares the array value before calculation.
+    Calculate the aggregate Shannon entropy of a 1-D array.
+
+    Computes the Shannon entropy as defined in the Raven bioacoustics software
+    manual. Each element is treated as a probability mass after normalizing by
+    the total sum of the array. Optionally squares each element before
+    calculation to weight higher-amplitude values more strongly.
+
+    Parameters
+    ----------
+    array_1d : numpy.ndarray
+        1-D array of non-negative values (e.g., a power spectrum).
+    apply_square : bool, optional
+        If ``True``, squares each element of ``array_1d`` before computing
+        the entropy. The default is ``False``.
+
+    Returns
+    -------
+    H : float
+        Shannon entropy of the (optionally squared) normalized array.
+        Lower values indicate a more peaked (tonal) distribution; higher
+        values indicate a flatter (broadband) distribution.
+
     """
     if apply_square:
         array_1d = np.square(array_1d)
@@ -167,9 +292,24 @@ def entropy(array_1d, apply_square=False):
 @njit
 def derivative_1d(array, order=1):
     """
-    Derivative of order "order" of a 1D array. Subtract the element i+1 to i.
-    If order > 1, the process is repeated iteratively "order" times. Note that
-    the resulting array is shorter than the original array by "order" elements.
+    Compute the discrete derivative of a 1-D array.
+
+    Calculates the finite difference (element i+1 minus element i) of the
+    array. If ``order`` is greater than 1 the differencing is applied
+    iteratively, so the output is shorter than the input by ``order`` elements.
+
+    Parameters
+    ----------
+    array : numpy.ndarray
+        1-D input array.
+    order : int, optional
+        Order of the derivative (number of successive differences). The
+        default is 1.
+
+    Returns
+    -------
+    array : numpy.ndarray
+        Derivative array of length ``len(array) - order``.
 
     """
     for n in range(0, order, 1):
@@ -269,6 +409,30 @@ def find_peaks(array, troughs=False):
 
 
 def envelope(array, interp="cubic"):
+    """
+    Compute the upper and lower amplitude envelopes of a 1-D signal.
+
+    Detects local peaks and troughs in ``array`` and interpolates between
+    them to produce smooth upper and lower envelope curves. Both envelopes
+    are anchored to the first and last values of the array.
+
+    Parameters
+    ----------
+    array : numpy.ndarray
+        1-D signal array.
+    interp : str, optional
+        Interpolation method passed to :func:`scipy.interpolate.interp1d`.
+        Common options are ``'linear'``, ``'nearest'``, ``'cubic'``.
+        The default is ``'cubic'``.
+
+    Returns
+    -------
+    env_high : numpy.ndarray
+        Upper envelope of ``array``, same length as ``array``.
+    env_low : numpy.ndarray
+        Lower envelope of ``array``, same length as ``array``.
+
+    """
     # initialize output arrays
     env_high = np.zeros(array.shape)
     env_low = np.zeros(array.shape)

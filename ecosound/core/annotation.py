@@ -37,134 +37,72 @@ class Annotation:
     Attributes
     ----------
     data : pandas DataFrame
-        Annotation DataFranme.
-
-    Methods
-    -------
-    check_integrity(verbose=False, time_duplicates_only=False)
-        Check integrity of Annotation object.
-    from_raven(files, class_header='Sound type',subclass_header=None,
-               verbose=False)
-        Import annotation data from 1 or several Raven files.
-    to_raven(outdir, single_file=False)
-        Write annotation data to one or several Raven files.
-    from_pamlab(files, verbose=False)
-        Import annotation data from 1 or several PAMlab files.
-    to_pamlab(outdir, single_file=False)
-        Write annotation data to one or several Raven files.
-    from_parquet(file)
-        Import annotation data from a Parquet file.
-    to_parquet(file)
-        Write annotation data to a Parquet file.
-    from_netcdf(file)
-        Import annotation data from a netCDF4 file.
-    to_netcdf(file)
-        Write annotation data to a netCDF4 file.
-    insert_values(**kwargs)
-        Manually insert values for given Annotation fields.
-    insert_metadata(deployment_info_file)
-        Insert metadata information to the annotation from a
-        deployment_info_file.
-    filter_overlap_with(annot, freq_ovp=True, dur_factor_max=None,
-                        dur_factor_min=None,ovlp_ratio_min=None,
-                        remove_duplicates=False,inherit_metadata=False,
-                        filter_deploymentID=True, inplace=False)
-        Filter annotations overalaping with another set of annotations.
-    update_audio_dir(new_data_dir)
-        Update path of audio files.
-    get_labels_class()
-        Return all unique class labels.
-    get_labels_subclass()
-        Return all unique subclass labels.
-    get_fields()
-        Return list with all annotations fields.
-    summary(rows='deployment_ID',columns='label_class')
-        Produce a summary pivot table with the number of annotations for two
-        given annotation fields.
-    __add__()
-        Concatenate data from annotation objects uisng the + sign.
-    __len__()
-        Return number of annotations.
+        Annotation DataFrame containing all annotation fields.
     """
 
     def __init__(self):
         """
         Initialize Annotation object.
 
-        Sets all the annotation fields.:
-            -'uuid': UUID,
-                Unique identifier code
-            -'from_detector': bool,
-                True if data comes from an automatic process.
-            -'software_name': str,
-                Software name. Can be Raven or PAMlab for manual analysis.
-            -'software_version': str,
-                Version of the software used to create the annotations.
-            -'operator_name': str,
-                Name of the person responsible for the creation of the
-                annotations.
-            -'UTC_offset': float,
-                Offset hours to UTC.
-            -'entry_date': datetime,
-                Date when the annotation was created.
-            -'audio_channel': int,
-                Channel number.
-            -'audio_file_name': str,
-                Name of the audio file.
-            -'audio_file_dir': str,
-                Directory where the audio file is.
-            -'audio_file_extension': str,
-                Extension of teh audio file.
-            -'audio_file_start_date': datetime,
-                Date of the audio file start time.
-            -'audio_sampling_frequency': int,
-                Sampling frequecy of the audio data.
-            -'audio_bit_depth': int,
-                Bit depth of the audio data.
-            -'mooring_platform_name': str,
-                Name of the moorig platform (e.g. 'glider','Base plate').
-            -'recorder_type': str,
-                Name of the recorder type (e.g., 'AMAR'), 'SoundTrap'.
-            -'recorder_SN': str,
-                Serial number of the recorder.
-            -'hydrophone_model': str,
-                Model of the hydrophone.
-            -'hydrophone_SN': str,
-                Serial number of the hydrophone.
-            -'hydrophone_depth': float,
-                Depth of the hydrophone in meters.
-            -'location_name': str,
-                Name of the deploymnet location.
-            -'location_lat': float,
-                latitude of the deployment location in decimal degrees.
-            -'location_lon': float,
-                longitude of the deployment location in decimal degrees.
-            -'location_water_depth': float,
-                Water depth at the deployment location in meters.
-            -'deployment_ID': str,
-                Unique ID of the deployment.
-            -'frequency_min': float,
-                Minimum frequency of the annotaion in Hz.
-            -'frequency_max': float,
-                Maximum frequency of the annotaion in Hz.
-            -'time_min_offset': float,
-                Start time of the annotaion, in seconds relative to the
-                begining of the audio file.
-            -'time_max_offset': float,
-                Stop time of the annotaion, in seconds relative to the
-                begining of the audio file.
-            -'time_min_date': datetime,
-                Date of the annotation start time.
-            -'time_max_date': datetime,
-                Date of the annotation stop time.
-            -'duration': float,
-                Duration of the annotation in seconds.
-            -'label_class': str,
-                label of the annotation class (e.g. 'fish').
-            -'label_subclass': str,
-                label of the annotation subclass (e.g. 'grunt')
-            'confidence': float,
-                Confidence of the classification.
+        Sets all annotation fields to empty, typed columns:
+
+            - ``uuid`` (str): Unique identifier for the annotation.
+            - ``from_detector`` (bool): True if the annotation was produced by
+              an automatic detector or classifier.
+            - ``software_name`` (str): Name of the software used (e.g.,
+              'raven', 'pamlab').
+            - ``software_version`` (str): Version of the software used.
+            - ``operator_name`` (str): Name of the person who created the
+              annotation.
+            - ``UTC_offset`` (float): Offset from UTC in hours.
+            - ``entry_date`` (datetime): Date and time the annotation was
+              created.
+            - ``audio_channel`` (int): Audio channel number.
+            - ``audio_file_name`` (str): Name of the audio file (without
+              extension).
+            - ``audio_file_dir`` (str): Directory containing the audio file.
+            - ``audio_file_extension`` (str): Extension of the audio file
+              (e.g., '.wav').
+            - ``audio_file_start_date`` (datetime): Start date and time of the
+              audio file.
+            - ``audio_sampling_frequency`` (int): Sampling frequency of the
+              audio data, in Hz.
+            - ``audio_bit_depth`` (int): Bit depth of the audio data.
+            - ``mooring_platform_name`` (str): Name of the mooring platform
+              (e.g., 'glider', 'Base plate').
+            - ``recorder_type`` (str): Type of recorder (e.g., 'AMAR',
+              'SoundTrap').
+            - ``recorder_SN`` (str): Serial number of the recorder.
+            - ``hydrophone_model`` (str): Model of the hydrophone.
+            - ``hydrophone_SN`` (str): Serial number of the hydrophone.
+            - ``hydrophone_depth`` (float): Depth of the hydrophone, in
+              meters.
+            - ``location_name`` (str): Name of the deployment location.
+            - ``location_lat`` (float): Latitude of the deployment location,
+              in decimal degrees.
+            - ``location_lon`` (float): Longitude of the deployment location,
+              in decimal degrees.
+            - ``location_water_depth`` (float): Water depth at the deployment
+              location, in meters.
+            - ``deployment_ID`` (str): Unique identifier of the deployment.
+            - ``frequency_min`` (float): Minimum frequency of the annotation,
+              in Hz.
+            - ``frequency_max`` (float): Maximum frequency of the annotation,
+              in Hz.
+            - ``time_min_offset`` (float): Start time of the annotation, in
+              seconds relative to the beginning of the audio file.
+            - ``time_max_offset`` (float): Stop time of the annotation, in
+              seconds relative to the beginning of the audio file.
+            - ``time_min_date`` (datetime): Absolute date and time of the
+              annotation start.
+            - ``time_max_date`` (datetime): Absolute date and time of the
+              annotation stop.
+            - ``duration`` (float): Duration of the annotation, in seconds.
+            - ``label_class`` (str): Class label of the annotation (e.g.,
+              'fish').
+            - ``label_subclass`` (str): Subclass label of the annotation
+              (e.g., 'grunt').
+            - ``confidence`` (float): Confidence score of the classification.
 
         Returns
         -------
@@ -218,11 +156,12 @@ class Annotation:
         """
         Check integrity of Annotation object.
 
-        Tasks performed:
-            1- Check that start time < stop time
-            2- Check that min frequency < max frequency
-            3- Remove duplicate entries based on time and frequency, filename,
-               labels and filenames
+        Performs the following checks:
+
+        1. Check that start time < stop time
+        2. Check that min frequency < max frequency
+        3. Remove duplicate entries based on time and frequency, filename,
+           labels and filenames
 
         Parameters
         ----------
@@ -307,7 +246,7 @@ class Annotation:
                     " UUID duplicates were found and regenerated.",
                 )
         if verbose:
-            print("Integrity test succesfull")
+            print("Integrity test successful")
 
     def from_raven(
         self,
@@ -340,10 +279,10 @@ class Annotation:
             Name of the header in the Raven file corresponding to the confidence
             value. The default is None.
         recursive : bool, optional
-            If set to True, goes rcursively through all subfolders. The default
-            is False.
+            If set to True, searches recursively through all subfolders. The
+            default is False.
         verbose : bool, optional
-            If set to True, print the summary of the annatation integrity test.
+            If set to True, prints a summary of the annotation integrity check.
             The default is False.
 
         Returns
@@ -380,7 +319,7 @@ class Annotation:
         elif "Begin File" in columns:
             if verbose:
                 print(
-                    "'Begin Path' not found using 'Begin File' to retriev timestamps"
+                    "'Begin Path' not found using 'Begin File' to retrieve timestamps"
                 )
             files_timestamp = ecosound.core.tools.filename_to_datetime(
                 data["Begin File"].tolist()
@@ -603,7 +542,7 @@ class Annotation:
             Name of the sql table name containing the annotations. The default
             is 'detections'.
         verbose : bool, optional
-            If set to True, print the summary of the annatation integrity test.
+            If set to True, print a summary of the annotation integrity check.
             The default is False.
 
         Returns
@@ -657,7 +596,7 @@ class Annotation:
             files. If 'files' is a folder, all files in that folder ending with
             'annotations.log' will be imported.
         verbose : bool, optional
-            If set to True, print the summary of the annatation integrity test.
+            If set to True, print a summary of the annotation integrity check.
             The default is False.
 
         Returns
@@ -735,17 +674,17 @@ class Annotation:
         Write data to 1 or several PAMlab files.
 
         Write annotations as .log files readable by the software PAMlab. Output
-        files can be written in a single txt file or in several txt files (one
-        per audio recording). In teh latter case, output file names are
-        automatically generated based on the audio file's name and the name
+        files can be written in a single file or in several files (one per
+        audio recording). In the latter case, output file names are
+        automatically generated based on the audio file's name and the naming
         format required by PAMlab.
 
         Parameters
         ----------
         outdir : str
-            Path of the output directory where the Raven files are written.
+            Path of the output directory where the PAMlab files are written.
         outfile : str
-            Name of teh output file. Only used is single_file is True. The
+            Name of the output file. Only used if single_file is True. The
             default is 'PAMlab annotations.log'.
         single_file : bool, optional
             If set to True, writes a single output file with all annotations.
@@ -880,7 +819,7 @@ class Annotation:
             Path of the input parquet file.
 
         verbose : bool, optional
-            If set to True, print the summary of the annatation integrity test.
+            If set to True, print a summary of the annotation integrity check.
             The default is False.
 
         Returns
@@ -903,7 +842,7 @@ class Annotation:
         Parameters
         ----------
         file : str
-            Path of the output directory where the parquet files is written.
+            Path of the output file where the parquet data is written.
 
         Returns
         -------
@@ -932,7 +871,7 @@ class Annotation:
             files. If 'files' is a folder, all files in that folder ending with
             '.nc' will be imported.
         verbose : bool, optional
-            If set to True, print the summary of the annatation integrity test.
+            If set to True, print a summary of the annotation integrity check.
             The default is False.
 
         Returns
@@ -1000,7 +939,7 @@ class Annotation:
 
     def to_csv(self, file):
         """
-        Writes data from the Annoatation object to a csv file.
+        Write data from the Annotation object to a CSV file.
 
         Parameters
         ----------
@@ -1030,9 +969,9 @@ class Annotation:
 
         Parameters
         ----------
-        **kwargs : annotation filed name
+        **kwargs : annotation field name
             Keyword and value of the annotation field to fill in. Keywords must
-            have the exact same name as the annotation field.
+            match the exact annotation field name.
 
         Raises
         ------
@@ -1055,10 +994,10 @@ class Annotation:
 
     def insert_metadata(self, deployment_info_file, channel=0):
         """
-        Insert metadata infortion to the annotation.
+        Insert metadata information into the annotation.
 
-        Uses the Deployment_info_file to fill in the metadata of the annotation
-        . The deployment_info_file must be created using the DeploymentInfo
+        Uses the deployment_info_file to fill in the metadata fields of the
+        annotation. The deployment_info_file must be created using the DeploymentInfo
         class from ecosound.core.metadata using DeploymentInfo.write_template.
 
         Parameters
@@ -1140,10 +1079,10 @@ class Annotation:
         inplace=False,
     ):
         """
-        Filter overalaping annotations.
+        Filter overlapping annotations.
 
-        Only keep annotations that overlap in time and/or frequency with the
-        annotation object "annot".
+        Keeps only annotations that overlap in time and/or frequency with the
+        annotation object ``annot``.
 
         Parameters
         ----------
@@ -1162,7 +1101,7 @@ class Annotation:
             Constraint dictating the minimum duration overlapped
             annotations must exceed in order to be "kept". Any annotations
             whose duration does not exceed dur_factor_min*annot.duration are
-            discareded, even if they overlap in time/frequency. If set to None,
+            discarded, even if they overlap in time/frequency. If set to None,
             no minimum duration constraints are applied. The default is None.
         ovlp_ratio_min : float, optional
             Constraint dictating the minimum amount (percentage) of overlap in
@@ -1187,7 +1126,7 @@ class Annotation:
             together but just the frequency and time offset boundaries of the
             annotations. The default is True.
         inplace : bool, optional
-            If set to True, updates the urrent object with the filter results.
+            If set to True, updates the current object with the filter results.
             The default is False.
 
         Returns
@@ -1199,7 +1138,7 @@ class Annotation:
         stack = []
         det = self.data
         for index, an in annot.data.iterrows():  # for each annotation
-            # restrict to the specific deploymnetID of the annotation if file names are not unique
+            # restrict to the specific deploymentID of the annotation if file names are not unique
             if filter_deploymentID:
                 df = det[det.deployment_ID == an.deployment_ID]
             else:
@@ -1281,7 +1220,7 @@ class Annotation:
                 try:
                     df = df.iloc[
                         [df_ovlp.values.argmax()]
-                    ]  # pick teh one with max time overlap
+                    ]  # pick the one with max time overlap
                 except:
                     print("asas")
 
@@ -1332,32 +1271,33 @@ class Annotation:
         Parameters
         ----------
         integration_time : str, optional
-            Integration time for the aggregate. Uses the pandas offset aliases
-            (i.e. '2H'-> 2 hours, '15min'=> 15 minutes, '1D'-> 1 day) see pandas
-            documnentation here:https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+            Integration time for the aggregate. Uses pandas offset aliases
+            (e.g., '2H' = 2 hours, '15min' = 15 minutes, '1D' = 1 day). See
+            the pandas documentation:
+            https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
             The default is '1H'.
         resampler : str, optional
-            Defines method to combine aggregates. Currently only 'count' is
-            implemented. The default is 'count'.
-        start_date : None, str, optional
-            Defines at which date the aggregate should start. If set to None,
-            the min. date will be automatically chosen. If str must be in the
-            format: yyyy-mm-dd HH:MM:SS. The default is None.
-        end_date : None, str, optional
-            Defines at which date the aggregate should end. If set to None,
-            the max. date will be automatically chosen. If str must be in the
-            format: yyyy-mm-dd HH:MM:SS. The default is None.
+            Method used to combine annotations within each time bin. Currently
+            only ``'count'`` is implemented. The default is 'count'.
+        start_date : str or None, optional
+            Start date of the aggregate. If None, the earliest annotation date
+            is used. If str, must be in the format 'yyyy-mm-dd HH:MM:SS'.
+            The default is None.
+        end_date : str or None, optional
+            End date of the aggregate. If None, the latest annotation date is
+            used. If str, must be in the format 'yyyy-mm-dd HH:MM:SS'.
+            The default is None.
         is_binary : bool, optional
-            If set to True, calculates the aggregates in term on presence (1)
-            or absence (0). The default is False.
+            If set to True, returns presence (1) or absence (0) rather than
+            counts. The default is False.
 
         Returns
         -------
-        data_resamp : Pandas DataFrame
-            1D DataFrame with datetime as the index and a 'value' column with the
-            result of the aggregates for each time frane.
+        data_resamp : pandas DataFrame
+            1D DataFrame with datetime as the index and a 'value' column
+            containing the aggregate result for each time frame.
         """
-        # calulate 1D aggreagate
+        # calculate 1D aggregate
         data = copy.copy(self.data)
         data.set_index("time_min_date", inplace=True)
         data_resamp = Annotation._resample(
@@ -1384,25 +1324,26 @@ class Annotation:
         Parameters
         ----------
         integration_time : str, optional
-            Integration time for the aggregate. Uses the pandas offset aliases
-            (i.e. '2H'-> 2 hours, '15min'=> 15 minutes, '1D'-> 1 day) see pandas
-            documnentation here:https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+            Integration time for the aggregate. Uses pandas offset aliases
+            (e.g., '2H' = 2 hours, '15min' = 15 minutes, '1D' = 1 day). See
+            the pandas documentation:
+            https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
             The default is '1H'.
         resampler : str, optional
-            Defines method to combine aggregates. Currently only 'count' is
-            implemented. The default is 'count'.
+            Method used to combine annotations within each time bin. Currently
+            only ``'count'`` is implemented. The default is 'count'.
         is_binary : bool, optional
-            If set to True, calculates the aggregates in term on presence (1)
+            If set to True, calculates the aggregates in terms of presence (1)
             or absence (0). The default is False.
 
         Returns
         -------
-        data_resamp : Pandas DataFrame
-            2D DataFrame with the time od day as the index and the date as
-            columns. The resulting table contains the aggregate of annotations
-            for each time of day and date.
+        data_resamp : pandas DataFrame
+            2D DataFrame with the time of day as the index and the date as
+            columns. Each cell contains the aggregate of annotations for the
+            corresponding time of day and date.
         """
-        # calulate 1D aggreagate
+        # calculate 1D aggregate
         data_resamp = self.calc_time_aggregate_1D(
             integration_time=integration_time, is_binary=is_binary
         )
@@ -1446,20 +1387,20 @@ class Annotation:
         """
         Filter data based on user-defined criteria.
 
-        Uses the pandas dataframe.query method to filter rows of the annotation
-        object (in annot.data datafrane). Filtering conditions are defined
-        as query string (query_str) indicating the fields and value conditions.
-        For example: query_str = 'label_class == "MW" & confidence >= 90'. See
-        documentation of pandas.DataFrame.query for more details.
+        Uses the pandas DataFrame.query method to filter rows of the annotation
+        object (in ``annot.data``). Filtering conditions are defined as a query
+        string indicating field names and value conditions. For example:
+        ``query_str = 'label_class == "MW" & confidence >= 90'``. See the
+        documentation of :meth:`pandas.DataFrame.query` for more details.
 
         Parameters
         ----------
         query_str : str
-            query string defining annotations fiels and value conditions. For
-            exemple: query_str = 'label_class == "MW" & confidence >= 90'.
+            Query string defining annotation field names and value conditions.
+            For example: ``'label_class == "MW" & confidence >= 90'``.
         inplace : bool, optional
-            Whether to modify the DataFrame rather than creating a new one.
-            The default is True.
+            Whether to modify the DataFrame in place rather than returning a
+            new object. The default is False.
 
         Returns
         -------
@@ -1562,8 +1503,8 @@ class Annotation:
         ----------
         new_data_dir : str
             Path of the parent directory where the audio files are.
-        verbose : bool
-            Printprocess logs in command window if set to True. The defaut is
+        verbose : bool, optional
+            If True, prints progress logs to the console. The default is
             False.
 
         Returns
@@ -1596,7 +1537,7 @@ class Annotation:
                 )
             )
 
-        # go through each file in dataset and try to find in in new data folder
+        # go through each file in dataset and try to find it in new data folder
         missing_files_list = []
         for file in dataset_files_list:
             # if verbose:
@@ -1628,7 +1569,7 @@ class Annotation:
                     print(ff)
         else:
             if verbose:
-                print("Audio paths succesfully updated.")
+                print("Audio paths successfully updated.")
         return missing_files_list
 
     def export_spectrograms(
@@ -1636,12 +1577,12 @@ class Annotation:
         out_dir,
         time_buffer_sec=1,
         spectro_unit="samp",
-        spetro_nfft=256,
-        spetro_frame=256,
-        spetro_inc=5,
+        spectro_nfft=256,
+        spectro_frame=256,
+        spectro_inc=5,
         freq_min_hz=None,
         freq_max_hz=None,
-        sanpling_rate_hz=None,
+        sampling_rate_hz=None,
         filter_order=8,
         filter_type="iir",
         fig_size=(15, 10),
@@ -1664,11 +1605,11 @@ class Annotation:
 
         # initialize spectrogram
         Spectro = Spectrogram(
-            spetro_frame,
+            spectro_frame,
             "hann",
-            spetro_nfft,
-            spetro_inc,
-            sanpling_rate_hz,
+            spectro_nfft,
+            spectro_inc,
+            sampling_rate_hz,
             unit=spectro_unit,
         )
 
@@ -1680,7 +1621,7 @@ class Annotation:
                 os.mkdir(current_dir)
             annot_sp = self.data[self.data["label_class"] == label]
 
-            # loop through is annot for that class label
+            # loop through annotations for that class label
             for idx, annot in tqdm(
                 annot_sp.iterrows(),
                 desc=label,
@@ -1860,12 +1801,12 @@ class Annotation:
 
         Parameters
         ----------
-        rows : 'str', optional
+        rows : str, optional
             Name of the annotation field for the rows of the table. The default
             is 'deployment_ID'.
-        columns : 'str', optional
+        columns : str, optional
             Name of the annotation field for the columns of the table. The
-            default default is 'label_class'.
+            default is 'label_class'.
 
         Returns
         -------
@@ -1881,6 +1822,8 @@ class Annotation:
         summary["Total"] = summary.sum(axis=1)
         return summary
 
+
+
     def _identify_ovlp_annot(self):
         stack = []
         data = self.data
@@ -1894,7 +1837,7 @@ class Annotation:
                 tmp = []
                 index_id = file_data.iloc[0].name
                 tmp.append(index_id)
-                file_data = file_data.drop([index_id], axis=0)  # delete annot alreday stacked in tmp
+                file_data = file_data.drop([index_id], axis=0)  # delete annot already stacked in tmp
                 while True:
                     # find other annot overlaping with curent annot
                     ovlp = file_data[
@@ -1926,7 +1869,7 @@ class Annotation:
                             tmp.append(index_id)
                             t1 = min([t1, ovlp.time_min_offset.values[0]])
                             t2 = max([t2, ovlp.time_max_offset.values[0]])
-                            file_data = file_data.drop([index_id], axis=0)  # delete annot alreday stacked in tmp
+                            file_data = file_data.drop([index_id], axis=0)  # delete annot already stacked in tmp
         #print('done')
         # Sanity check
         annot_count = sum([len(ovlp) for ovlp in stack])
@@ -1992,13 +1935,13 @@ class Annotation:
                 "operator_name": "str",
                 "UTC_offset": "float",
                 "entry_date": "datetime64[ns]",
-                "audio_channel": "int",
+                "audio_channel": "Int64",
                 "audio_file_name": "str",
                 "audio_file_dir": "str",
                 "audio_file_extension": "str",
                 "audio_file_start_date": "datetime64[ns]",
-                "audio_sampling_frequency": "int",
-                "audio_bit_depth": "int",
+                "audio_sampling_frequency": "Int64",
+                "audio_bit_depth": "Int64",
                 "mooring_platform_name": "str",
                 "recorder_type": "str",
                 "recorder_SN": "str",
@@ -2026,7 +1969,7 @@ class Annotation:
     @staticmethod
     @ecosound.core.decorators.listinput
     def _import_csv_files(files):
-        """Import one or several text files with header to a Panda datafrane."""
+        """Import one or several text files with header to a pandas DataFrame."""
         assert type(files) in (
             str,
             list,

@@ -9,7 +9,14 @@ import time
 
 
 def listinput(func):
-    """Set input argument of function as a list if not already the case."""
+    """
+    Decorator that wraps a single non-list argument in a list.
+
+    Ensures that the first positional argument passed to the decorated function
+    is always a list. If it is not already a list, it is wrapped in one before
+    the function is called. Useful for functions that must accept both a single
+    item and a list of items.
+    """
     @functools.wraps(func)
     def wrapper_listinput(*args, **kwargs):
         #  print(type(**kwargs))
@@ -22,7 +29,12 @@ def listinput(func):
 
 
 def timeit(func):
-    """Print time it took to exceute function."""
+    """
+    Decorator that prints the execution time of the decorated function.
+
+    Measures elapsed wall-clock time from just before the function is called
+    to just after it returns, then prints the result to the console in seconds.
+    """
     @functools.wraps(func)
     def wrapper_listinput(*args, **kwargs):
         tic = time.perf_counter()

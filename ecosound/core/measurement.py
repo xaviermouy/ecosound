@@ -12,6 +12,20 @@ import os
 
 
 class Measurement(Annotation):
+    """
+    A class to store acoustic measurements.
+
+    Extends the :class:`~ecosound.core.annotation.Annotation` class with an
+    additional ``metadata`` attribute that records the measurer name, version,
+    measurement names, and parameters. Additional measurement columns are
+    appended to the standard annotation DataFrame.
+
+    Attributes
+    ----------
+    data : pandas DataFrame
+        Annotation DataFrame extended with one column per measurement.
+    """
+
     def __init__(
         self,
         measurer_name=None,
@@ -19,26 +33,31 @@ class Measurement(Annotation):
         measurements_name=None,
         measurements_parameters=None,
     ):
-        """Measurement object.
+        """
+        Initialize Measurement object.
 
-        Object to "store" sound measurements. Inheritate all methods from the
-        ecosound Annotaion class.
+        Inherits all attributes and methods from the
+        :class:`~ecosound.core.annotation.Annotation` class and adds
+        measurement-specific metadata and additional data columns.
 
         Parameters
         ----------
         measurer_name : str, optional
-            Name of the measurer that was used to calculate the measurements.
-            The default is None.
+            Name of the measurer used to calculate the measurements. The
+            default is None.
         measurer_version : str, optional
-            Version of the measurer that was used to calculate the measurements.
-            The default is None.
+            Version of the measurer used to calculate the measurements. The
+            default is None.
         measurements_name : list of str, optional
-            List with the name of each measurement. The default is None.
-        measurements_parameters: dict, optional
-            dict with lists of measurement parameters
+            List of measurement column names to add to the data DataFrame. The
+            default is None.
+        measurements_parameters : dict, optional
+            Dictionary of parameters used by the measurer. The default is
+            None.
+
         Returns
         -------
-        None. ecosound Measurement object with a .data and .metadata dataframes
+        None.
 
         """
         super(Measurement, self).__init__()
@@ -58,8 +77,9 @@ class Measurement(Annotation):
         """
         Return the metadata attribute.
 
-        Includes adictionary with the measurer_name, measurer_version, and
-        measurements_name.
+        Returns a DataFrame with columns ``measurer_name``,
+        ``measurer_version``, ``measurements_name``, and
+        ``measurements_parameters``.
         """
         return self._metadata
 
@@ -67,7 +87,7 @@ class Measurement(Annotation):
         """
         Write measurement data to a netcdf file.
 
-        Write measurementss as .nc file. This format works well with xarray
+        Write measurements as .nc file. This format works well with xarray
         and Dask.
 
         Parameters
@@ -285,7 +305,7 @@ class Measurement(Annotation):
         self.check_integrity(verbose=verbose)
 
     def _import_netcdf_files(self, files):
-        """Import one or several netcdf files to a Panda datafrane."""
+        """Import one or several netCDF files to a pandas DataFrame."""
         assert type(files) in (
             str,
             list,
@@ -315,7 +335,7 @@ class Measurement(Annotation):
                 else:
                     raise ValueError(
                         file
-                        + "Not all files were not generated from the same measurer type and version."
+                        + "Not all files were generated from the same measurer type and version."
                     )
             else:
                 raise ValueError(file + "Not a Measurement file.")

@@ -21,74 +21,11 @@ import ecosound.core.tools
 
 class Sound:
     """
-    A class to load and manipulate a sound file
+    A class to load and manipulate a sound file.
 
-    This class can load data from an entire, or part of a, sound file, filter
-    the loaded data, select subsections, and plot the waveform. Currently a
-    Sound object can only load data from one channel at a time.
-
-    Attributes
-    ----------
-    file_full_path : str
-        Path of the sound file, including file name and extension.
-    file_dir : str
-        Path of the sound file directory.
-    file_name : str
-        Name of the sound file withjout teh extension.
-    file_extension : str
-        Extension of the sound file (e.g. ".wav").
-    file_sampling_frequency : int
-        Sampling frequency of the original sound data, in Hz.
-    file_duration_sample : float
-        Duration of the sound data from the file, in samples.
-    file_duration_sec : float
-        Duration of the sound data from the file, in seconds.
-    channels : int
-        Number of channels available in the sound file.
-    channel_selected : int
-        Channel from which the waveform data was loaded from.
-    waveform : numpy.ndarray
-        Waveform of the loaded data for the selected channel (channel_selected)
-        and time frame selected.
-    waveform_sampling_frequency : float
-        Sampling frequency of the loaded waveform data. It can differ from
-        file_sampling_frequency if the waveform was up- or down- sampled.
-    waveform_start_sample : float
-        Index of the first sample of the loaded waveform data relative to the
-        begining of the sound file.
-    waveform_stop_sample : float
-        Index of the last sample of the loaded waveform data relative to the
-        begining of the sound file.
-    waveform_duration_sample : float
-        Duration of the loaded waveform data, in samples.
-    waveform_duration_sec : float
-        Duration of the loaded waveform data, in seconds.
-    filter_applied : bool
-        True if the waveform data was filtered.
-    filter_parameters : Filter obj
-        Filter object with all filter paramters and coefficients. Empty if no
-        filter was applied.
-
-    Methods
-    -------
-    read(channel=0, chunk=[])
-        Reads a sound file with the option to select a specific channel and
-        read only a section of the file.
-    filter(filter_type, cutoff_frequencies, order=4)
-        Applies a scientific filter on the audio signal
-    plot_waveform(unit='sec', newfig=False, title='')
-        Displays a graph with the waveform of the audio signal
-    select_snippet(chunk)
-        Extract a chunk of the waveform as a new Sound object
-    tighten_waveform_window(energy_percentage)
-        Crops the beginning  and end times of a waveform in a Sound object
-        based on a percentage of energy.
-    upsample(resolution_sec)
-        upsample the waveform to a time resolution of resolution_sec.
-    decimate(new_sampling_frequency, filter_order=8, filter_type="iir")
-        Decimate waveform.
-    normalize()
-        Normalize max amplitude of waveform to 1.
+    This class can load data from an entire sound file or a specific section
+    of it, filter the loaded data, select subsections, and plot the waveform.
+    Currently a Sound object can only load data from one channel at a time.
 
     """
 
@@ -139,6 +76,7 @@ class Sound:
             )
 
     def detrend(self):
+        """Remove the DC offset of the waveform by subtracting its mean."""
         self._waveform = self._waveform - np.mean(self._waveform)
 
     def write(
@@ -149,6 +87,30 @@ class Sound:
         format=None,
         closefd=True,
     ):
+        """
+        Write the waveform to an audio file.
+
+        Parameters
+        ----------
+        outfilename : str
+            Path of the output audio file.
+        subtype : str, optional
+            Subtype of the audio file (e.g., 'PCM_24', 'PCM_16'). The default
+            is 'PCM_24'.
+        endian : str or None, optional
+            Endianness of the audio file. The default is None (auto-detected).
+        format : str or None, optional
+            Audio file format (e.g., 'WAV'). If None, the format is inferred
+            from the file extension. The default is None.
+        closefd : bool, optional
+            If True, the file descriptor is closed after writing. The default
+            is True.
+
+        Returns
+        -------
+        None.
+
+        """
         sf.write(
             outfilename,
             self.waveform,
@@ -164,8 +126,8 @@ class Sound:
         Load data from sound file.
 
         Load data from a sound file with the option to select a specific
-        channel and load only a section of the file. Data are loaded as a numpy
-        arrayin in the object attribute "waveform".
+        channel and load only a section of it. Data are loaded as a numpy
+        array into the object attribute ``waveform``.
 
         Parameters
         ----------
@@ -190,7 +152,7 @@ class Sound:
                second one.
             If values in the chunk list exceed the audio file limits.
             If the channel selected does not exist.
-            If samp is not set to 'samp' or 'sec'
+            If ``unit`` is not set to ``'samp'`` or ``'sec'``.
 
         Returns
         -------
@@ -214,7 +176,7 @@ class Sound:
                     raise ValueError(
                         'Invalid unit. Should be set to "sec" or' + '"samp".'
                     )
-                # convert chunk to sampels if needed
+                # convert chunk to samples if needed
                 if unit in ("sec"):
                     chunk = np.round(
                         np.dot(chunk, self.waveform_sampling_frequency)
@@ -350,7 +312,7 @@ class Sound:
 
     def upsample(self, resolution_sec):
         """
-        Upsample  waveform
+        Upsample waveform.
 
         Increase the number of samples in the waveform and interpolate.
 
@@ -381,7 +343,7 @@ class Sound:
         self, new_sampling_frequency, filter_order=8, filter_type="iir"
     ):
         """
-        Decimate  waveform
+        Decimate waveform.
 
         Filter and reduce the number of samples in the waveform.
 
@@ -427,6 +389,22 @@ class Sound:
         )
 
     def normalize(self, method="amplitude"):
+        """
+        Normalize the amplitude of the waveform.
+
+        Parameters
+        ----------
+        method : str, optional
+            Normalization method. Use ``'amplitude'`` to scale the waveform so
+            its maximum absolute value is 1 (after mean removal). Use
+            ``'std'`` to scale by the standard deviation. The default is
+            ``'amplitude'``.
+
+        Returns
+        -------
+        None. Updates the ``waveform`` attribute in place.
+
+        """
         if method == "amplitude":
             self._waveform = self._waveform - np.mean(self._waveform)
             self._waveform = self._waveform / np.max(self._waveform)
@@ -446,8 +424,8 @@ class Sound:
         """
         Plot waveform of the audio signal.
 
-        PLots the waveform of the audio signal. Both the plot title and time
-        units can be asjusted. The plot can be displayed on a new or an
+        Plots the waveform of the audio signal. Both the plot title and time
+        units can be adjusted. The plot can be displayed on a new or an
         existing figure.
 
         Parameters
@@ -456,7 +434,7 @@ class Sound:
             Time units to use. Can be either 'sec' for seconds, or 'samp' for
             samples. The default is 'sec'.
         newfig : bool, optional
-            PLots on a new figure if set to True. The default is False.
+            If True, plots on a new figure. The default is False.
         title : str, optional
             Title of the plot. The default is ''.
         linestyle : str, optional
@@ -476,8 +454,8 @@ class Sound:
         """
         if len(self._waveform) == 0:
             raise ValueError(
-                "Cannot plot, waveform data enpty. Use Sound.read"
-                + " to load the waveform"
+                "Cannot plot, waveform data empty. Use Sound.read"
+                + " to load the waveform."
             )
         if unit == "sec":
             axis_t = np.arange(
@@ -513,7 +491,7 @@ class Sound:
         """
         Select section of the loaded waveform.
 
-        Create a new Sound object from a section of the sound data laoded.
+        Create a new Sound object from a section of the loaded sound data.
 
         Parameters
         ----------
@@ -529,8 +507,8 @@ class Sound:
         ------
         ValueError
             If chunk has only one value
-            If the start time is greater tahn the stop time
-            If the start or stop times fall outside of the wavform limits.
+            If the start time is greater than or equal to the stop time.
+            If the start or stop times fall outside of the waveform limits.
 
         Returns
         -------
@@ -545,7 +523,7 @@ class Sound:
         elif unit not in ("samp", "sec"):
             raise ValueError('Invalid unit. Should be set to "sec" or "samp".')
         elif chunk[0] >= chunk[1]:
-            raise ValueError("Chunk[0] should be greater than chunk[1].")
+            raise ValueError("chunk[0] must be less than chunk[1].")
 
         if unit == "sec":
             chunk[0] = int(
@@ -576,7 +554,7 @@ class Sound:
         )
         snippet._waveform_duration_sample = len(snippet._waveform)
         snippet._waveform_duration_sec = (
-            snippet._waveform_duration_sec
+            snippet._waveform_duration_sample
             / snippet._waveform_sampling_frequency
         )
         return snippet
@@ -585,10 +563,10 @@ class Sound:
         """
         Adjust waveform window.
 
-        Crops the begining and end of the waveform to only capture the most
-        intense part of the signal (i.e., with most energy). The percentage of
-        energy is defined by the energy_percentage parameter. The attribute
-        'waveform' and all its related attricbutes are updated automatically.
+        Crops the beginning and end of the waveform to retain only the most
+        energetic portion of the signal. The fraction of energy to retain is
+        defined by ``energy_percentage``. The ``waveform`` attribute and all
+        related attributes are updated automatically.
 
         Parameters
         ----------
@@ -597,8 +575,8 @@ class Sound:
 
         Returns
         -------
-        None. Updates the 'waveform' attribute alomg with all the waveform
-        -related attributes.
+        None. Updates the ``waveform`` attribute along with all
+        waveform-related attributes.
 
         """
         chunk = ecosound.core.tools.tighten_signal_limits(
@@ -711,20 +689,11 @@ class Filter:
     Attributes
     ----------
     type : str
-        A formatted string providing the path and filename of the sound file
-    freqs : list
-        List with one or 2 elements defining the cut-off frequencies in Hz of
-        the selected filter
+        Type of filter ('bandpass', 'lowpass', or 'highpass').
+    cutoff_frequencies : list
+        List with one or two elements defining the cut-off frequencies in Hz.
     order : int
-        Order of the filter
-
-    Methods
-    -------
-    apply(waveform, sampling_frequency)
-        Apply filter to time vector/waveform.
-    coefficients(sampling_frequency)
-        Defines coeeficient of the filter.
-
+        Order of the filter.
     """
 
     def __init__(self, type, cutoff_frequencies, order=4):
@@ -757,7 +726,7 @@ class Filter:
         None. Filter object.
 
         """
-        # chech filter type
+        # check filter type
         if (type == "bandpass") | (type == "lowpass") | (
             type == "highpass"
         ) == 0:
@@ -765,11 +734,11 @@ class Filter:
                 'Wrong filter type. Must be "bandpass", "lowpass"'
                 + ', or "highpass".'
             )
-        # chech freq values
+        # check freq values
         if type == "bandpass":
             if len(cutoff_frequencies) != 2:
                 raise ValueError(
-                    'The type "bandpass" requires two frepuency '
+                    'The type "bandpass" requires two frequency '
                     + "values: cutoff_frequencies=[lowcut, "
                     + "highcut]."
                 )
@@ -823,10 +792,9 @@ class Filter:
 
         Returns
         -------
-        b : float
-            Filter coefficient b.
-        a : float
-            Filter coefficient a.
+        sos : numpy.ndarray
+            Second-order sections representation of the filter, suitable for
+            use with :func:`scipy.signal.sosfiltfilt`.
 
         """
         nyquist = 0.5 * sampling_frequency
@@ -860,7 +828,7 @@ class Filter:
 
 def upsample(waveform, current_res_sec, new_res_sec):
     """
-    Upsample  waveform
+    Upsample a waveform
 
     Increase the number of samples in the waveform and interpolate.
 

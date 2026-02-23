@@ -8,16 +8,32 @@ Welcome to ecosound's documentation!
 
 .. image:: https://img.shields.io/pypi/v/ecosound.svg
         :target: https://pypi.python.org/pypi/ecosound
-		
+
 .. image:: https://readthedocs.org/projects/ecosound/badge/?version=latest
         :target: https://ecosound.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
-		
+
 .. image:: https://travis-ci.com/xaviermouy/ecosound.svg?branch=master
     :target: https://travis-ci.com/xaviermouy/ecosound
 
 .. image:: https://coveralls.io/repos/github/xaviermouy/ecosound/badge.svg?branch=master
-	:target: https://coveralls.io/github/xaviermouy/ecosound?branch=master
+    :target: https://coveralls.io/github/xaviermouy/ecosound?branch=master
+
+.. image:: https://static.pepy.tech/badge/ecosound
+    :target: https://pepy.tech/project/ecosound
+    :alt: Total PyPI downloads
+
+.. image:: https://img.shields.io/pypi/dm/ecosound
+    :target: https://pypi.python.org/pypi/ecosound
+    :alt: Monthly PyPI downloads
+
+.. image:: https://img.shields.io/github/stars/xaviermouy/ecosound?style=social
+    :target: https://github.com/xaviermouy/ecosound
+    :alt: GitHub stars
+
+.. image:: https://img.shields.io/github/forks/xaviermouy/ecosound?style=social
+    :target: https://github.com/xaviermouy/ecosound
+    :alt: GitHub forks
 
 
 
@@ -31,7 +47,15 @@ with popular bioacoustics software such as `Raven <https://ravensoundsoftware.co
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Tutorials:
+
+   tutorials/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference:
+
+   core/index
 
 
 Status

@@ -26,50 +26,6 @@ class Spectrogram:
     The Spectrogram object computes, denoises, and displays a spectrogram from
     a Sound object.
 
-    Attributes
-    ----------
-    sampling_frequency : float
-        Sampling frequency of the sound data.
-    time_resolution : float
-        Time resolution of the spectrogram, in seconds.
-    frequency_resolution : float
-        Frequency resolution of the spectrogram, in Hz.
-    frame_samp : int
-        Frame size, in samples
-    frame_sec : float
-        Frame size, in seconds
-    step_samp : int
-        Time step between conscutive spectrogram frames, in samples.
-    step_sec : float
-        Time step between conscutive spectrogram frames, in seconds.
-    overlap_perc : float
-        Percentage of overlap between conscutive spectrogram frames.
-    overlap_samp : int
-        Overlap between conscutive spectrogram frames, in samples.
-    fft_samp : int
-        Size to the Fast Fourier Transform, in samples.
-    fft_sec : float
-        Size to the Fast Fourier Transform, in seconds.
-    window_type : str
-        Type of weighting window applied to the signal before the FFT.
-    axis_frequencies : numpy.ndarray
-        1-D array with frequency values, in Hz, for each spectrogram rows.
-    axis_times : numpy.ndarray
-        1-D array with time values, in seconds, for each spectrogram column.
-    spectrogram : numpy.ndarray
-        2-D array with spectrogram energy data.
-
-    Methods
-    -------
-    compute(sig, fs)
-        Compute spectrogram.
-    crop(frequency_min, frequency_max)
-        Crop frequencies from the spectrogram.
-    denoise(method, **kwargs)
-        Denoise the spectrogram using various methods.
-        Methods implemented:
-        METHODS           :    INPUT ARGUMENTS
-        'median_equalizer':    window_duration in seconds.
     """
 
     _valid_units = ("samp", "sec")
@@ -98,14 +54,14 @@ class Spectrogram:
         frame : float
             Frame size in seconds or samples, depending on 'unit'.
         window_type : str
-            Weighting window to teh signal before the FFT. Currently, only
-            'hann' is supported.
+            Weighting window applied to the signal before the FFT. Currently,
+            only ``'hann'`` is supported.
         fft : float
             Size of the Fast Fourier Transform, in seconds or samples,
-            depending on 'unit'.
+            depending on ``unit``.
         step : float
-            Time step between conscutive spectrogram frames. In samples or
-            seconds depending on 'unit'.
+            Time step between consecutive spectrogram frames, in samples or
+            seconds depending on ``unit``.
         sampling_frequency : float
             Sampling frequency of the signal, in Hz.
         unit : str, optional
@@ -119,13 +75,13 @@ class Spectrogram:
         None. Spectrogram object.
 
         """
-        # Validation of the imput parameters
+        # Validation of the input parameters
         assert unit in Spectrogram._valid_units, (
             "Wrong unit value. Valid \
                                            units: ",
             Spectrogram._valid_units,
         )
-        assert fft >= frame, " fft should alwyas be >= frame"
+        assert fft >= frame, "fft should always be >= frame"
         assert step < frame, "step should always be <= frame"
         assert window_type in Spectrogram._valid_windows, (
             "Wrong window type\
@@ -202,7 +158,7 @@ class Spectrogram:
         Parameters
         ----------
         sig : Sound object
-            Sound object (core.audiotools.Sound) with the signal to anayse.
+            Sound object (core.audiotools.Sound) with the signal to analyse.
 
         Returns
         -------
@@ -247,7 +203,7 @@ class Spectrogram:
         Parameters
         ----------
         sig : Sound object
-            Sound object (core.audiotools.Sound) with the signal to anayse.
+            Sound object (core.audiotools.Sound) with the signal to analyse.
         dB : bool, optional
             If set to True, returns spectrogram values in dB. The default is
             False.
@@ -466,10 +422,11 @@ class Spectrogram:
         """
         Denoise spectrogram.
 
-        Denoise the spectrogram using various methods. The methods implemented
-        are:
-            METHODS           :    INPUT ARGUMENTS
-            'median_equalizer':    window_duration in seconds.
+        Denoise the spectrogram using various methods.
+
+        Available methods:
+
+        - ``'median_equalizer'``: requires ``window_duration`` in seconds.
                                    inplace
 
         Parameters
@@ -508,10 +465,10 @@ class Spectrogram:
         """
         Median equalizer.
 
-        Denoises the spectrogram matrix by subtracting the meidan spectrogram
-        compuetd with a median filter of window "window_sixe" to the original
-        spectrogram. Negative values of teh denoised spectrogram are set to
-        zero.
+        Denoises the spectrogram matrix by subtracting the median spectrogram
+        computed with a median filter of duration ``window_duration`` from the
+        original spectrogram. Negative values of the denoised spectrogram are
+        set to zero.
 
         Parameters
         ----------
