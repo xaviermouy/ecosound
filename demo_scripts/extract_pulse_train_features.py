@@ -186,7 +186,7 @@ for idx in range(0,len(detec)):
         file_path = os.path.join(detec_test['audio_file_dir'].values[0],detec_test['audio_file_name'].values[0])+detec_test['audio_file_extension'].values[0]
         file_channel = detec_test['audio_channel'].values[0]-1
         start_time = detec_test['time_min_offset'].values[0]
-       1 end_time = detec_test['time_max_offset'].values[0]
+        end_time = detec_test['time_max_offset'].values[0]
         # Unique ID for that sound selection
         ID = detec_test['audio_file_name'] + '_' + str(start_time)
         ID = ID.values[0]
