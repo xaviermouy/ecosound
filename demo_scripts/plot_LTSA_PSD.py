@@ -9,12 +9,12 @@ if __name__ == '__main__':  # ← Add this line
 
     ## ####################################################################################################################
 
-    deployment_dir = r'C:\Users\xavier.mouy\Documents\Projects\2025_Wellfleet\PBP_analysis_results\WellfleetHarbor_2023-07\NC'
-    station_name = "Wellfleet"
-    outdir = r'C:\Users\xavier.mouy\Documents\Projects\2025_Wellfleet\PBP_analysis_results\WellfleetHarbor_2023-07'
+    deployment_dir = r'G:\BUMP_data\Outer_flag_HMD\OuterFlag-TOSSIT-02_202508\NC'
+    station_name = "OuterFlag-TOSSIT-02_202508"
+    outdir = r'G:\BUMP_data\Outer_flag_HMD\OuterFlag-TOSSIT-02_202508'
     nc_filename_pattern = r'_\d{8}\.nc$'
-    start_date_string = '2023-07-19'
-    end_date_string = '2023-09-27'
+    start_date_string = '2025-08-26'
+    end_date_string = '2025-12-26'
     integration_time = '1h'
 
     ## Get SPL values #####################################################################################################

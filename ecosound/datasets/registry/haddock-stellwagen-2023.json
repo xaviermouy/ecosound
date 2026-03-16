@@ -1,0 +1,17 @@
+{
+  "title": "Haddock calls at Stellwagen Bank 2022-2023",
+  "description": "Manually annotated haddock grunts and knockdowns.",
+  "doi": "10.5281/zenodo.XXXXXXX",
+  "source": "builtin",
+  "license": "CC-BY-4.0",
+  "annotation_files": {
+    "https://zenodo.org/record/XXXXXXX/files/": {
+      "annotations.nc": "sha256:PLACEHOLDER_ANNOT_HASH"
+    }
+  },
+  "audio_files": {
+    "https://zenodo.org/record/XXXXXXX/files/": {
+      "audio.zip": "sha256:PLACEHOLDER_AUDIO_HASH"
+    }
+  }
+}

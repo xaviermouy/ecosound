@@ -4,6 +4,7 @@ include HISTORY.rst
 include LICENSE
 include README.rst
 recursive-include ecosound/core *.json
+recursive-include ecosound/datasets/registry *.json
 
 recursive-include tests *
 recursive-exclude * __pycache__
