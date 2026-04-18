@@ -219,7 +219,7 @@ def find_optimal_frequency_band(waveform, fs, freq_ranges, energy_window_samp,
 ## ####################################################################
 annot_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel'  # folder where the annotation are
 audio_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel' # folder where the corresponding audio data are
-out_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel\meas_tmp' # folder where results are written
+out_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel\measurements' # folder where results are written
 
 # Spectrogram parameters
 spectro_unit='sec'      # time unit for spectrogram axes ('sec' or 'samp')
@@ -392,8 +392,9 @@ for idx in range(0, len(detec)):
                 vmax=np.percentile(spectro.spectrogram, 99.9),
                 shading="nearest",
             )
-        # Draw horizontal lines showing the selected optimal frequency band
-        axes[0].axhline(y=selected_freq_min, color='r', linestyle='--', linewidth=1.5, alpha=0.8)
+        # Draw horizontal lines showing the selected detection frequency band
+        axes[0].axhline(y=selected_freq_min, color='r', linestyle='--', linewidth=1.5, alpha=0.8,
+                        label=f'Detection band ({selected_freq_min}-{selected_freq_max} Hz)')
         axes[0].axhline(y=selected_freq_max, color='r', linestyle='--', linewidth=1.5, alpha=0.8)
         axes[0].set_xlabel('Time (s)')
         axes[0].set_ylabel('Frequency (Hz)')
@@ -401,17 +402,16 @@ for idx in range(0, len(detec)):
                           f'(score: {metrics["pulse_train_score"]:.2f}, '
                           f'n_peaks: {metrics["n_peaks"]}, '
                           f'consistency: {metrics["peak_consistency"]:.2f})')
+        axes[0].legend(loc='upper right', fontsize=7)
         axes[1].plot(t_x, sound.waveform,'k', alpha=0.5, label='Waveform')
         axes[1].set_xlabel('Time (s)')
         axes[1].set_ylabel('Amplitude')
         ax2 = axes[1].twinx()
-        #ax2.plot(t_x, E, alpha=0.9, label='Normalized energy')
         ax2.plot(t_x, E, 'g', alpha=0.9, label=f'Energy ({selected_freq_min}-{selected_freq_max} Hz)')
         ax2.set_ylabel('Normalized energy')
-        # plot peaks
-        ax2.plot(peaks_sec,peaks_vals,'.r')
-        #plot threshold
-        ax2.plot([t_x[0], t_x[-1]], [energy_threshold,energy_threshold], '--r')
+        # plot peaks and threshold
+        ax2.plot(peaks_sec, peaks_vals, '.r', label='Detected pulses')
+        ax2.plot([t_x[0], t_x[-1]], [energy_threshold, energy_threshold], '--r', label='Threshold')
         # Combine legends from both axes
         lines1, labels1 = axes[1].get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
