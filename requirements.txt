@@ -15,3 +15,12 @@ netCDF4
 tqdm
 pooch
 eccodes==1.2.0
+Pillow
+aiohttp
+branca
+duckdb
+folium
+geopandas
+plotly
+shapely
+PyYAML

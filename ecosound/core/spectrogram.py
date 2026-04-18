@@ -285,7 +285,7 @@ class Spectrogram:
         if dB:
             spectrogram = 20 * np.log10(spectrogram)
         self._spectrogram = spectrogram
-        self._axis_times = starts / self.sampling_frequency  # ?? needed ?
+        self._axis_times = (starts + self.frame_samp // 2) / self.sampling_frequency  # center of each frame
         self._axis_frequencies = np.arange(
             0, self._sampling_frequency / 2, self._frequency_resolution
         )  # ?? needed ?
@@ -383,16 +383,13 @@ class Spectrogram:
                 max_col_idx = max_col_idx[0][0]
         # update spectrogram and axes
         if inplace:
-            # self._axis_frequencies = self._axis_frequencies[min_row_idx:max_row_idx]
-            # self._axis_times = np.arange(0,(max_col_idx - min_col_idx)*self._time_resolution,self._time_resolution)
-            # self._spectrogram = self._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]
-            # out_object = None
             self._axis_frequencies = self._axis_frequencies[
                 min_row_idx : max_row_idx + 1
             ]
+            time_offset = self._axis_times[min_col_idx] if time_min is not None else 0
             self._axis_times = (
                 self._axis_times[min_col_idx : max_col_idx + 1]
-                - self._axis_times[min_col_idx]
+                - time_offset
             )
             self._spectrogram = self._spectrogram[
                 min_row_idx : max_row_idx + 1, min_col_idx : max_col_idx + 1
@@ -403,10 +400,10 @@ class Spectrogram:
             out_object._axis_frequencies = out_object._axis_frequencies[
                 min_row_idx : max_row_idx + 1
             ]
-            # out_object._axis_times = np.arange(0,(max_col_idx - min_col_idx)*out_object._time_resolution,out_object._time_resolution)
+            time_offset = out_object._axis_times[min_col_idx] if time_min is not None else 0
             out_object._axis_times = (
                 out_object._axis_times[min_col_idx : max_col_idx + 1]
-                - out_object._axis_times[min_col_idx]
+                - time_offset
             )
             # out_object._spectrogram = out_object._spectrogram[min_row_idx:max_row_idx, min_col_idx:max_col_idx]
             out_object._spectrogram = out_object._spectrogram[
