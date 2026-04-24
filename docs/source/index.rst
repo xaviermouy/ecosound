@@ -109,7 +109,8 @@ This project has received funding and support from:
 * `Woods Hole Oceanographic Institution (WHOI) <https://www.whoi.edu/>`_
 * `NOAA Fisheries <https://www.fisheries.noaa.gov/>`_
 * `Canadian Healthy Oceans Network (CHONe) <https://chone2.ca/>`_
-* `University of Victoria <https://www.uvic.ca/>`_ and `Fisheries and Oceans Canada <https://www.dfo-mpo.gc.ca/>`_
+* `University of Victoria <https://www.uvic.ca/>`_
+* `Fisheries and Oceans Canada <https://www.dfo-mpo.gc.ca/>`_
 
 
 License

@@ -48,9 +48,11 @@ Features
 * **Audio tools** — read audio files, apply filters, compute spectrograms
 * **Detection** — plug-in detectors (blob, kurtosis) with a common factory interface
 * **Classification** — apply trained scikit-learn classifiers to acoustic measurements
+* **Measurements** — extract spectral and temporal features from annotated signals
 * **Evaluation** — compute Precision, Recall, and F-score curves for detectors
 * **Environment** — fetch co-located oceanographic, weather, tidal, and AIS data
-* **Datasets** — download and load curated bioacoustic datasets with a single call
+* **Soundscape** — process Hybrid Millidecade (HMD) spectral data for long-term soundscape analysis
+* **Visualization** — plot waveforms, spectrograms, annotation heatmaps, and interactive AIS maps
 
 
 Installation
@@ -107,7 +109,8 @@ This project has received funding and support from:
 * `Woods Hole Oceanographic Institution (WHOI) <https://www.whoi.edu/>`_
 * `NOAA Fisheries <https://www.fisheries.noaa.gov/>`_
 * `Canadian Healthy Oceans Network (CHONe) <https://chone2.ca/>`_
-* `University of Victoria <https://www.uvic.ca/>`_ and `Fisheries and Oceans Canada <https://www.dfo-mpo.gc.ca/>`_
+* `University of Victoria <https://www.uvic.ca/>`_
+* `Fisheries and Oceans Canada <https://www.dfo-mpo.gc.ca/>`_
 
 
 License
