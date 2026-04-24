@@ -360,42 +360,33 @@ class NECOFS:
             end_dt: End of a time range (inclusive).  Must be paired with start_dt.
 
         Returns:
-            xr.Dataset with dimensions (time, sigma_layer), also stored in
-            self.vertical_profiles:
-                Data variables:
-                    - temperature_C (time, sigma_layer)  : in-situ temperature (°C)
-                    - salinity_PSU  (time, sigma_layer)  : practical salinity (PSU)
-                    - u_ms          (time, sigma_layer)  : eastward current (m/s)
-                    - v_ms          (time, sigma_layer)  : northward current (m/s)
-                    - sound_speed_ms(time, sigma_layer)  : sound speed, Mackenzie 1981 (m/s)
-                    - depth_m       (time, sigma_layer)  : depth below surface (m); varies
-                                                           with time due to sea-surface elevation
-                    - zeta_m        (time)               : sea surface elevation (m)
-                Coordinates:
-                    - time                  : model time steps (datetime64)
-                    - sigma_layer           : integer layer index (0 = surface)
-                    - lat                   : nearest node latitude
-                    - lon                   : nearest node longitude
+            xr.Dataset stored in ``self.vertical_profiles`` with dimensions
+            ``(time, sigma_layer)``. Data variables: ``temperature_C``,
+            ``salinity_PSU``, ``u_ms``, ``v_ms``, ``sound_speed_ms``,
+            ``depth_m`` (varies with time due to sea-surface elevation),
+            and ``zeta_m``. Coordinates: ``time``, ``sigma_layer``,
+            ``lat``, ``lon``.
 
         Raises:
             ValueError: If neither dt nor start_dt/end_dt are provided, or both are.
             ConnectionError: If the OPeNDAP dataset cannot be opened.
 
         Examples:
-            # Discrete time list
-            ds = necofs.get_vertical_profiles(
-                lat=42.5, lon=-70.0,
-                dt=["2015-08-01T00:00", "2015-08-01T06:00", "2015-08-01T12:00"]
-            )
+            Discrete time list::
 
-            # Time range (all hourly steps between start and end)
-            ds = necofs.get_vertical_profiles(
-                lat=42.5, lon=-70.0,
-                start_dt="2015-08-01", end_dt="2015-08-07"
-            )
+                ds = necofs.get_vertical_profiles(
+                    lat=42.5, lon=-70.0,
+                    dt=["2015-08-01T00:00", "2015-08-01T06:00", "2015-08-01T12:00"])
 
-            # Access a single time step
-            ds.sel(time="2015-08-01T06:00", method="nearest")
+            Time range (all hourly steps between start and end)::
+
+                ds = necofs.get_vertical_profiles(
+                    lat=42.5, lon=-70.0,
+                    start_dt="2015-08-01", end_dt="2015-08-07")
+
+            Access a single time step::
+
+                ds.sel(time="2015-08-01T06:00", method="nearest")
         """
         if dt is not None and (start_dt is not None or end_dt is not None):
             raise ValueError("Provide either 'dt' or 'start_dt'/'end_dt', not both.")

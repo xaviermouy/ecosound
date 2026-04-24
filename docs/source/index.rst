@@ -13,12 +13,6 @@ Welcome to ecosound's documentation!
         :target: https://ecosound.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://travis-ci.com/xaviermouy/ecosound.svg?branch=master
-    :target: https://travis-ci.com/xaviermouy/ecosound
-
-.. image:: https://coveralls.io/repos/github/xaviermouy/ecosound/badge.svg?branch=master
-    :target: https://coveralls.io/github/xaviermouy/ecosound?branch=master
-
 .. image:: https://static.pepy.tech/badge/ecosound
     :target: https://pepy.tech/project/ecosound
     :alt: Total PyPI downloads
@@ -45,17 +39,49 @@ with popular bioacoustics software such as `Raven <https://ravensoundsoftware.co
 `PAMlab <https://static1.squarespace.com/static/52aa2773e4b0f29916f46675/t/5be5b07088251b9f59268184/1541779574284/PAMlab+Brochure.pdf>`_.
 
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Tutorials:
+Installation
+------------
 
-   tutorials/index
+Ecosound can be installed from PyPI using pip:
+
+.. code-block:: bash
+
+   pip install ecosound
+
+
+Quick Start Example
+-------------------
+
+The example below loads a Raven annotation file, filters detections by
+confidence, and plots a summary heatmap:
+
+.. code-block:: python
+
+   from ecosound.core.annotation import Annotation
+
+   # Load annotations from a Raven selection table
+   annot = Annotation()
+   annot.from_raven('my_annotations.txt', class_header='Sound type')
+
+   # Keep only high-confidence detections
+   annot.data = annot.data[annot.data['confidence'] >= 0.8]
+
+   # Aggregate and visualise
+   annot.plot_heatmap()
+
 
 .. toctree::
    :maxdepth: 2
    :caption: API Reference:
 
    core/index
+   classification/index
+   detection/index
+   environment/index
+   evaluation/index
+   measurements/index
+   soundscape/index
+   visualization/index
 
 
 Status
@@ -73,13 +99,17 @@ https://github.com/xaviermouy/ecosound
 Contributors
 ------------
 
-`Xavier Mouy <https://xaviermouy.weebly.com/>`_ (@XavierMouy) leads this project as part of his PhD in the `Juanes Lab <https://juaneslab.weebly.com/>`_ 
-at the University of Victoria (British Columbia, Canada).
+`Xavier Mouy <https://xaviermouy.weebly.com/>`_ (@XavierMouy), Acoustics and Conservation Technology (ACT) Lab, Woods Hole Oceanographic Institution (WHOI).
 
-Credits
+Support
 -------
 
-* This project was initiated in the `Juanes Lab <https://juaneslab.weebly.com/>`_ at the University of Victoria (British Columbia, Canada) and received funding from the `Canadian Healthy Oceans Network <https://chone2.ca/>`_ and `Fisheries and Oceans Canada - Pacific Region <https://www.dfo-mpo.gc.ca/contact/regions/pacific-pacifique-eng.html#Nanaimo-Lab>`_. 
+This project has received funding and support from:
+
+* `Woods Hole Oceanographic Institution (WHOI) <https://www.whoi.edu/>`_
+* `NOAA Fisheries <https://www.fisheries.noaa.gov/>`_
+* `Canadian Healthy Oceans Network (CHONe) <https://chone2.ca/>`_
+* `University of Victoria <https://www.uvic.ca/>`_ and `Fisheries and Oceans Canada <https://www.dfo-mpo.gc.ca/>`_
 
 
 License

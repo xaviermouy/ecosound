@@ -35,42 +35,27 @@ class SoundPlotter(BaseClass):
 
     Attributes
     ----------
-    name : str
-        Name of the grapher
-    version : str
-        Version of the grapher
     frequency_min : float
         Minimum frequency of the spectrograms, in Hz.
     frequency_max : float
         Maximum frequency of the spectrograms, in Hz.
     time_min : float
-        Start time to graphs,in seconds.
+        Start time to graph, in seconds.
     time_max : float
-        End time to graphs,in seconds.
+        End time to graph, in seconds.
     unit : str
-        Unit of the time axis. 'sec' or 'samp'
-    fig_size : (float, float)
+        Unit of the time axis. ``'sec'`` or ``'samp'``.
+    fig_size : tuple of float
         Width, height of the figure, in inches.
     share_xaxis : bool
         Share x axis for all subplots.
     grid : bool
         Display grid in waveform plots.
-    title : [str, str, ...] or str
+    title : str or list of str
         Title(s) of the figure/subplots.
     colormap : str
-        Color map for the spectrogram. Uses names from Matplotlib. The default
-        is 'jet'
-
-    Methods
-    -------
-    add_data(*args)
-        Add Sound or Spectrogram objects to plot.
-    add_annotations(Annotation, panel=None, label=False, color='red')
-        Add Annotation object to overlay on graphs.
-    show(display=True)
-        Display graph.
-    to_file(filename)
-        Save graph to file.
+        Color map for the spectrogram. Uses Matplotlib colormap names.
+        The default is ``'jet'``.
     """
 
     grapher_parameters = (
@@ -240,7 +225,7 @@ class SoundPlotter(BaseClass):
         tag : bool, optional
             If set to True, displays the classification confidence over each
             annotation box. The default is False.
-                line_width : int, optional
+        line_width : int, optional
             Width of the annotation line. The default is 1.
 
         Raises

@@ -20,8 +20,6 @@ class StratifiedGroupKFold(_BaseKFold):
     StratifiedGroupKFold attempts to create folds which preserve the
     percentage of samples for each class.
 
-    Read more in the :ref:`User Guide <cross_validation>`.
-
     Parameters
     ----------
     n_splits : int, default=5
@@ -32,11 +30,10 @@ class StratifiedGroupKFold(_BaseKFold):
         Note that the samples within each split will not be shuffled.
 
     random_state : int or RandomState instance, default=None
-        When `shuffle` is True, `random_state` affects the ordering of the
+        When ``shuffle`` is True, ``random_state`` affects the ordering of the
         indices, which controls the randomness of each fold for each class.
-        Otherwise, leave `random_state` as `None`.
+        Otherwise, leave ``random_state`` as ``None``.
         Pass an int for reproducible output across multiple function calls.
-        See :term:`Glossary <random_state>`.
 
     Examples
     --------
@@ -126,8 +123,6 @@ class RepeatedStratifiedGroupKFold(_RepeatedSplits):
     Repeats Stratified K-Fold with non-overlapping groups n times with
     different randomization in each repetition.
 
-    Read more in the :ref:`User Guide <cross_validation>`.
-
     Parameters
     ----------
     n_splits : int, default=5
@@ -139,7 +134,6 @@ class RepeatedStratifiedGroupKFold(_RepeatedSplits):
     random_state : int or RandomState instance, default=None
         Controls the generation of the random states for each repetition.
         Pass an int for reproducible output across multiple function calls.
-        See :term:`Glossary <random_state>`.
 
     Examples
     --------

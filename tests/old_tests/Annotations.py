@@ -4,19 +4,23 @@ Created on Thu Feb  6 15:28:29 2020
 
 @author: xavier.mouy
 """
+from build.lib.ecosound.core.measurement import Measurement
 # import sys
 # sys.path.append("..")  # Adds higher directory to python modules path.
 # from ecosound.core.measurement import Measurement
 # from ecosound.core.annotation import Annotation
 
 from ecosound.core.annotation import Annotation
+from ecosound.core.measurement import Measurement
 
-
-PAMlab_dir = r"D:\NOAA\2022_BC_fish_detector\manual_annotations\UVIC_spring-bay_rca_20180821"
-annot = Annotation()
+PAMlab_dir = r"C:\Users\xavier.mouy\Documents\Projects\2022_BC_fish_detector\manual_annotations\Annotations_dataset_FS-NN-UN-HS-KW_20230202T135354_withSNRgt2dB.nc"
+annot = Measurement()
 #annot.from_pamlab(PAMlab_dir, verbose=True)
-annot.from_raven(PAMlab_dir, verbose=True, class_header="Call Type")
-annot.to_raven(PAMlab_dir,single_file=False)
+#annot.from_raven(PAMlab_dir, verbose=True, class_header="Call Type")
+#annot.to_raven(PAMlab_dir,single_file=False)
+annot.from_netcdf(PAMlab_dir)
+print(annot.summary())
+
 
 # PAMlab_files = []
 # Raven_files = []

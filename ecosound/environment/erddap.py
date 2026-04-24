@@ -286,14 +286,18 @@ class ERDDAPDataFetcher:
             xarray.Dataset with requested data (seamlessly combined from multiple requests if needed)
 
         Examples:
-            # Single day
-            ds = fetcher.fetch_data("sea_surface_temperature", date="2018-01-01",
-                                   lat_min=42, lat_max=43, lon_min=-71, lon_max=-69)
+            Single day::
 
-            # Large date range (automatically chunked into monthly requests)
-            ds = fetcher.fetch_data(["sst", "chlorophyll"], start_date="2018-01-01",
-                                   end_date="2018-06-30", lat_min=42, lat_max=43,
-                                   lon_min=-71, lon_max=-69, max_request_duration_days=31)
+                ds = fetcher.fetch_data(
+                    "sea_surface_temperature", date="2018-01-01",
+                    lat_min=42, lat_max=43, lon_min=-71, lon_max=-69)
+
+            Large date range (automatically chunked into monthly requests)::
+
+                ds = fetcher.fetch_data(
+                    ["sst", "chlorophyll"], start_date="2018-01-01",
+                    end_date="2018-06-30", lat_min=42, lat_max=43,
+                    lon_min=-71, lon_max=-69, max_request_duration_days=31)
         """
         # Normalize time inputs
         if date is not None:

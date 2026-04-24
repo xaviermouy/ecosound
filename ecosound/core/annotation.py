@@ -1256,7 +1256,7 @@ class Annotation:
 
     def calc_time_aggregate_1D(
         self,
-        integration_time="1H",
+        integration_time="1h",
         resampler="count",
         is_binary=False,
         start_date=None,
@@ -1272,10 +1272,10 @@ class Annotation:
         ----------
         integration_time : str, optional
             Integration time for the aggregate. Uses pandas offset aliases
-            (e.g., '2H' = 2 hours, '15min' = 15 minutes, '1D' = 1 day). See
+            (e.g., '2h' = 2 hours, '15min' = 15 minutes, '1D' = 1 day). See
             the pandas documentation:
             https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
-            The default is '1H'.
+            The default is '1h'.
         resampler : str, optional
             Method used to combine annotations within each time bin. Currently
             only ``'count'`` is implemented. The default is 'count'.
@@ -1313,7 +1313,12 @@ class Annotation:
         return data_resamp
 
     def calc_time_aggregate_2D(
-        self, integration_time="1H", resampler="count", is_binary=False
+        self,
+        integration_time="1h",
+        resampler="count",
+        start_date=None,
+        end_date=None,
+        is_binary=False
     ):
         """
         Calculate the 2D time aggregate of annotations.
@@ -1325,13 +1330,21 @@ class Annotation:
         ----------
         integration_time : str, optional
             Integration time for the aggregate. Uses pandas offset aliases
-            (e.g., '2H' = 2 hours, '15min' = 15 minutes, '1D' = 1 day). See
+            (e.g., '2h' = 2 hours, '15min' = 15 minutes, '1D' = 1 day). See
             the pandas documentation:
             https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
-            The default is '1H'.
+            The default is '1h'.
         resampler : str, optional
             Method used to combine annotations within each time bin. Currently
             only ``'count'`` is implemented. The default is 'count'.
+        start_date : str or None, optional
+            Start date of the aggregate. If None, the earliest annotation date
+            is used. If str, must be in the format 'yyyy-mm-dd HH:MM:SS'.
+            The default is None.
+        end_date : str or None, optional
+            End date of the aggregate. If None, the latest annotation date is
+            used. If str, must be in the format 'yyyy-mm-dd HH:MM:SS'.
+            The default is None.
         is_binary : bool, optional
             If set to True, calculates the aggregates in terms of presence (1)
             or absence (0). The default is False.
@@ -1345,7 +1358,10 @@ class Annotation:
         """
         # calculate 1D aggregate
         data_resamp = self.calc_time_aggregate_1D(
-            integration_time=integration_time, is_binary=is_binary
+            integration_time=integration_time,
+            is_binary=is_binary,
+            start_date = start_date,
+            end_date = end_date,
         )
         data_resamp.reset_index(inplace=True)
         data_resamp["date"] = data_resamp["datetime"].dt.date
@@ -1880,7 +1896,7 @@ class Annotation:
     @staticmethod
     def _resample(
         data,
-        integration_time="1H",
+        integration_time="1h",
         resampler="count",
         start_date=None,
         end_date=None,

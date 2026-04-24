@@ -40,25 +40,16 @@ class BlobDetector(BaseClass):
 
     Attributes
     ----------
-    name : str
-        Name of the detector
-    version : str
-        Version of the detector
     kernel_duration : float
         Duration of the kernel, in seconds.
     kernel_bandwidth : float
-        Bandwidth of teh kernel, in Hz.
+        Bandwidth of the kernel, in Hz.
     threshold : float
-        Variance threshold for teh binarization.
+        Variance threshold for the binarization.
     duration_min : float
-        Minimum duration of detection accepted,in seconds.
+        Minimum duration of detection accepted, in seconds.
     bandwidth_min : float
-        Minimum bandwidth of detection accepted,in seconds.
-
-    Methods
-    -------
-    run(spectro, debug=False)
-        Run the detector on a spectrogram object.
+        Minimum bandwidth of detection accepted, in Hz.
     """
 
     detector_parameters = ('kernel_duration',
@@ -146,14 +137,14 @@ class BlobDetector(BaseClass):
             Start time/date of the signal being processed. If defined, the
             fields 'time_min_date' and 'time_max_date' of the detection
             annotation object are populated. The default is None.
-        use_dask, bool, optional
+        use_dask : bool, optional
             If True, runs the detector in parallel using Dask. The default is
             False.
-        dask_chunks, tuple -> (int, int), optional
+        dask_chunks : tuple, optional
             Tuple of two int defining the size of the spectrogram chunks to use
-            for the parallel processing: dask_chunks=(number of frequency bins,
-             number of time bbins). Only used in use_dask is True. The default
-            is (1000, 1000).
+            for the parallel processing: (number of frequency bins, number of
+            time bins). Only used if use_dask is True. The default is
+            (1000, 1000).
 
         Returns
         -------

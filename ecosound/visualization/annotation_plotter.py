@@ -44,38 +44,25 @@ class AnnotHeatmap(BaseClass):
 
     Attributes
     ----------
-    name : str
-        Name of the grapher
-    version : str
-        Version of the grapher
-    fig_size : (float, float)
+    fig_size : tuple of float
         Width, height of the figure, in inches.
-    title : [str, str, ...] or str
+    title : str or list of str
         Title(s) of the figure/subplots.
     colormap : str
-        Color map palette spectrogram. Uses names from Matplotlib. The default
-        is 'viridis'
-    colorbar_label: str
-        Label to use for the clolorbar.
-    integration_time: str
+        Color map palette. Uses Matplotlib colormap names. Default is
+        ``'viridis'``.
+    colorbar_label : str
+        Label to use for the colorbar.
+    integration_time : str
         Integration time for the time aggregates.
-    date_format: str
+    date_format : str
         Date format to use for the x-axis tick labels.
-    is_binary: bool
-        Makes binary aggreagates rather than counts.
-    norm_value: int
-        Maximum value to use for the colomap.
-    share_xaxis: bool
-        Share xaxis in case of subplots (not implememnted yet)
-
-    Methods
-    -------
-    add_data(Annotation obj)
-        Add Annotation object to plot.
-    show(display=True)
-        Display graph.
-    to_file(filename)
-        Save graph to file.
+    is_binary : bool
+        Makes binary aggregates rather than counts.
+    norm_value : int
+        Maximum value to use for the colormap.
+    share_xaxis : bool
+        Share x-axis in case of subplots.
     """
 
     grapher_parameters = (

@@ -28,74 +28,70 @@ class SpectrogramFeatures(BaseClass):
     and other measurements described in the R package Seewave by Jerome Sueur.
 
     The SpectrogramFeatures measurer must be instantiated using the
-    MeasurerFactory with the positional argument 'SpectrogramFeatures':
+    MeasurerFactory with the positional argument ``'SpectrogramFeatures'``::
 
-    from ecosound.measurements.measurer_builder import MeasurerFactory
-    spectro_features = MeasurerFactory('SpectrogramFeatures',
-                                       resolution_time=0.001,
-                                       resolution_freq=0.1,
-                                       interp='linear')
-    measurements = spectro_features.compute(spectro, detections,
-                                            debug=False,
-                                            verbose=False)
+        from ecosound.measurements.measurer_builder import MeasurerFactory
+        spectro_features = MeasurerFactory('SpectrogramFeatures',
+                                           resolution_time=0.001,
+                                           resolution_freq=0.1,
+                                           interp='linear')
+        measurements = spectro_features.compute(spectro, detections,
+                                                debug=False,
+                                                verbose=False)
 
     The Measurement object returned has all the features appended to the
-    original annotation fields in the pandas datafrane measurment.data.
-    Measurer's name, version and features' name are in the pandas Dataframe
-    measurement.metadata. Spectrogram features include:
+    original annotation fields in the pandas DataFrame ``measurment.data``.
+    Measurer's name, version and features' name are in the pandas DataFrame
+    ``measurement.metadata``. Spectrogram features include:
 
-        1- 'freq_peak': peak frequency in the frequency envelop, in Hz.
-        2- 'freq_bandwidth': Bandwidth of the frequency envelop, in Hz.
-        3- 'freq_bandwidth90': 90% bandwidth of the frequency envelop, in Hz.
-        4- 'freq_pct5': frequency of the 5th percentile, in the frequency envelope, in Hz.
-        5- 'freq_pct25': frequency of the 25th percentile, in the frequency envelope, in Hz.
-        6- 'freq_pct50': frequency of the 50th percentile, in the frequency envelope, in Hz.
-        7- 'freq_pct75': frequency of the 75th percentile, in the frequency envelope, in Hz.
-        8- 'freq_pct95': frequency of the 95th percentile, in the frequency envelope, in Hz.
-        9- 'freq_iqr': inter quartile range of the frequency envelope, in Hz.
-       10- 'freq_asymmetry': symmetry of the frequency envelope.
-       11- 'freq_concentration': concentration of the frequency envelope.
-       12- 'freq_std': standard deciation of the frequency envelope.
-       13- 'freq_kurtosis': kurtosis of the frequency envelope.
-       14- 'freq_skewness': skewness of the frequency envelope.
-       15- 'freq_entropy': Shannon's entropy of the frequency envelope.
-       16- 'freq_flatness': flatness of the frequency envelope.
-       17- 'freq_roughness': roughness of the frequency envelope.
-       18- 'freq_centroid': centroid of the frequency envelope, in Hz.
-       19- 'freq_overall_peak': overall peak frequency in the spectrogram, in Hz.
-       20- 'freq_median_mean': mean of the median frequency through the spectrogram time slices, Hz.
-       21- 'freq_median_std': standard deviation of the median frequency through the spectrogram time slices, Hz.
-       22- 'freq_entropy_mean': mean of entropy through the spectrogram time slices, Hz.
-       23- 'freq_entropy_std': std of the entropy through the spectrogram time slices, Hz.
-       24- 'freq_upsweep_mean': frequency upsweep mean index
-       25- 'freq_upsweep_fraction': frequency upsweep fraction
-       26- 'snr': signal to noise ratio, in dB
-       27- 'time_peak_sec': time of peak in the time envelope, in sec.
-       28- 'time_peak_perc': relative time of peak in the time envelope.
-       29- 'time_duration': duration of the time envelope, in sec.
-       30- 'time_duration90': 90% duration of the time envelop, in sec.
-       31- 'time_pct5': time of the 5th percentile, in the time envelope, in sec.
-       32- 'time_pct25': time of the 25th percentile, in the time envelope, in sec.
-       33- 'time_pct50': time of the 50th percentile, in the time envelope, in sec.
-       34- 'time_pct75': time of the 75th percentile, in the time envelope, in sec.
-       35- 'time_pct95': time of the 95th percentile, in the time envelope, in sec.
-       36- 'time_iqr': inter quartile range of the time envelope, in sec.
-       37- 'time_asymmetry': symmetry of the time envelope.
-       38- 'time_concentration': concentration of the time envelope.
-       39- 'time_std': standard deciation of the time envelope.
-       40- 'time_kurtosis': kurtosis of the time envelope.
-       41- 'time_skewness': skewness of the time envelope.
-       42- 'time_entropy': Shannon's entropy of the time envelope.
-       43- 'time_flatness': flatness of the time envelope.
-       44- 'time_roughness': roughness of the time envelope.
-       45- 'time_centroid': centroid of the time envelope, in sec.
+        -  1: ``freq_peak`` — peak frequency in the frequency envelope, in Hz.
+        -  2: ``freq_bandwidth`` — bandwidth of the frequency envelope, in Hz.
+        -  3: ``freq_bandwidth90`` — 90% bandwidth of the frequency envelope, in Hz.
+        -  4: ``freq_pct5`` — 5th percentile frequency of the envelope, in Hz.
+        -  5: ``freq_pct25`` — 25th percentile frequency of the envelope, in Hz.
+        -  6: ``freq_pct50`` — 50th percentile frequency of the envelope, in Hz.
+        -  7: ``freq_pct75`` — 75th percentile frequency of the envelope, in Hz.
+        -  8: ``freq_pct95`` — 95th percentile frequency of the envelope, in Hz.
+        -  9: ``freq_iqr`` — inter-quartile range of the frequency envelope, in Hz.
+        - 10: ``freq_asymmetry`` — symmetry of the frequency envelope.
+        - 11: ``freq_concentration`` — concentration of the frequency envelope.
+        - 12: ``freq_std`` — standard deviation of the frequency envelope.
+        - 13: ``freq_kurtosis`` — kurtosis of the frequency envelope.
+        - 14: ``freq_skewness`` — skewness of the frequency envelope.
+        - 15: ``freq_entropy`` — Shannon's entropy of the frequency envelope.
+        - 16: ``freq_flatness`` — flatness of the frequency envelope.
+        - 17: ``freq_roughness`` — roughness of the frequency envelope.
+        - 18: ``freq_centroid`` — centroid of the frequency envelope, in Hz.
+        - 19: ``freq_overall_peak`` — overall peak frequency in the spectrogram, in Hz.
+        - 20: ``freq_median_mean`` — mean of median frequency across time slices, in Hz.
+        - 21: ``freq_median_std`` — std of median frequency across time slices, in Hz.
+        - 22: ``freq_entropy_mean`` — mean of entropy across time slices.
+        - 23: ``freq_entropy_std`` — std of entropy across time slices.
+        - 24: ``freq_upsweep_mean`` — frequency upsweep mean index.
+        - 25: ``freq_upsweep_fraction`` — frequency upsweep fraction.
+        - 26: ``snr`` — signal-to-noise ratio, in dB.
+        - 27: ``time_peak_sec`` — time of peak in the time envelope, in sec.
+        - 28: ``time_peak_perc`` — relative time of peak in the time envelope.
+        - 29: ``time_duration`` — duration of the time envelope, in sec.
+        - 30: ``time_duration90`` — 90% duration of the time envelope, in sec.
+        - 31: ``time_pct5`` — 5th percentile time of the envelope, in sec.
+        - 32: ``time_pct25`` — 25th percentile time of the envelope, in sec.
+        - 33: ``time_pct50`` — 50th percentile time of the envelope, in sec.
+        - 34: ``time_pct75`` — 75th percentile time of the envelope, in sec.
+        - 35: ``time_pct95`` — 95th percentile time of the envelope, in sec.
+        - 36: ``time_iqr`` — inter-quartile range of the time envelope, in sec.
+        - 37: ``time_asymmetry`` — symmetry of the time envelope.
+        - 38: ``time_concentration`` — concentration of the time envelope.
+        - 39: ``time_std`` — standard deviation of the time envelope.
+        - 40: ``time_kurtosis`` — kurtosis of the time envelope.
+        - 41: ``time_skewness`` — skewness of the time envelope.
+        - 42: ``time_entropy`` — Shannon's entropy of the time envelope.
+        - 43: ``time_flatness`` — flatness of the time envelope.
+        - 44: ``time_roughness`` — roughness of the time envelope.
+        - 45: ``time_centroid`` — centroid of the time envelope, in sec.
 
     Attributes
     ----------
-    name : str
-        Name of the measurer
-    version : str
-        Version of the measurer
     resolution_freq : float
         frequency resolution of the interpolated spectral envelope, in Hz.
         Default is 0.1.
@@ -104,13 +100,8 @@ class SpectrogramFeatures(BaseClass):
         Default is 0.001.
     interp : str
         Type of interpolation method for interpolating time and frequency
-        envelopes. Can be 'linear' or 'quadratic'. Default is 'linear'.
-
-    Methods
-    -------
-    run(spectrogram, detections, debug=True, verbose=False debug=False)
-        Calculate spectrogram features each detection in the spectrogram.
-
+        envelopes. Can be ``'linear'`` or ``'quadratic'``. Default is
+        ``'linear'``.
     """
 
     measurer_parameters = ('resolution_freq',
@@ -674,25 +665,26 @@ class SpectrogramFeatures(BaseClass):
         MeasurementInNoise-UAM,Crete.pdf.
 
         Measurements include:
-            1- peak_position
-            2- peak_position_relative
-            3- length
-            4- length_90
-            5- pct5_position
-            6- pct25_position
-            7- pct50_position
-            8- pct75_position
-            9- pct95_position
-           10- IQR
-           11- asymmetry
-           12- concentration
-           13- std
-           14- kurtosis
-           15- skewness
-           16- entropy
-           17- flatness
-           18- roughness
-           19- centroid
+
+            -  1: peak_position
+            -  2: peak_position_relative
+            -  3: length
+            -  4: length_90
+            -  5: pct5_position
+            -  6: pct25_position
+            -  7: pct50_position
+            -  8: pct75_position
+            -  9: pct95_position
+            - 10: IQR
+            - 11: asymmetry
+            - 12: concentration
+            - 13: std
+            - 14: kurtosis
+            - 15: skewness
+            - 16: entropy
+            - 17: flatness
+            - 18: roughness
+            - 19: centroid
 
         Parameters
         ----------

@@ -87,7 +87,7 @@ class HMD:
             Regex pattern to filter files by name. Only files matching this pattern
             will be loaded. Examples:
             - r'_\d{8}\.nc$' : Files ending with _YYYYMMDD.nc (e.g., data_20201121.nc)
-            - r'^deployment_.*\.nc$' : Files starting with 'deployment_'
+            - ``r'^deployment_.*\.nc$'`` : Files starting with ``'deployment_'``
             - r'.*_HMD_.*\.nc$' : Files containing '_HMD_'
             Default: None (load all .nc files)
 
@@ -2307,16 +2307,14 @@ class HMD:
         Returns
         -------
         xarray.DataArray or xarray.Dataset
-            If use_lag=False:
-                2D correlation map with dimensions (latitude, longitude)
-                containing correlation coefficients:
-                - If absolute=False: values in [-1, 1]
-                - If absolute=True: values in [0, 1]
-            If use_lag=True:
-                Dataset with two DataArrays:
-                - 'correlation': Maximum correlation coefficient at each grid cell
-                - 'lag': Time lag (in time steps) where maximum occurs
-                  Positive lag means grid leads timeseries, negative means timeseries leads grid
+            If ``use_lag=False``: 2D correlation map with dimensions
+            ``(latitude, longitude)`` containing correlation coefficients
+            in [-1, 1] (or [0, 1] if ``absolute=True``).
+
+            If ``use_lag=True``: Dataset with two DataArrays:
+            ``'correlation'`` (maximum coefficient at each grid cell) and
+            ``'lag'`` (time lag in steps where maximum occurs; positive means
+            the grid leads the timeseries).
 
         Examples
         --------
