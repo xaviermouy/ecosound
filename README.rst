@@ -47,11 +47,11 @@ Features
 * **Annotation** — load, filter, merge, and export manual annotations from Raven and PAMlab
 * **Audio tools** — read audio files, apply filters, compute spectrograms
 * **Detection** — plug-in detectors (blob, kurtosis) with a common factory interface
-* **Classification** — apply trained scikit-learn classifiers to acoustic measurements
-* **Measurements** — extract spectral and temporal features from annotated signals
+.. * **Classification** — apply trained scikit-learn classifiers to acoustic measurements
+.. * **Measurements** — extract spectral and temporal features from annotated signals
 * **Evaluation** — compute Precision, Recall, and F-score curves for detectors
-* **Environment** — fetch co-located oceanographic, weather, tidal, and AIS data
-* **Soundscape** — process Hybrid Millidecade (HMD) spectral data for long-term soundscape analysis
+.. * **Environment** — fetch co-located oceanographic, weather, tidal, and AIS data
+.. * **Soundscape** — process Hybrid Millidecade (HMD) spectral data for long-term soundscape analysis
 * **Visualization** — plot waveforms, spectrograms, annotation heatmaps, and interactive AIS maps
 
 
@@ -74,8 +74,8 @@ Quick Start
    annot = Annotation()
    annot.from_raven('my_annotations.txt', class_header='Sound type')
 
-   # Keep only high-confidence detections
-   annot.data = annot.data[annot.data['confidence'] >= 0.8]
+   # Keep only high-confidence detections with the label "MW"
+   annot.data = annot.filter('label_class == "MW" & confidence >= 0.8')
 
    # Aggregate and visualise
    annot.plot_heatmap()
@@ -90,7 +90,7 @@ ecosound for your projects.
 
 Documentation
 -------------
-Full API documentation is available at https://ecosound.readthedocs.io.
+API documentation is available at https://ecosound.readthedocs.io.
 
 
 Contributors
@@ -104,7 +104,7 @@ Woods Hole Oceanographic Institution (WHOI).
 Support
 -------
 
-This project has received funding and support from:
+Over the years, this project has received support from:
 
 * `Woods Hole Oceanographic Institution (WHOI) <https://www.whoi.edu/>`_
 * `NOAA Fisheries <https://www.fisheries.noaa.gov/>`_
