@@ -165,7 +165,7 @@ def find_optimal_frequency_band(waveform, fs, freq_ranges, energy_window_samp,
 
         try:
             sos = spsig.butter(filter_order, [low, high], btype='band', output='sos')
-            filtered_waveform = spsig.sosfilt(sos, waveform)
+            filtered_waveform = spsig.sosfiltfilt(sos, waveform)
         except Exception:
             continue
 
@@ -217,32 +217,34 @@ def find_optimal_frequency_band(waveform, fs, freq_ranges, energy_window_samp,
 
 
 ## ####################################################################
-annot_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel'  # folder where the annotation are
-audio_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel' # folder where the corresponding audio data are
-out_dir = r'C:\Users\xavier.mouy\Documents\GitHub\ecosound\data\pulse_train_annotations\cuskeel\measurements' # folder where results are written
+annot_path = r'C:\Users\xavier.mouy\Desktop\test_annie_HK\NEFSC_SBNMS_201811_SB01_merged.nc'  # folder of Raven .txt files, or path to a .nc file
+audio_dir = r'C:\Users\xavier.mouy\Desktop\test_annie_HK' # folder where the corresponding audio data are
+#audio_files_list = None  # optional: path to a csv file listing audio files to process (set to None to process all)
+audio_files_list = r'C:\Users\xavier.mouy\Desktop\test_annie_HK\NEFSC_SBNMS_201811_SB01_audioDet_test.txt'
+out_dir = r'C:\Users\xavier.mouy\Desktop\test_annie_HK\output' # folder where results are written
 
 # Spectrogram parameters
 spectro_unit='sec'      # time unit for spectrogram axes ('sec' or 'samp')
-spectro_nfft=0.08       # FFT window length (sec)
-spectro_frame=0.05      # analysis frame length (sec)
-spectro_inc=0.008       # frame increment / hop size (sec)
+spectro_nfft=0.04       # FFT window length (sec)
+spectro_frame=0.04      # analysis frame length (sec)
+spectro_inc=0.001     # frame increment / hop size (sec)
 window_type = 'hann'    # FFT window type
 disp_plots = False      # if True, display plots interactively in addition to saving them
 
-resampling_fs_hz = 8000
+resampling_fs_hz = 4000
 bkg_spectral_subtraction = False  # avoid using denoising unless really necesary - use with caution
 
 # For the spectral measurements
-freq_min_hz = 200  # Overall minimum frequency for spectrogram display
-freq_max_hz = 3000  # Overall maximum frequency for spectrogram display
+freq_min_hz = 20  # Overall minimum frequency for spectrogram display
+freq_max_hz = 1000  # Overall maximum frequency for spectrogram display
 
 # --- Detection band for IPI/energy measurements ---
 # Set use=True on exactly one mode. If both are True, fixed takes priority and a warning is raised.
 
 detection_band_fixed = {
     'use': False,
-    'freq_min_hz': 400,   # lower bound of the fixed detection band (Hz)
-    'freq_max_hz': 1200,  # upper bound of the fixed detection band (Hz)
+    'freq_min_hz': 20,   # lower bound of the fixed detection band (Hz)
+    'freq_max_hz': 1000,  # upper bound of the fixed detection band (Hz)
 }
 
 detection_band_adaptive = {
@@ -252,12 +254,12 @@ detection_band_adaptive = {
     'min_band_hz': 50,                     # minimum useful bandwidth (Hz)
 }
 
-energy_window_sec = 0.012
+energy_window_sec = 0.01
 energy_threshold = 0.25
 
 # Filters
 min_duration_sec = 0.1 # minimum duration of the annotations to process (can be used to remove annotations that are too short)
-time_buffer_sec = 0.2 # nb seconds to add before and after the annotation
+time_buffer_sec = 0.3# nb seconds to add before and after the annotation
 
 ## ####################################################################
 
@@ -286,10 +288,29 @@ else:
 
 # load detections
 detec = Annotation()
-detec.from_raven(annot_dir, verbose=True)
+if os.path.isfile(annot_path) and annot_path.endswith('.nc'):
+    print('Loading annotations from NetCDF file')
+    detec.from_netcdf(annot_path)
+elif os.path.isdir(annot_path):
+    print('Loading annotations from Raven tables')
+    detec.from_raven(annot_path, verbose=True)
+else:
+    raise ValueError(f'annot_path must be a .nc file or a directory of Raven .txt files: {annot_path}')
 detec.update_audio_dir(audio_dir)
 # filter by duration
 detec.filter(f'duration>={min_duration_sec}', inplace=True)
+# filter by audio file list (optional)
+if audio_files_list is not None:
+    with open(audio_files_list, 'r') as f:
+        raw = f.read()
+    allowed_names = set(
+        os.path.splitext(os.path.basename(p))[0]
+        for p in raw.replace('\n', ',').split(',')
+        if p.strip()
+    )
+    print(f'Filtering to {len(allowed_names)} files listed in audio_files_list')
+    detec.data = detec.data[detec.data['audio_file_name'].isin(allowed_names)].reset_index(drop=True)
+    print(f'  -> {len(detec)} detections remaining after file filter')
 
 first_meas = True
 # loop through detections and perform measurements
@@ -331,12 +352,13 @@ for idx in range(0, len(detec)):
                        'peak_consistency': np.nan, 'peak_cv': np.nan, 'median_peak_snr': np.nan}
             # compute energy for the fixed band
             sound_fixed = copy.deepcopy(sound)
-            sound_fixed.filter(filter_type='bandpass', cutoff_frequencies=[selected_freq_min, selected_freq_max], order=8)
+            sound_fixed.filter(filter_type='bandpass', cutoff_frequencies=[selected_freq_min, selected_freq_max], order=4)
             E = rolling_energy(sound_fixed.waveform, window=energy_window_samp, alignment='center')
             E = E - np.min(E)
             if np.percentile(E, 99) > 0:
                 E = E / np.percentile(E, 99)
             optimal_energy = savgol_filter(E, window_length=energy_window_samp, polyorder=2)
+            waveform_det = sound_fixed.waveform
             print(f"  -> Fixed band: {selected_freq_min}-{selected_freq_max} Hz")
         else:
             # Find optimal frequency band based on pulse train score
@@ -403,6 +425,7 @@ for idx in range(0, len(detec)):
                           f'n_peaks: {metrics["n_peaks"]}, '
                           f'consistency: {metrics["peak_consistency"]:.2f})')
         axes[0].legend(loc='upper right', fontsize=7)
+        axes[0].set_xlim(0, t_x[-1])
         axes[1].plot(t_x, sound.waveform,'k', alpha=0.5, label='Waveform')
         axes[1].set_xlabel('Time (s)')
         axes[1].set_ylabel('Amplitude')
