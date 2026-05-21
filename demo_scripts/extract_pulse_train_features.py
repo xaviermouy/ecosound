@@ -10,6 +10,7 @@ import os
 import pandas as pd
 import numpy as np
 import scipy.signal as spsig
+from scipy.interpolate import interp1d
 import copy
 '''
 This script measures characteristics of pulse trains from Raven annotations.
@@ -225,7 +226,7 @@ out_dir = r'C:\Users\xavier.mouy\Desktop\test_annie_HK\output' # folder where re
 
 # Spectrogram parameters
 spectro_unit='sec'      # time unit for spectrogram axes ('sec' or 'samp')
-spectro_nfft=0.04       # FFT window length (sec)
+spectro_nfft=0.08       # FFT window length (sec)
 spectro_frame=0.04      # analysis frame length (sec)
 spectro_inc=0.001     # frame increment / hop size (sec)
 window_type = 'hann'    # FFT window type
@@ -259,7 +260,7 @@ energy_threshold = 0.25
 
 # Filters
 min_duration_sec = 0.1 # minimum duration of the annotations to process (can be used to remove annotations that are too short)
-time_buffer_sec = 0.3# nb seconds to add before and after the annotation
+time_buffer_sec = 0.2# nb seconds to add before and after the annotation
 
 ## ####################################################################
 
@@ -389,6 +390,10 @@ for idx in range(0, len(detec)):
         if tuple(int(x) for x in ecosound.__version__.split('.')) < (0, 0, 32):
             spectro._axis_times = spectro._axis_times + spectro.frame_sec / 2  # workaround: fix half-frame offset (fixed in ecosound 0.0.32)
         #spectro._axis_times = spectro._axis_times + spectro.frame_sec / 2  # workaround: fix half-frame offset (fixed in ecosound 0.0.32)
+        # Resample spectrogram to 1 Hz frequency resolution
+        freq_axis_1hz = np.arange(np.ceil(spectro.axis_frequencies[0]), np.floor(spectro.axis_frequencies[-1]) + 1, 1.0)
+        spectro._spectrogram = interp1d(spectro.axis_frequencies, spectro.spectrogram, axis=0, kind='linear')(freq_axis_1hz)
+        spectro._axis_frequencies = freq_axis_1hz
         # denoise
         if bkg_spectral_subtraction:
             bkg_spec = np.mean(spectro.spectrogram, axis=1)
@@ -471,7 +476,7 @@ for idx in range(0, len(detec)):
                 else:
                     spect_list = np.concatenate((spect_list, spectro.spectrogram[:,idx_1d]), axis=1)
                 first_it = False
-            av_spec = np.mean(spect_list,axis=1)
+            av_spec = np.mean(spect_list, axis=1)
             # normalize
             av_spec = av_spec - np.min(av_spec)  # shift to [0, ...]
             av_spec = av_spec / np.sum(av_spec)  # sum to 1
