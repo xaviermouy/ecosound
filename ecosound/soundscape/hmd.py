@@ -298,6 +298,10 @@ class HMD:
                 print("  For better performance when extracting band levels, consider:")
                 print("    hmd.rechunk({'time': 1440, 'frequency': -1})")
 
+        # Store the source path so other tools (e.g. LTSAViewer) can infer
+        # a unique deployment identifier without the user having to pass it.
+        self.source_path = path_str
+
         return self
 
     def extract_band_levels(self, freq_bands, band_names=None, persist=True):
