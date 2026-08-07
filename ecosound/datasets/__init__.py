@@ -76,7 +76,7 @@ def list_datasets():
         print(f"{dataset_id}: {meta['title']}  (DOI: {meta['doi']})")
 
 
-def load(dataset_id, audio=False, cache_dir=None):
+def load(dataset_id, audio=True, cache_dir=None):
     """
     Download (if needed) and load a dataset as an Annotation object.
 
@@ -90,7 +90,8 @@ def load(dataset_id, audio=False, cache_dir=None):
     audio : bool, optional
         If True, also download audio files and update the annotation's
         ``audio_file_dir`` column to point to the local cached files.
-        Default False (audio files can be large).
+        Default True. Already-cached files are not re-downloaded.
+        Set to False to load annotations only (faster, no large downloads).
     cache_dir : str or Path, optional
         Override the cache directory for this call only. If not provided, the
         directory set by :func:`init` is used; if that has not been configured
@@ -99,9 +100,8 @@ def load(dataset_id, audio=False, cache_dir=None):
     Returns
     -------
     annots : ecosound.core.annotation.Annotation
-        Loaded annotations. When *audio* is True, returns
-        ``(annots, audio_paths)`` where *audio_paths* is a list of str paths
-        to the downloaded audio files.
+        Loaded annotations with ``audio_file_dir`` pointing to the local
+        cache directory.
 
     Raises
     ------
@@ -110,8 +110,8 @@ def load(dataset_id, audio=False, cache_dir=None):
 
     Examples
     --------
-    >>> annots = ecosound.datasets.load("haddock-stellwagen-2023")
-    >>> annots, audio = ecosound.datasets.load("haddock-stellwagen-2023", audio=True)
+    >>> annots = ecosound.datasets.load("minke-whale-mouy-2026")
+    >>> annots = ecosound.datasets.load("minke-whale-mouy-2026", audio=False)
     """
     if dataset_id not in _REGISTRY:
         raise ValueError(

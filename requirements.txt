@@ -1,5 +1,10 @@
 xarray[complete]
 dask[complete]
+h5py
+h5netcdf
+fsspec
+s3fs
+gcsfs
 pandas
 numba
 dask_image
@@ -24,3 +29,5 @@ geopandas
 plotly
 shapely
 PyYAML
+colorcet
+brokenaxes

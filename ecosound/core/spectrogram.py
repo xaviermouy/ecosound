@@ -278,7 +278,7 @@ class Spectrogram:
                 spectrogram.append(spectro_chunk)
                 idx += chunk_size
         if use_dask:
-            spectrogram = compute(spectrogram)
+            spectrogram = compute(spectrogram, scheduler='threads')
             spectrogram = np.concatenate(spectrogram[0][:], axis=1)
         else:
             spectrogram = np.concatenate(spectrogram[:], axis=1)
@@ -496,7 +496,7 @@ class Spectrogram:
                 size=(1, round(window_duration / self.time_resolution)),
                 mode="mirror",
             )
-            Smed = Smed.compute()
+            Smed = Smed.compute(scheduler='threads')
         else:
             Smed = ndimage.median_filter(
                 self._spectrogram,

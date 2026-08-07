@@ -8,6 +8,7 @@ Supported repositories
 ----------------------
 - Zenodo       : https://zenodo.org
 - NCEI / GCS   : https://storage.googleapis.com  (public buckets only)
+- Dataverse    : https://dataverse.harvard.edu  (any Dataverse installation)
 """
 
 import base64
@@ -15,7 +16,7 @@ import binascii
 import json
 import re
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs
 from urllib.request import urlopen
 
 # Default output directory — the registry/ subfolder alongside this file.
@@ -92,16 +93,116 @@ def _list_files_gcs(base_url):
     return files
 
 
+def _list_files_dataverse(dataset_url):
+    """
+    Return ``(download_base_url, {file_key: checksum})`` for all files in a
+    Dataverse dataset.
+
+    ``file_key`` has the form ``"{fileId}:{filename}"`` so the loader can
+    reconstruct both the download URL (``download_base_url + fileId``) and
+    the local filename to save as.
+
+    Parameters
+    ----------
+    dataset_url : str
+        Any of:
+        - Dataset page URL:
+          ``https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/XXX``
+        - API URL:
+          ``https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=doi:10.7910/DVN/XXX``
+        - Bare DOI with server prefix:
+          ``https://dataverse.harvard.edu doi:10.7910/DVN/XXX``
+    """
+    # --- Parse server and persistent ID (DOI) from the URL ---
+    parsed = urlparse(dataset_url)
+    server = f"{parsed.scheme}://{parsed.netloc}"
+
+    # Extract DOI from ?persistentId=doi:... query parameter
+    qs = parse_qs(parsed.query)
+    if "persistentId" in qs:
+        doi = qs["persistentId"][0]
+    else:
+        # Try to extract inline doi: reference from the path/query string
+        doi_match = re.search(r"(doi:[^\s&]+)", dataset_url)
+        if not doi_match:
+            raise ValueError(
+                f"Cannot extract persistent ID (DOI) from Dataverse URL: {dataset_url!r}\n"
+                "Expected format: https://dataverse.harvard.edu/dataset.xhtml"
+                "?persistentId=doi:10.7910/DVN/XXXXX"
+            )
+        doi = doi_match.group(1)
+
+    # --- Fetch file list via Dataverse native API (paginated) ---
+    files = {}
+    limit = 1000
+    offset = 0
+    while True:
+        params = urlencode({"persistentId": doi, "limit": limit, "offset": offset})
+        api_url = (
+            f"{server}/api/datasets/:persistentId/versions/:latest/files?{params}"
+        )
+        with urlopen(api_url) as resp:
+            data = json.loads(resp.read())
+
+        batch = data.get("data", [])
+        for item in batch:
+            file_info = item.get("dataFile", {})
+            file_id   = file_info.get("id")
+            filename  = item.get("label") or file_info.get("filename", "")
+            directory = item.get("directoryLabel", "")
+
+            # Preserve folder structure in the filename key if present
+            rel_name = f"{directory}/{filename}" if directory else filename
+
+            checksum_info = file_info.get("checksum", {})
+            ctype = checksum_info.get("type", "").upper()
+            cval  = checksum_info.get("value", "")
+            if ctype == "MD5":
+                checksum = f"md5:{cval}"
+            elif ctype == "SHA-1":
+                checksum = f"sha1:{cval}"
+            elif ctype in ("SHA-256", "SHA256"):
+                checksum = f"sha256:{cval}"
+            else:
+                checksum = f"md5:{cval}"  # fallback
+
+            # Encode as "fileId:rel_name" so the loader can split them apart
+            files[f"{file_id}:{rel_name}"] = checksum
+
+        if len(batch) < limit:
+            break
+        offset += limit
+
+    if not files:
+        raise ValueError(
+            f"No files found in Dataverse dataset: {doi!r}\n"
+            f"  Server: {server}\n"
+            "  Check that the dataset is published and publicly accessible."
+        )
+
+    download_base_url = f"{server}/api/access/datafile/"
+    return download_base_url, files
+
+
 def _list_files(base_url):
-    """Auto-detect repository type and return {filename: checksum} dict."""
+    """
+    Auto-detect repository type and return ``(download_base_url, {filename: checksum})``.
+
+    For Zenodo and GCS the ``download_base_url`` is ``None`` (the caller's
+    ``base_url`` is used as-is).  For Dataverse it is the computed datafile
+    access endpoint.
+    """
     if "zenodo.org" in base_url:
-        return _list_files_zenodo(base_url)
+        return None, _list_files_zenodo(base_url)
     elif "storage.googleapis.com" in base_url:
-        return _list_files_gcs(base_url)
+        return None, _list_files_gcs(base_url)
+    elif "dataverse" in base_url.lower() or "/dataset.xhtml" in base_url:
+        return _list_files_dataverse(base_url)
     else:
         raise ValueError(
             f"Unsupported repository URL: {base_url!r}\n"
-            "Supported: Zenodo (zenodo.org), NCEI/GCS (storage.googleapis.com)"
+            "Supported: Zenodo (zenodo.org), NCEI/GCS (storage.googleapis.com), "
+            "Dataverse (any host with /dataset.xhtml or 'dataverse' in URL)"
         )
 
 
@@ -128,8 +229,8 @@ def make_registry_entry(
     ``.nc`` files go to ``annotation_files``; audio files (``.wav``, ``.aif``,
     ``.aiff``, ``.flac``, ``.mp3``, ``.ogg``, ``.bwf``) go to ``audio_files``.
 
-    Supported repositories: **Zenodo** and **NCEI / Google Cloud Storage**
-    (public buckets only).
+    Supported repositories: **Zenodo**, **NCEI / Google Cloud Storage**
+    (public buckets only), and **Dataverse** (any public installation).
 
     After the JSON is written, reload the ecosound.datasets module (or restart
     Python) for the new dataset to appear in :func:`list_datasets`.
@@ -194,39 +295,59 @@ def make_registry_entry(
     ...     title="Minke whale calls NCEI 2022",
     ...     description="...",
     ... )
+
+    Dataverse dataset (Harvard Dataverse or any Dataverse installation):
+
+    >>> ecosound.datasets.make_registry_entry(
+    ...     dataset_id="minke-whale-mouy-2026",
+    ...     annotation_base_urls=[
+    ...         "https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/XXXXX"
+    ...     ],
+    ...     audio_base_urls=[
+    ...         "https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/XXXXX"
+    ...     ],
+    ...     title="Minke whale passive acoustic annotation dataset",
+    ...     description="...",
+    ...     doi="10.7910/DVN/XXXXX",
+    ... )
     """
     out_dir = Path(output_dir) if output_dir else _REGISTRY_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Cache query results to avoid hitting the same URL twice
+    _query_cache = {}
+
+    def _query(url):
+        if url not in _query_cache:
+            print(f"[ecosound.datasets] Querying {url} ...")
+            dl_base, files = _list_files(url)
+            # dl_base is None for Zenodo/GCS (use the original url as registry key)
+            registry_key = dl_base if dl_base is not None else url
+            _query_cache[url] = (registry_key, files)
+        return _query_cache[url]
+
     annotation_files = {}
     for base_url in annotation_base_urls:
-        print(f"[ecosound.datasets] Querying {base_url} ...")
-        all_files = _list_files(base_url)
+        registry_key, all_files = _query(base_url)
+        # For Dataverse keys are "fileId:path" — extract the path part for extension check
         nc_files = {
             k: v for k, v in all_files.items()
-            if Path(k).suffix.lower() in _ANNOTATION_EXTENSIONS
+            if Path(k.split(":", 1)[-1]).suffix.lower() in _ANNOTATION_EXTENSIONS
         }
         if nc_files:
-            annotation_files[base_url] = nc_files
+            annotation_files[registry_key] = nc_files
         else:
             print(f"  Warning: no .nc annotation files found at {base_url!r}")
 
     audio_files = {}
     for base_url in audio_base_urls:
-        # Avoid re-querying a URL already fetched for annotations
-        if base_url in annotation_files:
-            all_files_for_audio = {
-                **_list_files(base_url)
-            } if base_url not in annotation_files else _list_files(base_url)
-        else:
-            print(f"[ecosound.datasets] Querying {base_url} ...")
-            all_files_for_audio = _list_files(base_url)
+        registry_key, all_files = _query(base_url)
         audio = {
-            k: v for k, v in all_files_for_audio.items()
-            if Path(k).suffix.lower() in _AUDIO_EXTENSIONS
+            k: v for k, v in all_files.items()
+            if Path(k.split(":", 1)[-1]).suffix.lower() in _AUDIO_EXTENSIONS
         }
         if audio:
-            audio_files[base_url] = audio
+            audio_files[registry_key] = audio
         else:
             print(f"  Warning: no audio files found at {base_url!r}")
 

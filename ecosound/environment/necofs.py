@@ -688,7 +688,7 @@ if __name__ == "__main__":
 
     # ---- Vertical profile at a Gulf of Maine location ---------------------
     lat, lon = 42.40382, -70.12225
-    dt = datetime(2015, 8, 1, 12, 0, 0)
+    dt = datetime(2025, 8, 1, 12, 0, 0)
 
     print(f"\nRequesting vertical profile at ({lat}°N, {lon}°E) on {dt}")
     print("=" * 70)

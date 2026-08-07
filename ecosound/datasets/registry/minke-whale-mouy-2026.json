@@ -1,0 +1,15 @@
+{
+  "title": "Minke whale passive acoustic annotation dataset",
+  "description": "82,652 manually annotated clips from 50 passive acoustic deployments across the UK and USA (2006-2023). Labels: minke whale (MW), humpback whale boings (HB), humpback whale knocks (HK), and non-biological noise (NN). Audio formats: WAV and AIF. Annotations stored as a single NetCDF file compatible with ecosound.",
+  "doi": "PLACEHOLDER_DOI",
+  "source": "builtin",
+  "license": "CC-BY-4.0",
+  "annotation_files": {
+    "PLACEHOLDER_DATAVERSE_DOWNLOAD_BASE_URL": {
+      "PLACEHOLDER_FILE_ID:Annotations_dataset_NN-MW-HB-HK_20221213T142558_fixed.nc": "md5:PLACEHOLDER_HASH"
+    }
+  },
+  "audio_files": {
+    "PLACEHOLDER_DATAVERSE_DOWNLOAD_BASE_URL": {}
+  }
+}

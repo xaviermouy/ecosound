@@ -7,7 +7,6 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 from glob import glob
-from dask.distributed import Client, LocalCluster
 import dask
 from pathlib import Path
 
@@ -19,26 +18,53 @@ class HMD:
     Parameters
     ----------
     n_workers : int, optional
-        Number of Dask workers (default: 4)
+        Number of Dask workers for the local cluster (default: 4).
+        Ignored when ``dask_client`` is provided.
     memory_per_worker : str, optional
-        Memory limit per worker (default: '4GB')
+        Memory limit per worker (default: '4GB').
+        Ignored when ``dask_client`` is provided.
     temp_directory : str, optional
-        Directory for Dask temporary files (default: system temp)
+        Directory for Dask temporary files (default: system temp).
+        Ignored when ``dask_client`` is provided.
     use_dask : bool, optional
-        Enable Dask parallel processing (default: True)
+        Enable Dask parallel processing (default: True).
+        Ignored when ``dask_client`` is provided.
     use_processes : bool, optional
-        Use processes instead of threads (default: auto-detect, False on Windows)
+        Use processes instead of threads (default: auto-detect, False on Windows).
+        Ignored when ``dask_client`` is provided.
+    dask_client : dask.distributed.Client, optional
+        An existing Dask client to use instead of creating a new local cluster.
+        Pass a client connected to a ``LocalCluster``, a remote scheduler, or
+        a Dask Gateway cluster (e.g. on Nebari).  HMD will use this client
+        as-is and will **not** close it on ``hmd.close()`` — the caller is
+        responsible for the client lifecycle.
+        When provided, ``n_workers``, ``memory_per_worker``, ``temp_directory``,
+        ``use_dask``, and ``use_processes`` are all ignored.
 
     Examples
     --------
+    >>> # Local cluster (default)
     >>> hmd = HMD(n_workers=4)
+
+    >>> # Existing client (e.g. already running in a notebook)
+    >>> from dask.distributed import Client
+    >>> client = Client()
+    >>> hmd = HMD(dask_client=client)
+
+    >>> # Dask Gateway on Nebari
+    >>> from dask_gateway import GatewayCluster
+    >>> cluster = GatewayCluster()
+    >>> cluster.scale(4)
+    >>> hmd = HMD(dask_client=cluster.get_client())
+
     >>> hmd.load_nc_files('path/to/deployment_01')
     >>> result = hmd.extract_band_levels([[50, 300]], ['ship'])
     >>> hmd.summary()
     """
 
     def __init__(self, n_workers=4, memory_per_worker='4GB',
-                 temp_directory=None, use_dask=True, use_processes=None):
+                 temp_directory=None, use_dask=True, use_processes=None,
+                 dask_client=None):
         """Initialize HMD processor with optional Dask cluster"""
         import platform
         import tempfile
@@ -55,16 +81,24 @@ class HMD:
 
         self.use_processes = use_processes
 
-        if self.use_dask:
+        if dask_client is not None:
+            # Use the caller-provided client; HMD does not own its lifecycle.
+            self.client = dask_client
+            self._owns_client = False
+            self.use_dask = True
+            print(f"✓ Using existing Dask client  Dashboard: {self.client.dashboard_link}")
+        elif self.use_dask:
+            self._owns_client = True
             self._setup_dask()
         else:
+            self._owns_client = False
             print("Running without Dask (single-threaded mode)")
 
 
 
     def load_nc_files(self, path, freq_range=None, time_range=None,
                       recursive=False, chunks=None, prefilter_by_date=False,
-                      filename_pattern=None):
+                      filename_pattern=None, storage_options=None):
         """
         Load NetCDF files from a directory.
 
@@ -90,6 +124,12 @@ class HMD:
             - ``r'^deployment_.*\.nc$'`` : Files starting with ``'deployment_'``
             - r'.*_HMD_.*\.nc$' : Files containing '_HMD_'
             Default: None (load all .nc files)
+        storage_options : dict, optional
+            Extra options passed to ``fsspec`` when opening remote files
+            (e.g. S3, GCS, Azure).  For an anonymous public S3 bucket use
+            ``{'anon': True}``.  For a bucket accessible via IAM role or
+            ``~/.aws/credentials`` use ``{}`` (the default).
+            Ignored for local paths.
 
         Returns
         -------
@@ -97,8 +137,14 @@ class HMD:
 
         Examples
         --------
-        >>> # Load all .nc files
+        >>> # Load all .nc files from a local directory
         >>> hmd.load_nc_files('data/deployment_01')
+        >>>
+        >>> # Load from S3 (credentials from IAM role / ~/.aws/credentials)
+        >>> hmd.load_nc_files('s3://my-bucket/deployment_01/')
+        >>>
+        >>> # Load from a public S3 bucket
+        >>> hmd.load_nc_files('s3://my-bucket/deployment_01/', storage_options={'anon': True})
         >>>
         >>> # Load only files ending with date pattern _YYYYMMDD.nc
         >>> hmd.load_nc_files('data/',
@@ -111,84 +157,97 @@ class HMD:
         """
         if chunks is None:
             chunks = {'time': 1440, 'frequency': 500}
+        if storage_options is None:
+            storage_options = {}
 
-        path = Path(path)
+        path_str = str(path)
+        is_remote = '://' in path_str
 
-        if not path.exists():
-            raise FileNotFoundError(f"Path does not exist: {path}")
-
-        # Find all .nc files
-        if recursive:
-            all_files = sorted(list(path.rglob('*.nc')))
+        if is_remote:
+            # ── Remote path (S3, GCS, Azure, …) ──────────────────────────────
+            all_files, file_to_deployment = self._discover_remote_files(
+                path_str, recursive, filename_pattern,
+                prefilter_by_date, time_range, storage_options,
+            )
         else:
-            all_files = sorted(list(path.glob('*.nc')))
+            # ── Local path ────────────────────────────────────────────────────
+            path = Path(path)
 
-        if len(all_files) == 0:
-            search_type = "or subdirectories" if recursive else ""
-            raise FileNotFoundError(f"No .nc files found in {path} {search_type}")
+            if not path.exists():
+                raise FileNotFoundError(f"Path does not exist: {path}")
 
-        print(f"Found {len(all_files)} .nc files")
-
-        # Filter files by filename pattern if requested
-        if filename_pattern is not None:
-            import re
-            initial_count = len(all_files)
-            pattern = re.compile(filename_pattern)
-            all_files = [f for f in all_files if pattern.search(f.name)]
-            filtered_count = initial_count - len(all_files)
-
-            if filtered_count > 0:
-                print(f"Filtered by filename pattern '{filename_pattern}': "
-                      f"{len(all_files)} files (excluded {filtered_count})")
+            # Find all .nc files
+            if recursive:
+                all_files = sorted(list(path.rglob('*.nc')))
+            else:
+                all_files = sorted(list(path.glob('*.nc')))
 
             if len(all_files) == 0:
-                raise FileNotFoundError(f"No files match pattern '{filename_pattern}'")
+                search_type = "or subdirectories" if recursive else ""
+                raise FileNotFoundError(f"No .nc files found in {path} {search_type}")
 
-        # Filter files by date if requested
-        if prefilter_by_date and time_range is not None:
-            all_files, skipped = self._filter_files_by_date(all_files, time_range)
-            print(f"Pre-filtered to {len(all_files)} files (skipped {skipped} outside date range)")
+            print(f"Found {len(all_files)} .nc files")
 
-        if len(all_files) == 0:
-            raise FileNotFoundError(f"No files found within time range {time_range}")
+            # Filter files by filename pattern if requested
+            if filename_pattern is not None:
+                import re
+                initial_count = len(all_files)
+                pattern = re.compile(filename_pattern)
+                all_files = [f for f in all_files if pattern.search(f.name)]
+                filtered_count = initial_count - len(all_files)
 
-        # Group files by parent directory
-        files_by_dir = {}
-        for file in all_files:
-            parent = file.parent
-            if parent not in files_by_dir:
-                files_by_dir[parent] = []
-            files_by_dir[parent].append(file)
+                if filtered_count > 0:
+                    print(f"Filtered by filename pattern '{filename_pattern}': "
+                          f"{len(all_files)} files (excluded {filtered_count})")
 
-        # Show what we found
-        if len(files_by_dir) > 1:
-            print(f"Files organized in {len(files_by_dir)} directories:")
-            for dir_path, files in sorted(files_by_dir.items()):
-                try:
-                    rel_path = dir_path.relative_to(path)
-                    dir_label = str(rel_path) if str(rel_path) != '.' else "(base)"
-                except ValueError:
-                    dir_label = dir_path.name
-                print(f"  - {dir_label}: {len(files)} files")
+                if len(all_files) == 0:
+                    raise FileNotFoundError(f"No files match pattern '{filename_pattern}'")
 
-        print(f"\nLoading {len(all_files)} files...")
+            # Filter files by date if requested
+            if prefilter_by_date and time_range is not None:
+                all_files, skipped = self._filter_files_by_date(all_files, time_range)
+                print(f"Pre-filtered to {len(all_files)} files (skipped {skipped} outside date range)")
 
-        # Create mapping of file to deployment name
-        file_to_deployment = {}
-        for dir_path, files in files_by_dir.items():
-            if len(files_by_dir) == 1:
-                deployment_name = dir_path.name
-            else:
-                try:
-                    rel_path = dir_path.relative_to(path)
-                    deployment_name = str(rel_path).replace('\\', '/') if str(rel_path) != '.' else path.name
-                except ValueError:
+            if len(all_files) == 0:
+                raise FileNotFoundError(f"No files found within time range {time_range}")
+
+            # Group files by parent directory
+            files_by_dir = {}
+            for file in all_files:
+                parent = file.parent
+                if parent not in files_by_dir:
+                    files_by_dir[parent] = []
+                files_by_dir[parent].append(file)
+
+            # Show what we found
+            if len(files_by_dir) > 1:
+                print(f"Files organized in {len(files_by_dir)} directories:")
+                for dir_path, files in sorted(files_by_dir.items()):
+                    try:
+                        rel_path = dir_path.relative_to(path)
+                        dir_label = str(rel_path) if str(rel_path) != '.' else "(base)"
+                    except ValueError:
+                        dir_label = dir_path.name
+                    print(f"  - {dir_label}: {len(files)} files")
+
+            print(f"\nLoading {len(all_files)} files...")
+
+            # Create mapping of file to deployment name
+            file_to_deployment = {}
+            for dir_path, files in files_by_dir.items():
+                if len(files_by_dir) == 1:
                     deployment_name = dir_path.name
+                else:
+                    try:
+                        rel_path = dir_path.relative_to(path)
+                        deployment_name = str(rel_path).replace('\\', '/') if str(rel_path) != '.' else path.name
+                    except ValueError:
+                        deployment_name = dir_path.name
 
-            for file in files:
-                file_to_deployment[str(file)] = deployment_name
+                for file in files:
+                    file_to_deployment[str(file)] = deployment_name
 
-        # Preprocessing function
+        # ── Common: preprocess + load ─────────────────────────────────────────
         def preprocess(ds):
             source_file = ds.encoding.get('source', '')
             deployment_name = file_to_deployment.get(source_file, 'unknown')
@@ -200,8 +259,7 @@ class HMD:
             return ds
 
         # Load all files at once
-        self.ds = xr.open_mfdataset(
-            [str(f) for f in all_files],
+        open_kwargs = dict(
             engine='h5netcdf',
             chunks=chunks if self.use_dask else None,
             preprocess=preprocess,
@@ -213,6 +271,10 @@ class HMD:
             compat='override',
             lock=False if self.use_processes else None,
         )
+        if is_remote:
+            open_kwargs['storage_options'] = storage_options
+
+        self.ds = xr.open_mfdataset([str(f) for f in all_files], **open_kwargs)
 
         # Subset time range if specified (end exclusive)
         if time_range is not None:
@@ -229,7 +291,7 @@ class HMD:
             print(f"  Deployments: {list(self.ds.deployment.values)}")
 
         # Provide chunking advice if chunks don't align well
-        if self.ds.chunks:
+        if self.use_dask and self.ds.chunks:
             freq_chunks = self.ds.chunks.get('frequency', [])
             if len(freq_chunks) > 1:
                 print("\n  ℹ Note: Data has multiple frequency chunks which may cause warnings")
@@ -2179,7 +2241,7 @@ class HMD:
 
         print(f"Data variables : {list(self.ds.data_vars)}")
 
-        if self.ds.chunks:
+        if self.use_dask and self.ds.chunks:
             print(f"Chunks         : {dict(self.ds.chunks)}")
 
         print("=" * 70)
@@ -2718,8 +2780,87 @@ class HMD:
         if self.ds is None:
             raise ValueError("No data loaded. Use .load_nc_files() first.")
 
+    def _discover_remote_files(self, path_str, recursive, filename_pattern,
+                               prefilter_by_date, time_range, storage_options):
+        """
+        List .nc files on a remote filesystem (S3, GCS, Azure, …) using fsspec.
+
+        Returns
+        -------
+        all_files : list of str
+            Full remote URLs for every file to load.
+        file_to_deployment : dict
+            Maps each file URL to its deployment name (derived from the
+            subdirectory structure relative to *path_str*).
+        """
+        import re
+        import fsspec
+
+        path_str = path_str.rstrip('/')
+        protocol = path_str.split('://')[0]
+
+        fs, root = fsspec.url_to_fs(path_str, **storage_options)
+        root = root.rstrip('/')
+
+        glob_pattern = f"{root}/**/*.nc" if recursive else f"{root}/*.nc"
+        raw_files = fs.glob(glob_pattern)
+
+        if len(raw_files) == 0:
+            search_type = "or subdirectories" if recursive else ""
+            raise FileNotFoundError(f"No .nc files found in {path_str} {search_type}")
+
+        # Reconstruct full URLs
+        all_files = sorted([f"{protocol}://{f}" for f in raw_files])
+        print(f"Found {len(all_files)} .nc files")
+
+        # Filter by filename pattern
+        if filename_pattern is not None:
+            pattern = re.compile(filename_pattern)
+            initial_count = len(all_files)
+            all_files = [f for f in all_files if pattern.search(f.rsplit('/', 1)[-1])]
+            filtered_count = initial_count - len(all_files)
+            if filtered_count > 0:
+                print(f"Filtered by filename pattern '{filename_pattern}': "
+                      f"{len(all_files)} files (excluded {filtered_count})")
+            if len(all_files) == 0:
+                raise FileNotFoundError(f"No files match pattern '{filename_pattern}'")
+
+        # Pre-filter by date
+        if prefilter_by_date and time_range is not None:
+            import pandas as pd
+            start_date = pd.to_datetime(time_range[0]).to_pydatetime()
+            end_date   = pd.to_datetime(time_range[1]).to_pydatetime()
+            filtered, skipped = [], 0
+            for f in all_files:
+                filename  = f.rsplit('/', 1)[-1]
+                file_date = HMD._parse_date_from_filename(filename)
+                if file_date is None or start_date <= file_date < end_date:
+                    filtered.append(f)
+                else:
+                    skipped += 1
+            all_files = filtered
+            print(f"Pre-filtered to {len(all_files)} files (skipped {skipped} outside date range)")
+            if len(all_files) == 0:
+                raise FileNotFoundError(f"No files found within time range {time_range}")
+
+        print(f"\nLoading {len(all_files)} files...")
+
+        # Derive deployment name from subdirectory relative to base path
+        file_to_deployment = {}
+        for f in all_files:
+            parent = f.rsplit('/', 1)[0]
+            if parent == path_str:
+                deployment_name = path_str.rsplit('/', 1)[-1]
+            else:
+                rel = parent[len(path_str):].lstrip('/')
+                deployment_name = rel if rel else path_str.rsplit('/', 1)[-1]
+            file_to_deployment[f] = deployment_name
+
+        return all_files, file_to_deployment
+
     def _setup_dask(self):
         """Setup Dask cluster for parallel processing"""
+        from dask.distributed import Client, LocalCluster
         try:
             cluster = LocalCluster(
                 n_workers=self.n_workers,
@@ -2797,12 +2938,19 @@ class HMD:
         return None
 
     def close(self):
-        """Close the Dask client and clean up resources"""
-        if self.client is not None:
+        """Close the Dask client and clean up resources.
+
+        Only closes the client when HMD created it itself.  If an external
+        client was passed via ``dask_client=``, it is left open — the caller
+        is responsible for closing it.
+        """
+        if self.client is not None and self._owns_client:
             print("Closing Dask client...")
             self.client.close()
             self.client = None
             print("✓ Dask client closed")
+        elif self.client is not None:
+            print("External Dask client left open (not owned by HMD)")
 
     def __enter__(self):
         """Context manager entry"""

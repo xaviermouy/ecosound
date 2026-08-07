@@ -10,10 +10,9 @@ from datetime import datetime
 import ecosound.core.decorators
 import numpy as np
 from scipy import interpolate
-from scipy.signal import argrelmax
+from scipy.signal import argrelmax, hilbert
 import os, sys
 from numba import njit
-import pkg_resources
 import yaml
 
 
@@ -211,6 +210,72 @@ def tighten_signal_limits_peak(signal, percentage_max_energy):
     chunk = [min_idx_limit, max_idx_limit]
 
     return chunk
+
+
+def tighten_signal_peak_window(signal, fs, half_width_sec):
+    """
+    Tighten signal limits using a fixed-width window centred on the energy peak.
+
+    Finds the sample with the maximum instantaneous energy (squared amplitude)
+    and returns a symmetric window of ``±half_width_sec`` seconds around it.
+    The window is clamped to the signal boundaries if it would extend beyond them.
+
+    Parameters
+    ----------
+    signal : numpy.ndarray
+        1-D waveform array.
+    fs : float
+        Sampling frequency in Hz.
+    half_width_sec : float
+        Half-width of the window in seconds. The total window duration is
+        ``2 * half_width_sec``.
+
+    Returns
+    -------
+    chunk : list of int
+        Two-element list ``[start_sample, stop_sample]``.
+    """
+    peak_idx = int(np.argmax(np.square(signal)))
+    half_samples = int(round(half_width_sec * fs))
+    start = max(0, peak_idx - half_samples)
+    stop  = min(len(signal) - 1, peak_idx + half_samples)
+    return [start, stop]
+
+
+def tighten_signal_envelope(signal, fs, threshold_perc=10, min_pad_sec=0.0):
+    """
+    Tighten signal limits using the Hilbert envelope and an amplitude threshold.
+
+    Computes the analytic envelope via the Hilbert transform and finds the first
+    and last samples where the envelope exceeds ``threshold_perc`` percent of its
+    peak value. An optional symmetric padding can be added to avoid clipping the
+    true onset/offset.
+
+    Parameters
+    ----------
+    signal : numpy.ndarray
+        1-D waveform array.
+    fs : float
+        Sampling frequency in Hz.
+    threshold_perc : float, optional
+        Threshold as a percentage of the envelope peak (0–100). Lower values
+        keep more of the signal. Default is 10.
+    min_pad_sec : float, optional
+        Symmetric padding in seconds added to each side of the detected
+        onset/offset before clamping to the signal boundaries. Default is 0.
+
+    Returns
+    -------
+    chunk : list of int
+        Two-element list ``[start_sample, stop_sample]``.
+    """
+    envelope = np.abs(hilbert(signal))
+    threshold = (threshold_perc / 100.0) * envelope.max()
+    above = np.where(envelope >= threshold)[0]
+    pad = int(round(min_pad_sec * fs))
+    start = max(0, int(above[0])  - pad)
+    stop  = min(len(signal) - 1, int(above[-1]) + pad)
+    return [start, stop]
 
 
 def resample_1D_array(x, y, resolution, kind="linear"):

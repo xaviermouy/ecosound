@@ -303,10 +303,19 @@ class Annotation:
         data = Annotation._import_csv_files(files)
         columns = data.columns.to_list()
 
+        # --- audio file info (highly recommended, not required) ---
         if "Begin Path" in columns:
-            files_timestamp = ecosound.core.tools.filename_to_datetime(
-                data["Begin Path"].tolist()
-            )
+            try:
+                files_timestamp = ecosound.core.tools.filename_to_datetime(
+                    data["Begin Path"].tolist()
+                )
+            except ValueError as e:
+                files_timestamp = None
+                warnings.warn(
+                    f"Could not parse timestamps from 'Begin Path' filenames ({e}). "
+                    "Absolute timestamps (time_min_date, time_max_date) will not be set.",
+                    stacklevel=2,
+                )
             self.data["audio_file_name"] = data["Begin Path"].apply(
                 lambda x: os.path.splitext(os.path.basename(x))[0]
             )
@@ -317,13 +326,22 @@ class Annotation:
                 lambda x: os.path.splitext(x)[1]
             )
         elif "Begin File" in columns:
-            if verbose:
-                print(
-                    "'Begin Path' not found using 'Begin File' to retrieve timestamps"
-                )
-            files_timestamp = ecosound.core.tools.filename_to_datetime(
-                data["Begin File"].tolist()
+            warnings.warn(
+                "'Begin Path' not found; using 'Begin File' to retrieve timestamps. "
+                "Audio file directory will not be set.",
+                stacklevel=2,
             )
+            try:
+                files_timestamp = ecosound.core.tools.filename_to_datetime(
+                    data["Begin File"].tolist()
+                )
+            except ValueError as e:
+                files_timestamp = None
+                warnings.warn(
+                    f"Could not parse timestamps from 'Begin File' filenames ({e}). "
+                    "Absolute timestamps (time_min_date, time_max_date) will not be set.",
+                    stacklevel=2,
+                )
             self.data["audio_file_name"] = data["Begin File"].apply(
                 lambda x: os.path.splitext(os.path.basename(x))[0]
             )
@@ -333,28 +351,65 @@ class Annotation:
             )
         else:
             files_timestamp = None
-            if verbose:
-                print("Name of annotated audio files could not be found")
+            warnings.warn(
+                "Neither 'Begin Path' nor 'Begin File' found in the Raven file. "
+                "Audio file name and absolute timestamps (time_min_date, time_max_date) "
+                "will not be set. Add a 'Begin Path' or 'Begin File' column to enable these fields.",
+                stacklevel=2,
+            )
+
         self.data["audio_file_start_date"] = files_timestamp
-        self.data["audio_channel"] = data["Channel"]
+
+        # --- required fields ---
+        self.data["audio_channel"] = data["Channel"] if "Channel" in columns else None
         self.data["time_min_offset"] = data["Begin Time (s)"]
         self.data["time_max_offset"] = data["End Time (s)"]
-        self.data["time_min_date"] = pd.to_datetime(
-            self.data["audio_file_start_date"]
-            + pd.to_timedelta(self.data["time_min_offset"], unit="s")
-        )
-        self.data["time_max_date"] = pd.to_datetime(
-            self.data["audio_file_start_date"]
-            + pd.to_timedelta(self.data["time_max_offset"], unit="s")
-        )
+
+        # --- absolute timestamps (only computable when audio file start date is known) ---
+        if files_timestamp is not None:
+            self.data["time_min_date"] = pd.to_datetime(
+                self.data["audio_file_start_date"]
+                + pd.to_timedelta(self.data["time_min_offset"], unit="s")
+            )
+            self.data["time_max_date"] = pd.to_datetime(
+                self.data["audio_file_start_date"]
+                + pd.to_timedelta(self.data["time_max_offset"], unit="s")
+            )
+        else:
+            self.data["time_min_date"] = pd.NaT
+            self.data["time_max_date"] = pd.NaT
+
         self.data["frequency_min"] = data["Low Freq (Hz)"]
         self.data["frequency_max"] = data["High Freq (Hz)"]
+
+        # --- optional label/confidence fields ---
         if class_header is not None:
-            self.data["label_class"] = data[class_header]
+            if class_header in columns:
+                self.data["label_class"] = data[class_header]
+            else:
+                warnings.warn(
+                    f"Class header '{class_header}' not found in the Raven file. "
+                    "'label_class' will not be set.",
+                    stacklevel=2,
+                )
         if subclass_header is not None:
-            self.data["label_subclass"] = data[subclass_header]
+            if subclass_header in columns:
+                self.data["label_subclass"] = data[subclass_header]
+            else:
+                warnings.warn(
+                    f"Subclass header '{subclass_header}' not found in the Raven file. "
+                    "'label_subclass' will not be set.",
+                    stacklevel=2,
+                )
         if confidence_header is not None:
-            self.data["confidence"] = data[confidence_header]
+            if confidence_header in columns:
+                self.data["confidence"] = data[confidence_header]
+            else:
+                warnings.warn(
+                    f"Confidence header '{confidence_header}' not found in the Raven file. "
+                    "'confidence' will not be set.",
+                    stacklevel=2,
+                )
         self.data["from_detector"] = False
         self.data["software_name"] = "raven"
         self.data["uuid"] = self.data.apply(
@@ -2054,6 +2109,680 @@ class Annotation:
         elif np.isnan(value):
             F = "nan"
         return F
+
+    def plot_map(
+        self,
+        color_by="deployment_ID",
+        extent=None,
+        extent_padding=1,
+        scale="10m",
+        title="Annotation Locations",
+        marker_size=6,
+        colormap="viridis",
+        color=None,
+        label_size=8,
+        show_labels=False,
+        point_label_size=7,
+        outfile=None,
+        show=True,
+    ):
+        """
+        Plot annotation locations on a geographic map.
+
+        Requires ``cartopy`` to be installed.
+
+        Parameters
+        ----------
+        color_by : str, optional
+            Column name in ``self.data`` used to assign a unique colour to each
+            group of markers (e.g. ``'deployment_ID'``, ``'label_class'``).
+            The default is ``'deployment_ID'``.
+        extent : list or None, optional
+            Map extent as ``[lon_min, lon_max, lat_min, lat_max]``.  If
+            ``None``, the extent is derived automatically from the data plus
+            ``extent_padding``.  The default is ``None``.
+        extent_padding : float, optional
+            Degrees of padding added around the data extent when ``extent`` is
+            ``None``.  The default is ``0.5``.
+        scale : str, optional
+            Natural Earth feature resolution, one of ``'10m'``, ``'50m'``, or
+            ``'110m'``.  The default is ``'10m'``.
+        title : str, optional
+            Map title.  The default is ``'Annotation Locations'``.
+        marker_size : int or float, optional
+            Diameter of each site marker in points.  The default is ``6``.
+        colormap : str or list, optional
+            A matplotlib colormap name, or a list of colors (e.g.
+            ``colorcet.glasbey`` for publication-friendly categorical colors
+            with up to 256 distinct entries).  When a list is passed, colors
+            are cycled through it.  When a name string is passed, colors are
+            sampled evenly across the colormap.
+            The default is ``'tab10'``.
+        color : str or tuple or None, optional
+            Single color to use for all markers (e.g. ``'steelblue'``,
+            ``'#2166ac'``, or an RGB tuple).  When set, ``colormap`` is
+            ignored.  The default is ``None`` (use ``colormap``).
+        label_size : int or float, optional
+            Font size for the latitude and longitude axis labels.
+            The default is ``8``.
+        show_labels : bool, optional
+            If ``True``, annotate each marker with its ``color_by`` value.
+            The default is ``True``.
+        point_label_size : int or float, optional
+            Font size for the point labels.  The default is ``7``.
+        outfile : str or None, optional
+            Full path to save the figure (e.g. ``'/tmp/map.png'``).  If
+            ``None``, the figure is not saved.  The default is ``None``.
+        show : bool, optional
+            If ``True``, call ``plt.show()`` after drawing.  The default is
+            ``True``.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The figure containing the map.
+
+        Raises
+        ------
+        ImportError
+            If ``cartopy`` is not installed.
+        ValueError
+            If ``location_lat`` / ``location_lon`` columns are missing or all
+            NaN, or if ``color_by`` is not a valid column name.
+
+        Examples
+        --------
+        >>> annot = Annotation()
+        >>> annot.from_netcdf('my_annotations.nc')
+        >>> fig = annot.plot_map()
+
+        Color-code by species label and save:
+
+        >>> fig = annot.plot_map(color_by='label_class', outfile='map.png',
+        ...                 show=False)
+        """
+        try:
+            import cartopy.crs as ccrs
+            import cartopy.feature as cfeature
+            import matplotlib.pyplot as plt
+            import matplotlib.patches as mpatches
+            import matplotlib.ticker as mticker
+            from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+        except ImportError as exc:
+            raise ImportError(
+                "cartopy is required for Annotation.plot_map(). "
+                "Install it with: conda install -c conda-forge cartopy"
+            ) from exc
+
+        # ── Validate inputs ────────────────────────────────────────────────
+        for col in ("location_lat", "location_lon"):
+            if col not in self.data.columns:
+                raise ValueError(f"Column '{col}' not found in annotation data.")
+        if color_by not in self.data.columns:
+            raise ValueError(
+                f"color_by='{color_by}' is not a column in annotation data."
+            )
+
+        df = self.data.dropna(subset=["location_lat", "location_lon"]).copy()
+        if df.empty:
+            raise ValueError("No annotations with valid lat/lon coordinates.")
+
+        # ── Build per-group location table ─────────────────────────────────
+        locs = (
+            df.groupby(color_by)[["location_lat", "location_lon"]]
+            .first()
+            .reset_index()
+        )
+        locs.columns = [color_by, "lat", "lon"]
+
+        # Assign colours
+        groups = locs[color_by].tolist()
+        if color is not None:
+            color_map = {g: color for g in groups}
+        elif isinstance(colormap, (list, tuple)):
+            # Accept a list of colors directly (e.g. colorcet.glasbey)
+            color_map = {g: colormap[i % len(colormap)] for i, g in enumerate(groups)}
+        else:
+            n = len(groups)
+            cmap = plt.get_cmap(colormap)
+            color_map = {g: cmap(i / max(n - 1, 1)) for i, g in enumerate(groups)}
+        locs["color"] = locs[color_by].map(color_map)
+
+        # ── Map extent ─────────────────────────────────────────────────────
+        if extent is None:
+            lat_min = locs["lat"].min() - extent_padding
+            lat_max = locs["lat"].max() + extent_padding
+            lon_min = locs["lon"].min() - extent_padding
+            lon_max = locs["lon"].max() + extent_padding
+            extent = [lon_min, lon_max, lat_min, lat_max]
+
+        # ── Draw map ───────────────────────────────────────────────────────
+        fig, ax = plt.subplots(
+            1, 1,
+            figsize=(10, 7),
+            subplot_kw={"projection": ccrs.PlateCarree()},
+        )
+        ax.set_extent(extent, crs=ccrs.PlateCarree())
+
+        ax.add_feature(cfeature.OCEAN.with_scale(scale), facecolor="#d6eaf8", zorder=0)
+        ax.add_feature(cfeature.LAND.with_scale(scale), facecolor="#f0ede8", zorder=1)
+        ax.add_feature(
+            cfeature.COASTLINE.with_scale(scale),
+            linewidth=0.6, edgecolor="#444444", zorder=2,
+        )
+        ax.add_feature(
+            cfeature.STATES.with_scale(scale),
+            linewidth=0.4, edgecolor="#888888", zorder=2,
+        )
+        ax.add_feature(
+            cfeature.BORDERS.with_scale(scale),
+            linewidth=0.5, edgecolor="#666666", zorder=2,
+        )
+
+        gl = ax.gridlines(
+            crs=ccrs.PlateCarree(), draw_labels=True,
+            linewidth=0.4, color="gray", alpha=0.6, linestyle="--",
+        )
+        gl.top_labels = False
+        gl.right_labels = False
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+        gl.xlabel_style = {"size": label_size}
+        gl.ylabel_style = {"size": label_size}
+
+        # ── Plot markers ───────────────────────────────────────────────────
+        for _, row in locs.iterrows():
+            ax.plot(
+                row["lon"], row["lat"],
+                marker="o", markersize=marker_size,
+                color=row["color"],
+                markeredgecolor="white", markeredgewidth=0.5,
+                transform=ccrs.PlateCarree(), zorder=5,
+            )
+            if show_labels:
+                ax.text(
+                    row["lon"], row["lat"], str(row[color_by]),
+                    fontsize=point_label_size,
+                    transform=ccrs.PlateCarree(),
+                    ha="left", va="bottom",
+                    zorder=6,
+                )
+
+        # ── Legend ─────────────────────────────────────────────────────────
+        handles = [
+            mpatches.Patch(color=color_map[g], label=str(g))
+            for g in groups
+        ]
+        ax.legend(
+            handles=handles, loc="upper left", fontsize=8,
+            framealpha=0.9, edgecolor="#cccccc",
+            bbox_to_anchor=(1.02, 1), borderaxespad=0,
+            title=color_by, title_fontsize=9,
+        )
+
+        ax.set_title(title, fontsize=11, fontweight="bold", pad=8)
+        fig.tight_layout()
+
+        if outfile is not None:
+            fig.savefig(outfile, dpi=300, bbox_inches="tight")
+
+        if show:
+            plt.show()
+
+        return fig
+
+    def plot_timeline(
+        self,
+        color_by="deployment_ID",
+        colormap="tab10",
+        color=None,
+        title="Annotation Timeline",
+        label_size=14,
+        dot_size=45,
+        dot_alpha=0.01,
+        show_lines=True,
+        line_width=5,
+        line_alpha=0.5,
+        show_grid_lines=True,
+        show_counts_panel=False,
+        counts_panel_width=0.2,
+        gap_start=None,
+        gap_end=None,
+        gap_kwargs=None,
+        fig_size=(10, 6),
+        outfile=None,
+        show=True,
+    ):
+        """
+        Plot the temporal coverage of annotations as a timeline.
+
+        Each group (defined by ``color_by``) is shown as a horizontal bar
+        spanning its earliest to latest annotation, with individual annotation
+        dates overlaid as dots.  Groups are sorted by their earliest date.
+
+        Parameters
+        ----------
+        color_by : str, optional
+            Column name used to group and color entries (e.g.
+            ``'deployment_ID'``, ``'label_class'``).
+            The default is ``'deployment_ID'``.
+        colormap : str or list, optional
+            A matplotlib colormap name, or a list of colors (e.g.
+            ``colorcet.glasbey``).  Ignored when ``color`` is set.
+            The default is ``'tab10'``.
+        color : str or tuple or None, optional
+            Single color for all groups.  Overrides ``colormap`` when set.
+            The default is ``None``.
+        title : str, optional
+            Figure title.  The default is ``'Annotation Timeline'``.
+        label_size : int or float, optional
+            Font size for the y-axis group labels and x-axis tick labels.
+            The default is ``14``.
+        dot_size : int or float, optional
+            Size of the individual annotation dots.  The default is ``45``.
+        dot_alpha : float, optional
+            Opacity of the dots, between 0 and 1.  The default is ``0.01``.
+        show_lines : bool, optional
+            If ``True``, draw a colored horizontal line spanning the date
+            range of each group.  The default is ``True``.
+        show_grid_lines : bool, optional
+            If ``True``, draw a light gray dashed full-width rule behind
+            each row as a visual guide.  The default is ``True``.
+        line_width : int or float, optional
+            Width of the horizontal coverage bar.  The default is ``5``.
+        line_alpha : float, optional
+            Opacity of the coverage bar, between 0 and 1.  The default is
+            ``0.5``.
+        show_counts_panel : bool, optional
+            If ``True``, add a horizontal bar chart on the right showing the
+            total annotation count per group, sharing the same y-axis and
+            colors as the timeline.  The default is ``False``.
+        counts_panel_width : float, optional
+            Width of the counts panel as a fraction of the timeline panel
+            width.  The default is ``0.2``.
+        gap_start : datetime-like or None, optional
+            Start of the x-axis gap (e.g. ``pd.Timestamp('2015-01-01')``).
+            Both ``gap_start`` and ``gap_end`` must be set to enable the
+            break.  Requires ``brokenaxes``.  The default is ``None``.
+        gap_end : datetime-like or None, optional
+            End of the x-axis gap.  The default is ``None``.
+        gap_kwargs : dict or None, optional
+            Extra keyword arguments passed to ``brokenaxes()``, controlling
+            the appearance of the break markers.  Useful options include:
+
+            - ``tilt`` (int): angle of break marks in degrees.  ``45``
+              (default) gives oblique lines, ``90`` gives vertical lines.
+            - ``d`` (float): size of break marks.  ``0`` hides them
+              entirely for a clean gap.
+            - ``diag_color`` (str): color of the break marks.
+
+            Example: ``gap_kwargs={"d": 0}`` or
+            ``gap_kwargs={"tilt": 90}``.  The default is ``None``.
+        fig_size : tuple, optional
+            Figure size as ``(width, height)`` in inches.
+            The default is ``(10, 6)``.
+        outfile : str or None, optional
+            Full path to save the figure.  If ``None``, the figure is not
+            saved.  The default is ``None``.
+        show : bool, optional
+            If ``True``, call ``plt.show()`` after drawing.
+            The default is ``True``.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The figure containing the timeline.
+
+        Raises
+        ------
+        ValueError
+            If ``time_min_date`` column is missing or all NaN, or if
+            ``color_by`` is not a valid column name.
+
+        Examples
+        --------
+        >>> annot = Annotation()
+        >>> annot.from_netcdf('my_annotations.nc')
+        >>> fig = annot.plot_timeline()
+
+        Color-code by species label and save:
+
+        >>> fig = annot.plot_timeline(color_by='label_class',
+        ...                           outfile='timeline.png', show=False)
+        """
+        import matplotlib.pyplot as plt
+        import matplotlib.dates as mdates
+        import matplotlib.patches as mpatches
+
+        # ── Validate inputs ────────────────────────────────────────────────
+        if "time_min_date" not in self.data.columns:
+            raise ValueError("Column 'time_min_date' not found in annotation data.")
+        if color_by not in self.data.columns:
+            raise ValueError(
+                f"color_by='{color_by}' is not a column in annotation data."
+            )
+
+        df = self.data.dropna(subset=["time_min_date"]).copy()
+        if df.empty:
+            raise ValueError("No annotations with valid time_min_date values.")
+
+        # ── Sort groups by earliest date ───────────────────────────────────
+        group_order = (
+            df.groupby(color_by)["time_min_date"]
+            .min()
+            .sort_values()
+            .index.tolist()
+        )
+        ymap = {g: i for i, g in enumerate(group_order)}
+
+        # ── Assign colours ─────────────────────────────────────────────────
+        n = len(group_order)
+        if color is not None:
+            color_map = {g: color for g in group_order}
+        elif isinstance(colormap, (list, tuple)):
+            color_map = {g: colormap[i % len(colormap)] for i, g in enumerate(group_order)}
+        else:
+            cmap = plt.get_cmap(colormap)
+            color_map = {g: cmap(i / max(n - 1, 1)) for i, g in enumerate(group_order)}
+
+        # ── Draw timeline ──────────────────────────────────────────────────
+        # ── Create figure layout ───────────────────────────────────────────
+        use_gap = gap_start is not None and gap_end is not None
+        if use_gap:
+            try:
+                from brokenaxes import brokenaxes
+                import matplotlib.gridspec as gridspec
+            except ImportError as exc:
+                raise ImportError(
+                    "brokenaxes is required for gap support. "
+                    "Install it with: pip install brokenaxes"
+                ) from exc
+
+        x_min = df["time_min_date"].min()
+        x_max = df["time_min_date"].max()
+
+        _gap_kwargs = gap_kwargs or {}
+        if use_gap and show_counts_panel:
+            fig = plt.figure(figsize=fig_size)
+            gs = gridspec.GridSpec(
+                1, 2, figure=fig,
+                width_ratios=[1, counts_panel_width],
+                wspace=0.05,
+            )
+            ax = brokenaxes(
+                xlims=((x_min, gap_start), (gap_end, x_max)),
+                subplot_spec=gs[0],
+                fig=fig,
+                **_gap_kwargs,
+            )
+            ax_counts = fig.add_subplot(gs[1])
+        elif use_gap:
+            fig = plt.figure(figsize=fig_size)
+            ax = brokenaxes(
+                xlims=((x_min, gap_start), (gap_end, x_max)),
+                fig=fig,
+                **_gap_kwargs,
+            )
+        elif show_counts_panel:
+            fig, (ax, ax_counts) = plt.subplots(
+                1, 2, figsize=fig_size, sharey=True,
+                gridspec_kw={"width_ratios": [1, counts_panel_width]},
+            )
+        else:
+            fig, ax = plt.subplots(figsize=fig_size)
+
+        for grp in group_order:
+            sub = df[df[color_by] == grp].sort_values("time_min_date")
+            yi = ymap[grp]
+            c = color_map[grp]
+            ax.scatter(
+                sub["time_min_date"], [yi] * len(sub),
+                s=dot_size, color=c, alpha=dot_alpha, linewidths=0, zorder=3,
+            )
+            if show_grid_lines:
+                ax.axhline(
+                    yi, color="lightgray", linewidth=0.8, linestyle="--", zorder=1,
+                )
+            if show_lines:
+                ax.plot(
+                    [sub["time_min_date"].min(), sub["time_min_date"].max()],
+                    [yi, yi],
+                    color=c, linewidth=line_width, alpha=line_alpha, zorder=2,
+                )
+            if show_counts_panel:
+                count = len(sub)
+                ax_counts.barh(yi, count, color=c, alpha=line_alpha, zorder=2)
+
+        # ── Axes formatting ────────────────────────────────────────────────
+        if use_gap:
+            # brokenaxes proxies most calls across its internal axes
+            for sub_ax in ax.axs:
+                sub_ax.xaxis.set_major_locator(mdates.YearLocator())
+                sub_ax.xaxis.set_minor_locator(mdates.MonthLocator(bymonth=[4, 7, 10]))
+                sub_ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+                sub_ax.tick_params(axis="x", labelsize=label_size)
+                sub_ax.grid(axis="x", which="major", linewidth=0.5, linestyle="--", alpha=0.6)
+                sub_ax.grid(axis="x", which="minor", linewidth=0.3, linestyle=":", alpha=0.4)
+                sub_ax.spines["top"].set_visible(False)
+                sub_ax.spines["right"].set_visible(False)
+            ax.axs[0].set_yticks(list(range(n)))
+            ax.axs[0].set_yticklabels([str(g) for g in group_order], fontsize=label_size)
+            ax.set_xlabel("Date", fontsize=label_size, labelpad=25)
+            if show_counts_panel:
+                # Manually sync y-axis limits
+                ax_counts.set_ylim(ax.axs[0].get_ylim())
+                ax_counts.set_yticks(list(range(n)))
+                ax_counts.set_yticklabels([])
+        else:
+            ax.set_yticks(list(range(n)))
+            ax.set_yticklabels([str(g) for g in group_order], fontsize=label_size)
+            ax.set_xlabel("Date", fontsize=label_size)
+            ax.xaxis.set_major_locator(mdates.YearLocator())
+            ax.xaxis.set_minor_locator(mdates.MonthLocator(bymonth=[4, 7, 10]))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+            ax.tick_params(axis="x", labelsize=label_size)
+            ax.grid(axis="x", which="major", linewidth=0.5, linestyle="--", alpha=0.6)
+            ax.grid(axis="x", which="minor", linewidth=0.3, linestyle=":", alpha=0.4)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+        ax.set_title(title, fontsize=11, fontweight="bold")
+
+        if show_counts_panel:
+            ax_counts.set_xlabel("Annotations", fontsize=label_size)
+            ax_counts.tick_params(axis="x", labelsize=label_size)
+            ax_counts.spines["top"].set_visible(False)
+            ax_counts.spines["right"].set_visible(False)
+            ax_counts.yaxis.set_tick_params(left=False)
+            ax_counts.xaxis.grid(True, linestyle="--", linewidth=0.5, alpha=0.6)
+            ax_counts.set_axisbelow(True)
+
+        fig.tight_layout()
+
+        if outfile is not None:
+            fig.savefig(outfile, dpi=300, bbox_inches="tight")
+
+        if show:
+            plt.show()
+
+        return fig
+
+    def plot_distribution(
+        self,
+        field,
+        sort_by="count",
+        n_bins=None,
+        min_val=None,
+        max_val=None,
+        color="lightsteelblue",
+        edge_color="gray",
+        title=None,
+        label_size=12,
+        show_counts=True,
+        show_grid_lines=True,
+        x_label=None,
+        y_label="Number of annotations",
+        fig_size=(8, 5),
+        outfile=None,
+        show=True,
+    ):
+        """
+        Plot a bar chart of annotation counts per category for a given field.
+
+        Parameters
+        ----------
+        field : str
+            Annotation field to plot (e.g. ``'label_class'``,
+            ``'recorder_type'``, ``'audio_sampling_frequency'``).
+        sort_by : str, optional
+            How to order the bars.  ``'count'`` sorts by descending count,
+            ``'name'`` sorts alphabetically by category name.  Ignored when
+            ``n_bins`` is set (bins are always in ascending order).
+            The default is ``'count'``.
+        min_val : scalar or None, optional
+            Exclude values below this threshold before plotting.
+            The default is ``None`` (no lower bound).
+        max_val : scalar or None, optional
+            Exclude values above this threshold before plotting.
+            The default is ``None`` (no upper bound).
+        n_bins : int or None, optional
+            Number of bins to use.  When set, values are binned into
+            ``n_bins`` equal-width intervals — useful for continuous fields
+            such as ``'hydrophone_depth'`` or ``'audio_sampling_frequency'``.
+            When ``None``, one bar is drawn per unique value (categorical
+            behaviour).  The default is ``None``.
+        color : str or tuple, optional
+            Bar fill color.  The default is ``'lightsteelblue'``.
+        edge_color : str or tuple, optional
+            Bar edge color.  The default is ``'gray'``.
+        title : str or None, optional
+            Figure title.  If ``None``, defaults to
+            ``'Number of annotations per <field>'``.
+            The default is ``None``.
+        label_size : int or float, optional
+            Font size for axis tick labels.  The default is ``12``.
+        show_counts : bool, optional
+            If ``True``, display the count value at the end of each bar.
+            The default is ``True``.
+        show_grid_lines : bool, optional
+            If ``True``, draw horizontal grid lines on the y-axis.
+            The default is ``True``.
+        x_label : str or None, optional
+            X-axis label.  If ``None``, defaults to the ``field`` name.
+            The default is ``None``.
+        y_label : str, optional
+            Y-axis label.  The default is ``'Number of annotations'``.
+        fig_size : tuple, optional
+            Figure size as ``(width, height)`` in inches.
+            The default is ``(8, 5)``.
+        outfile : str or None, optional
+            Full path to save the figure.  If ``None``, the figure is not
+            saved.  The default is ``None``.
+        show : bool, optional
+            If ``True``, call ``plt.show()`` after drawing.
+            The default is ``True``.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The figure containing the bar chart.
+
+        Raises
+        ------
+        ValueError
+            If ``field`` is not a valid column name, or if ``sort_by`` is
+            not ``'count'`` or ``'name'``.
+
+        Examples
+        --------
+        >>> annot = Annotation()
+        >>> annot.from_netcdf('my_annotations.nc')
+        >>> fig = annot.plot_distribution('label_class')
+        >>> fig = annot.plot_distribution('recorder_type', sort_by='name')
+        """
+        import matplotlib.pyplot as plt
+
+        if field not in self.data.columns:
+            raise ValueError(f"'{field}' is not a column in annotation data.")
+        if sort_by not in ("count", "name"):
+            raise ValueError("sort_by must be 'count' or 'name'.")
+
+        data = self.data.copy()
+        if pd.api.types.is_numeric_dtype(data[field]):
+            if min_val is not None:
+                data = data[data[field] >= min_val]
+            if max_val is not None:
+                data = data[data[field] <= max_val]
+
+        if title is None:
+            title = f"Number of annotations per {field}"
+
+        fig, ax = plt.subplots(figsize=fig_size)
+
+        if n_bins is not None:
+            # Continuous: use actual bin edges so bars are contiguous
+            vmin = data[field].min() if min_val is None else min_val
+            vmax = data[field].max() if max_val is None else max_val
+            bin_edges = np.linspace(vmin, vmax, n_bins + 1)
+            binned = pd.cut(data[field], bins=bin_edges)
+            counts = binned.value_counts().sort_index()
+            left_edges = [interval.left for interval in counts.index]
+            right_edges = [interval.right for interval in counts.index]
+            widths = [r - l for l, r in zip(left_edges, right_edges)]
+            bars = ax.bar(
+                left_edges,
+                counts.values,
+                width=widths,
+                align="edge",
+                color=color,
+                edgecolor=edge_color,
+                linewidth=0.5,
+            )
+            # Tick at every bin edge (start and end of each bar)
+            all_edges = left_edges + [right_edges[-1]]
+            ax.set_xticks(all_edges)
+            ax.tick_params(axis="x", labelsize=label_size, rotation=45)
+        else:
+            counts = data[field].value_counts()
+            if sort_by == "name":
+                counts = counts.sort_index()
+            bars = ax.bar(
+                [str(v) for v in counts.index],
+                counts.values,
+                color=color,
+                edgecolor=edge_color,
+                linewidth=0.5,
+            )
+
+        if show_counts:
+            for bar, val in zip(bars, counts.values):
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height(),
+                    str(val),
+                    ha="center", va="bottom",
+                    fontsize=label_size,
+                )
+
+        ax.set_xlabel(field if x_label is None else x_label, fontsize=label_size)
+        ax.set_ylabel(y_label, fontsize=label_size)
+        ax.tick_params(axis="x", labelsize=label_size, rotation=45)
+        ax.tick_params(axis="y", labelsize=label_size)
+        plt.setp(ax.get_xticklabels(), ha="right", rotation_mode="anchor")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.yaxis.grid(show_grid_lines, linestyle="--", linewidth=0.5, alpha=0.7)
+        ax.set_axisbelow(True)
+        ax.set_title(title, fontsize=11, fontweight="bold")
+
+        fig.tight_layout()
+
+        if outfile is not None:
+            fig.savefig(outfile, dpi=300, bbox_inches="tight")
+
+        if show:
+            plt.show()
+
+        return fig
 
     def __add__(self, other):
         """Concatenate data from several annotation objects."""

@@ -1,0 +1,19 @@
+{
+  "title": "Minke whale passive acoustic annotation dataset [TEST]",
+  "description": "Test upload - 2 deployments, 3 audio files, 27 annotations.",
+  "doi": "10.70122/FK2/8HL4QQ",
+  "source": "builtin",
+  "license": "CC-BY-4.0",
+  "annotation_files": {
+    "https://demo.dataverse.org/api/access/datafile/": {
+      "2696379:Annotations_dataset_NN-MW-HB-HK_20221213T142558_fixed.nc": "md5:f302aaede0f6ed44d0181b7d69602c4b"
+    }
+  },
+  "audio_files": {
+    "https://demo.dataverse.org/api/access/datafile/": {
+      "2696377:UK-UAberdeen-MorayFirth-201911_1093-164/Depl1093_1677725722.191106155913.wav": "md5:0c19d5586841560188a57bac9a8d714d",
+      "2696380:UK-UAberdeen-MorayFirth-201709_887-162/Depl887_1678508072.170909060002.wav": "md5:5bcbc9ccf9010f39082a5fa9e5e5ec1c",
+      "2696378:UK-UAberdeen-MorayFirth-201709_887-162/Depl887_1678508072.170921200002.wav": "md5:958fc401f59d9ed029c3c6305622cb8c"
+    }
+  }
+}
