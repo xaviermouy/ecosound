@@ -33,8 +33,11 @@ class NECOFS:
     cached for subsequent calls.
 
     Args:
-        url: OPeNDAP URL for the NECOFS GOM3 dataset.
-             Defaults to the 30-year hindcast endpoint.
+        url: Explicit OPeNDAP URL (overrides *source* if given).
+        source: ``"archive"`` (default) for the Seaplan 33 Hindcast v1
+             monthly files (1978-2024), ``"hindcast_30yr"`` for the legacy
+             aggregated 30-year hindcast (1978-2016), or ``"forecast"``
+             for the NECOFS GOM3 operational forecast.
         verbose: Print progress messages (default: True).
 
     Attributes:
@@ -61,6 +64,11 @@ class NECOFS:
         "http://www.smast.umassd.edu:8080/thredds/dodsC/models/fvcom/NECOFS/"
         "Forecasts/NECOFS_GOM3_FORECAST.nc"
     )
+    # Seaplan 33 Hindcast Archive — monthly files, 1978-2024
+    SEAPLAN_ARCHIVE_BASE = (
+        "http://www.smast.umassd.edu:8080/thredds/dodsC/models/fvcom/NECOFS/"
+        "Archive/Seaplan_33_Hindcast_v1"
+    )
 
     # Default spatial bounds for the Gulf of Maine region
     GOM_BOUNDS = {
@@ -68,15 +76,45 @@ class NECOFS:
         "lon_min": -71.5, "lon_max": -65.0,
     }
 
-    def __init__(self, url: Optional[str] = None, verbose: bool = True):
-        self.url = url or self.GOM3_HINDCAST_URL
+    def __init__(self, url: Optional[str] = None, source: str = "archive",
+                 verbose: bool = True):
+        """
+        Args:
+            url: Explicit OPeNDAP URL. Overrides *source* if given.
+            source: Which dataset to use when *url* is not provided.
+                ``"archive"`` — Seaplan 33 Hindcast v1, monthly files,
+                1978-2024 (default).
+                ``"hindcast_30yr"`` — legacy 30-year aggregated hindcast
+                (1978-2016, lower-resolution grid).
+                ``"forecast"`` — NECOFS GOM3 operational forecast.
+            verbose: Print progress messages (default True).
+        """
+        if url is not None:
+            self.url = url
+            self._use_archive = False
+        elif source == "archive":
+            self.url = self.SEAPLAN_ARCHIVE_BASE
+            self._use_archive = True
+        elif source == "hindcast_30yr":
+            self.url = self.GOM3_HINDCAST_URL
+            self._use_archive = False
+        elif source == "forecast":
+            self.url = self.GOM3_FORECAST_URL
+            self._use_archive = False
+        else:
+            raise ValueError(
+                f"Unknown source {source!r}. "
+                "Use 'archive', 'hindcast_30yr', or 'forecast'."
+            )
         self.verbose = verbose
         self.vertical_profile: Optional[xr.Dataset] = None   # set by get_vertical_profile()
         self.vertical_profiles: Optional[xr.Dataset] = None   # set by get_vertical_profiles()
         self.current_field: Optional[xr.Dataset] = None        # set by get_current_field()
         self.current_fields: Optional[xr.Dataset] = None       # set by get_current_fields()
 
-        # Cached grid data (populated on first call to _open_dataset)
+        # Cached grid/dataset per URL (populated by _open_dataset)
+        self._cache = {}          # url -> {ds, lon_node, lat_node, ...}
+        # Active dataset pointers (set by _open_dataset)
         self._ds = None           # xarray Dataset handle (lazy OPeNDAP)
         self._lon_node = None     # Node longitudes  (node,)
         self._lat_node = None     # Node latitudes   (node,)
@@ -85,6 +123,7 @@ class NECOFS:
         self._h = None            # Bathymetric depth at nodes (node,), m positive down
         self._siglay = None       # Sigma-layer centers (siglay, node), range [0, -1]
         self._times = None        # Model time steps as pd.DatetimeIndex
+        self._active_url = None   # URL of the currently loaded dataset
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -94,34 +133,89 @@ class NECOFS:
         if self.verbose:
             print(msg)
 
-    def _open_dataset(self) -> None:
-        """Open the OPeNDAP dataset and cache time-invariant grid data (runs once)."""
-        if self._ds is not None:
+    @staticmethod
+    def _archive_url_for_month(base: str, year: int, month: int) -> str:
+        """Build the OPeNDAP URL for a specific month in the Seaplan archive.
+
+        Pre-2017 files:  ``<base>/gom3_YYYYMM.nc``
+        2017+    files:  ``<base>/necofs_YYYY/NECOFS_YYYYMM.nc``
+        """
+        ym = f"{year:04d}{month:02d}"
+        if year < 2017:
+            return f"{base}/gom3_{ym}.nc"
+        return f"{base}/necofs_{year:04d}/NECOFS_{ym}.nc"
+
+    def _open_dataset(self, target_dt: Optional[Union[datetime, pd.Timestamp, str]] = None) -> None:
+        """Open the OPeNDAP dataset and cache grid data.
+
+        For archive mode, *target_dt* selects the correct monthly file.
+        Grid coordinates are cached per URL so switching between months
+        on the same grid is cheap.
+        """
+        if self._use_archive:
+            if target_dt is None:
+                raise ValueError(
+                    "Archive mode requires a target datetime to select the "
+                    "correct monthly file.  Pass target_dt to _open_dataset."
+                )
+            ts = pd.Timestamp(target_dt)
+            url = self._archive_url_for_month(self.url, ts.year, ts.month)
+        else:
+            url = self.url
+
+        # Already pointing at this URL — nothing to do
+        if url == self._active_url:
             return
 
-        self._log(f"Connecting to NECOFS GOM3: {self.url}")
+        # Check cache first
+        if url in self._cache:
+            c = self._cache[url]
+            self._ds = c["ds"]
+            self._lon_node = c["lon_node"]
+            self._lat_node = c["lat_node"]
+            self._lon_elem = c["lon_elem"]
+            self._lat_elem = c["lat_elem"]
+            self._h = c["h"]
+            self._siglay = c["siglay"]
+            self._times = c["times"]
+            self._active_url = url
+            self._log(f"Switched to cached dataset: {url}")
+            return
+
+        self._log(f"Connecting to NECOFS GOM3: {url}")
         try:
-            # decode_times=False avoids a crash on FVCOM's non-standard Itime2
-            # units ('msec since 00:00:00') that xarray cannot parse.
-            # Time is decoded manually below.
-            self._ds = xr.open_dataset(
-                self.url, engine="netcdf4", mask_and_scale=True, decode_times=False
+            ds = xr.open_dataset(
+                url, engine="netcdf4", mask_and_scale=True, decode_times=False
             )
         except Exception as exc:
             raise ConnectionError(
-                f"Could not open NECOFS dataset at:\n  {self.url}\n"
+                f"Could not open NECOFS dataset at:\n  {url}\n"
                 "Check the URL, your network connection, and that netCDF4 is installed.\n"
                 f"Original error: {exc}"
             ) from exc
 
-        self._log("Loading grid coordinates (cached for subsequent calls)...")
-        self._lon_node = self._ds["lon"].values    # (node,)
-        self._lat_node = self._ds["lat"].values    # (node,)
-        self._lon_elem = self._ds["lonc"].values   # (nele,)
-        self._lat_elem = self._ds["latc"].values   # (nele,)
-        self._h = self._ds["h"].values             # (node,)
-        self._siglay = self._ds["siglay"].values   # (siglay, node)
+        self._ds = ds
+        self._log("Loading grid coordinates...")
+        self._lon_node = ds["lon"].values
+        self._lat_node = ds["lat"].values
+        self._lon_elem = ds["lonc"].values
+        self._lat_elem = ds["latc"].values
+        self._h = ds["h"].values
+        self._siglay = ds["siglay"].values
         self._times = self._decode_fvcom_times()
+        self._active_url = url
+
+        # Cache for later reuse
+        self._cache[url] = {
+            "ds": self._ds,
+            "lon_node": self._lon_node,
+            "lat_node": self._lat_node,
+            "lon_elem": self._lon_elem,
+            "lat_elem": self._lat_elem,
+            "h": self._h,
+            "siglay": self._siglay,
+            "times": self._times,
+        }
 
         self._log(
             f"Grid loaded: {len(self._lon_node):,} nodes, "
@@ -274,7 +368,7 @@ class NECOFS:
         Raises:
             ConnectionError: If the OPeNDAP dataset cannot be opened.
         """
-        self._open_dataset()
+        self._open_dataset(target_dt=dt)
 
         # Locate nearest grid node (scalars), element center (velocities), and time
         node_idx = self._find_nearest_node(lat, lon)
@@ -331,7 +425,7 @@ class NECOFS:
                 "nearest_elem_idx": int(elem_idx),
                 "bathymetry_m":     h,
                 "total_depth_m":    total_depth,
-                "url":              self.url,
+                "url":              self._active_url or self.url,
                 "model":            "NECOFS GOM3 (FVCOM)",
                 "sound_speed_ref":  "Mackenzie (1981)",
             },
@@ -403,8 +497,81 @@ class NECOFS:
         if dt is None and (start_dt is None or end_dt is None):
             raise ValueError("Provide either 'dt' (list) or both 'start_dt' and 'end_dt'.")
 
-        self._open_dataset()
+        # In archive mode, split the request by month so each monthly file
+        # is opened separately.  For non-archive mode, fetch everything at once.
+        if self._use_archive:
+            ds = self._get_vertical_profiles_archive(lat, lon, dt, start_dt, end_dt)
+        else:
+            # Resolve target_dt for opening the dataset (non-archive ignores it)
+            ref_dt = (dt[0] if dt else start_dt)
+            self._open_dataset(target_dt=ref_dt)
+            ds = self._fetch_profiles_from_open_dataset(lat, lon, dt, start_dt, end_dt)
 
+        self._log(f"Done — {ds.sizes['time']} profiles extracted.")
+        self.vertical_profiles = ds
+        return ds
+
+    def _get_vertical_profiles_archive(
+        self,
+        lat: float,
+        lon: float,
+        dt: Optional[List[Union[datetime, pd.Timestamp, str]]],
+        start_dt, end_dt,
+    ) -> xr.Dataset:
+        """Fetch profiles across monthly archive files, concatenating results."""
+        from itertools import groupby
+
+        if dt is not None:
+            timestamps = sorted(pd.Timestamp(t) for t in dt)
+        else:
+            # Generate monthly boundaries between start and end
+            t0 = pd.Timestamp(start_dt)
+            t1 = pd.Timestamp(end_dt)
+            if t1 < t0:
+                t0, t1 = t1, t0
+            timestamps = None  # will use start/end per month
+
+        chunks = []
+
+        if timestamps is not None:
+            # Group discrete timestamps by (year, month)
+            for (yr, mo), grp in groupby(timestamps, key=lambda t: (t.year, t.month)):
+                month_dts = list(grp)
+                self._open_dataset(target_dt=month_dts[0])
+                chunk = self._fetch_profiles_from_open_dataset(
+                    lat, lon, dt=[str(t) for t in month_dts],
+                    start_dt=None, end_dt=None,
+                )
+                chunks.append(chunk)
+        else:
+            # Walk month by month through the range
+            cur = pd.Timestamp(start_dt).to_period("M")
+            end_period = pd.Timestamp(end_dt).to_period("M")
+            t0_ts = pd.Timestamp(start_dt)
+            t1_ts = pd.Timestamp(end_dt)
+            while cur <= end_period:
+                month_start = max(t0_ts, cur.start_time)
+                month_end = min(t1_ts, cur.end_time)
+                self._open_dataset(target_dt=month_start)
+                chunk = self._fetch_profiles_from_open_dataset(
+                    lat, lon, dt=None,
+                    start_dt=str(month_start), end_dt=str(month_end),
+                )
+                chunks.append(chunk)
+                cur += 1
+
+        if len(chunks) == 1:
+            return chunks[0]
+        return xr.concat(chunks, dim="time")
+
+    def _fetch_profiles_from_open_dataset(
+        self,
+        lat: float,
+        lon: float,
+        dt: Optional[List[Union[datetime, pd.Timestamp, str]]],
+        start_dt, end_dt,
+    ) -> xr.Dataset:
+        """Core profile extraction from the currently open dataset."""
         node_idx = self._find_nearest_node(lat, lon)
         elem_idx = self._find_nearest_elem(lat, lon)
         nearest_lat = float(self._lat_node[node_idx])
@@ -473,7 +640,7 @@ class NECOFS:
             depth_arr[k] = depths[sort_idx]
             zeta_arr[k]  = zeta
 
-        ds = xr.Dataset(
+        return xr.Dataset(
             data_vars={
                 "temperature_C":  (["time", "sigma_layer"], temp_arr,  {"units": "degC",  "long_name": "In-situ temperature"}),
                 "salinity_PSU":   (["time", "sigma_layer"], salt_arr,  {"units": "PSU",   "long_name": "Practical salinity"}),
@@ -497,15 +664,11 @@ class NECOFS:
                 "nearest_node_idx": int(node_idx),
                 "nearest_elem_idx": int(elem_idx),
                 "bathymetry_m":     h,
-                "url":              self.url,
+                "url":              self._active_url or self.url,
                 "model":            "NECOFS GOM3 (FVCOM)",
                 "sound_speed_ref":  "Mackenzie (1981)",
             },
         )
-
-        self._log(f"Done — {n_steps} profiles extracted.")
-        self.vertical_profiles = ds
-        return ds
 
     def plot_vertical_profile(
         self,
@@ -878,7 +1041,7 @@ class NECOFS:
                 - lon_elem, lat_elem    (nele, as coordinates)
                 - time                  (scalar coordinate)
         """
-        self._open_dataset()
+        self._open_dataset(target_dt=dt)
 
         time_idx = self._find_nearest_time(dt)
         model_time = self._times[time_idx]
@@ -917,7 +1080,7 @@ class NECOFS:
                 "depth_m": depth_m,
                 "sigma_layer_idx": layer_idx,
                 "model_time": str(model_time),
-                "url": self.url,
+                "url": self._active_url or self.url,
                 "model": "NECOFS GOM3 (FVCOM)",
             },
         )
@@ -956,8 +1119,50 @@ class NECOFS:
                 - lon_elem, lat_elem    (nele, as coordinates)
                 - time                  (coordinate)
         """
-        self._open_dataset()
+        if self._use_archive:
+            ds = self._get_current_fields_archive(
+                depth_m, start_dt, end_dt, bounds, stride,
+            )
+        else:
+            self._open_dataset(target_dt=start_dt)
+            ds = self._fetch_current_fields_from_open_dataset(
+                depth_m, start_dt, end_dt, bounds, stride,
+            )
 
+        self._log(f"Done — {ds.sizes['time']} current fields extracted.")
+        self.current_fields = ds
+        return ds
+
+    def _get_current_fields_archive(
+        self, depth_m, start_dt, end_dt, bounds, stride,
+    ) -> xr.Dataset:
+        """Fetch current fields across monthly archive files."""
+        t0_ts = pd.Timestamp(start_dt)
+        t1_ts = pd.Timestamp(end_dt)
+        if t1_ts < t0_ts:
+            t0_ts, t1_ts = t1_ts, t0_ts
+
+        chunks = []
+        cur = t0_ts.to_period("M")
+        end_period = t1_ts.to_period("M")
+        while cur <= end_period:
+            month_start = max(t0_ts, cur.start_time)
+            month_end = min(t1_ts, cur.end_time)
+            self._open_dataset(target_dt=month_start)
+            chunk = self._fetch_current_fields_from_open_dataset(
+                depth_m, str(month_start), str(month_end), bounds, stride,
+            )
+            chunks.append(chunk)
+            cur += 1
+
+        if len(chunks) == 1:
+            return chunks[0]
+        return xr.concat(chunks, dim="time")
+
+    def _fetch_current_fields_from_open_dataset(
+        self, depth_m, start_dt, end_dt, bounds, stride,
+    ) -> xr.Dataset:
+        """Core current field extraction from the currently open dataset."""
         t0 = self._find_nearest_time(start_dt)
         t1 = self._find_nearest_time(end_dt)
         if t1 < t0:
@@ -993,7 +1198,7 @@ class NECOFS:
         speed_block = np.sqrt(u_block ** 2 + v_block ** 2)
         model_times = self._times[time_indices]
 
-        ds = xr.Dataset(
+        return xr.Dataset(
             data_vars={
                 "u_ms": (["time", "nele"], u_block, {"units": "m s-1", "long_name": "Eastward current velocity"}),
                 "v_ms": (["time", "nele"], v_block, {"units": "m s-1", "long_name": "Northward current velocity"}),
@@ -1008,14 +1213,10 @@ class NECOFS:
                 "depth_m": depth_m,
                 "sigma_layer_idx": layer_idx,
                 "stride": stride,
-                "url": self.url,
+                "url": self._active_url or self.url,
                 "model": "NECOFS GOM3 (FVCOM)",
             },
         )
-
-        self._log(f"Done — {n_steps} current fields extracted.")
-        self.current_fields = ds
-        return ds
 
     def export_currents_html(
         self,
@@ -1688,7 +1889,9 @@ if __name__ == "__main__":
     from datetime import datetime
 
     # ---- Initialize -------------------------------------------------------
-    # Use default hindcast URL; swap in GOM3_FORECAST_URL for operational forecasts
+    # Default uses the Seaplan archive (1978-2024 monthly files).
+    # For the legacy 30-year aggregated hindcast: NECOFS(source="hindcast_30yr")
+    # For operational forecasts: NECOFS(source="forecast")
     necofs = NECOFS(verbose=True)
 
     # ---- Vertical profile at a Gulf of Maine location ---------------------
