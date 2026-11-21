@@ -58,7 +58,7 @@ def read_yaml(file):
 
 
 @ecosound.core.decorators.listinput
-def filename_to_datetime(files):
+def filename_to_datetime(files, errors='raise'):
     """
     Extract datetime from audio filenames.
 
@@ -70,16 +70,21 @@ def filename_to_datetime(files):
     ----------
     files : str or list of str
         Filename(s) or full file path(s) containing an embedded timestamp.
+    errors : {'raise', 'coerce'}, default 'raise'
+        - ``'raise'``: raise ``ValueError`` when a timestamp cannot be parsed.
+        - ``'coerce'``: return ``None`` for files whose timestamp cannot be
+          parsed and print a warning listing them.
 
     Raises
     ------
     ValueError
-        If the timestamp format in a filename is not recognized.
+        If *errors='raise'* and a timestamp format is not recognized.
 
     Returns
     -------
-    timestamps : list of datetime
+    timestamps : list of datetime or None
         List of :class:`datetime.datetime` objects parsed from each filename.
+        Entries are ``None`` when *errors='coerce'* and parsing failed.
 
     """
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -93,6 +98,7 @@ def filename_to_datetime(files):
     )
     time_formats = [pattern["time_format"] for pattern in patterns]
     timestamps = [None] * len(files)
+    failed_files = []
     p = re.compile(regex_string)
     for idx, file in enumerate(files):
         datestr = p.search(file)
@@ -106,7 +112,18 @@ def filename_to_datetime(files):
             if ok_flag is True:
                 break
         if ok_flag is False:
-            raise ValueError("Time format not recognized:" + file)
+            if errors == 'raise':
+                raise ValueError("Time format not recognized:" + file)
+            else:
+                failed_files.append(file)
+    if failed_files:
+        import warnings
+        warnings.warn(
+            f"Could not parse timestamps for {len(failed_files)} file(s): "
+            + ", ".join(failed_files[:5])
+            + ("..." if len(failed_files) > 5 else ""),
+            stacklevel=2,
+        )
     return timestamps
 
 

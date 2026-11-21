@@ -2,7 +2,7 @@
 
 """The setup script."""
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 exec(open("ecosound/_version.py").read())
 
@@ -16,10 +16,6 @@ with open('HISTORY.rst') as history_file:
 with open('requirements.txt', encoding='utf-8') as f:
     requirements = f.read().split('\n')
 
-setup_requirements = [ ]
-
-test_requirements = [ ]
-
 setup(
     name="ecosound", # Replace with your own username
     version=__version__,
@@ -32,12 +28,14 @@ setup(
 	url="https://github.com/xaviermouy/ecosound",    
     include_package_data=True,
 	#package_data={'': ['core/*.json']},
-    packages=find_packages(include=['ecosound', 'ecosound.*'],exclude=['docs', 'tests','resources']),
+    packages=find_namespace_packages(include=['ecosound', 'ecosound.*'],exclude=['docs', 'tests','resources']),
     install_requires=requirements,
-	setup_requires=setup_requirements,
-	test_suite='tests',
-	tests_require=test_requirements,
-    license="BSD license",
+    entry_points={
+        "console_scripts": [
+            "ecosound = ecosound.cli:main",
+        ],
+    },
+    license="BSD-3-Clause",
 	classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
@@ -47,7 +45,6 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
-        "License :: OSI Approved :: BSD License", 
         "Operating System :: OS Independent",
         "Natural Language :: English",
     ],

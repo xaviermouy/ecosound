@@ -31,3 +31,5 @@ shapely
 PyYAML
 colorcet
 brokenaxes
+ruptures
+click

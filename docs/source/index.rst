@@ -72,6 +72,13 @@ confidence, and plots a summary heatmap:
 
 .. toctree::
    :maxdepth: 2
+   :caption: Tutorials:
+
+   tutorials/index
+
+
+.. toctree::
+   :maxdepth: 2
    :caption: API Reference:
 
    core/index

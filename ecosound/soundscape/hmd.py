@@ -2773,8 +2773,110 @@ class HMD:
             raise ValueError("data must be xarray.DataArray or Dataset")
 
     @staticmethod
+    def decidecade_bands(fmin=20.0, fmax=24000.0):
+        """Return decidecade (1/3-octave) band definitions.
+
+        Each band is defined by its nominal center frequency and the lower/upper
+        edges, computed from IEC 61260 base-10 formulas::
+
+            fc = 10^(n/10)
+            fl = fc / 10^(1/20)
+            fu = fc * 10^(1/20)
+
+        Bands whose center frequency falls within ``[fmin, fmax]`` are included.
+        Edge frequencies are clipped to ``[fmin, fmax]``.
+
+        Parameters
+        ----------
+        fmin : float
+            Minimum frequency in Hz (default 20.0).
+        fmax : float
+            Maximum frequency in Hz (default 24000.0).
+
+        Returns
+        -------
+        list of tuples
+            Each tuple is ``(center_hz, lower_hz, upper_hz)``.
+
+        Examples
+        --------
+        >>> from ecosound.soundscape.hmd import HMD
+        >>> bands = HMD.decidecade_bands(50, 1000)
+        >>> print(f"{len(bands)} bands, first={bands[0][0]} Hz")
+        """
+        bands = []
+        n = int(np.floor(10 * np.log10(fmin)))
+        while True:
+            fc = 10 ** (n / 10)
+            fl = fc / 10 ** (1 / 20)
+            fu = fc * 10 ** (1 / 20)
+            if fc > fmax:
+                break
+            if fu >= fmin:
+                bands.append((round(fc, 2), round(max(fl, fmin), 2),
+                              round(min(fu, fmax), 2)))
+            n += 1
+        return bands
+
+    def extract_decidecade_levels(self, fmin=None, fmax=None):
+        """Integrate millidecade PSD bins into decidecade (1/3-octave) bands.
+
+        For each band, energy is summed in the linear domain then converted
+        back to dB::
+
+            band_dB = 10 * log10( sum( 10^(psd_bin/10) ) )
+
+        Parameters
+        ----------
+        fmin : float, optional
+            Minimum center frequency to include (Hz). Defaults to the
+            dataset's minimum frequency.
+        fmax : float, optional
+            Maximum center frequency to include (Hz). Defaults to the
+            dataset's maximum frequency.
+
+        Returns
+        -------
+        xarray.Dataset
+            One DataArray per decidecade band, named by center frequency
+            (e.g. ``"125Hz"``). Each array has shape ``(time,)``.
+
+        Examples
+        --------
+        >>> hmd = HMD(use_dask=False)
+        >>> hmd.load_nc_files('data/deployment_01')
+        >>> bands = hmd.extract_decidecade_levels()
+        >>> print(bands)
+        >>> # Access a specific band
+        >>> ts_125 = bands['125Hz']
+        """
+        self._check_loaded()
+
+        freqs = self.ds.frequency.values.astype(float)
+        if fmin is None:
+            fmin = float(freqs.min())
+        if fmax is None:
+            fmax = float(freqs.max())
+
+        band_defs = self.decidecade_bands(fmin, fmax)
+        print(f"Integrating {len(band_defs)} decidecade bands ...")
+
+        results = {}
+        for fc, flo, fhi in band_defs:
+            band_name = f"{fc:.0f}Hz"
+            band = self.ds.psd.sel(frequency=slice(flo, fhi))
+            if band.sizes['frequency'] == 0:
+                continue
+            results[band_name] = self._integrate_band_db(band)
+
+        ds = xr.Dataset(results)
+        print(f"  {len(results)} bands from {band_defs[0][0]:.0f} Hz "
+              f"to {band_defs[-1][0]:.0f} Hz")
+        return ds
+
+    @staticmethod
     def _integrate_band_db(db_values, freq_axis='frequency'):
-        """Properly integrate dB values across a frequency band"""
+        """Properly integrate dB values across a frequency band."""
         linear = 10 ** (db_values / 10)
         integrated_linear = linear.sum(dim=freq_axis)
         return 10 * np.log10(integrated_linear)

@@ -15,3 +15,4 @@ provided in the ``data/`` directory of the ecosound repository.
    measurement
    tools
    decorators
+   hmd_qaqc

@@ -103,6 +103,7 @@ class Annotation:
             - ``label_subclass`` (str): Subclass label of the annotation
               (e.g., 'grunt').
             - ``confidence`` (float): Confidence score of the classification.
+            - ``comment`` (str): Free-text comment or note for the annotation.
 
         Returns
         -------
@@ -146,6 +147,7 @@ class Annotation:
                 "label_class": [],
                 "label_subclass": [],
                 "confidence": [],
+                "comment": [],
             }
         )
         self._enforce_dtypes()
@@ -1997,6 +1999,13 @@ class Annotation:
         return data_out
 
     def _enforce_dtypes(self):
+        # Ensure comment column exists (backward compat with old files)
+        if "comment" not in self.data.columns:
+            self.data["comment"] = ""
+        # Fill NaN in integer columns before casting (avoids IntCastingNaNError)
+        for col in ("audio_channel", "audio_sampling_frequency", "audio_bit_depth"):
+            if col in self.data.columns:
+                self.data[col] = self.data[col].fillna(0)
         self.data = self.data.astype(
             {
                 "uuid": "str",
@@ -2034,6 +2043,7 @@ class Annotation:
                 "label_class": "str",
                 "label_subclass": "str",
                 "confidence": "float",
+                "comment": "str",
             }
         )
 
